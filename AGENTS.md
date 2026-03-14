@@ -15,6 +15,7 @@
 - No `.cursor/rules/` directory exists.
 - No `.cursorrules` file exists.
 - No `.github/copilot-instructions.md` file exists.
+- OpenCode project config now lives in `opencode.json` and `.opencode/agents/backend-python-agent.md`.
 
 ## Technology Stack
 
@@ -61,6 +62,8 @@
 - `src/app/presentation/`: FastAPI routers, request models, response models, and dependency wiring.
 - `src/tests/`: automated tests mirroring the package structure when practical.
 - `docs/`: repository notes and supporting documentation when needed.
+- `.opencode/agents/`: project-specific OpenCode agents.
+- `opencode.json`: project-specific OpenCode config, commands, and watcher settings.
 
 ## Clean Architecture / DDD Rules
 
@@ -161,6 +164,15 @@
 - Update this file when commands, architecture, or conventions change.
 - Keep examples aligned with the actual codebase.
 - Do not claim support for tools or workflows that are not configured.
+
+## OpenCode Setup
+
+- Project-level OpenCode config: `opencode.json`.
+- Custom backend subagent: `.opencode/agents/backend-python-agent.md`.
+- Suggested usage: invoke `@backend-python-agent` for backend-specific FastAPI work.
+- Custom commands available through OpenCode:
+  - `/backend-login`
+  - `/backend-test`
 
 ## Cursor / Copilot Rules
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "agent": {
+    "backend-python-agent": {
+      "description": "Builds and maintains the FastAPI backend using clean architecture and DDD conventions",
+      "prompt": "{file:.opencode/agents/backend-python-agent.md}"
+    }
+  },
+  "command": {
+    "backend-login": {
+      "description": "Implement or refine the login API flow",
+      "agent": "backend-python-agent",
+      "subtask": true,
+      "template": "Work on the backend authentication flow for this FastAPI project.\n\nContext:\n- Framework: FastAPI\n- Architecture: Clean Architecture and DDD\n- Current endpoint: POST /auth/login\n- Frontend response contract: token, email, displayName, loggedInAt\n\nTask:\n$ARGUMENTS"
+    },
+    "backend-test": {
+      "description": "Review backend tests or add missing coverage",
+      "agent": "backend-python-agent",
+      "subtask": true,
+      "template": "Review the backend tests for this FastAPI project and improve them if needed.\n\nFocus areas:\n- Endpoint coverage\n- Use case behavior\n- Error handling\n- Response contract stability\n\nSpecific request:\n$ARGUMENTS"
+    }
+  },
+  "watcher": {
+    "ignore": [
+      ".git/**",
+      ".idea/**",
+      ".pytest_cache/**",
+      ".ruff_cache/**",
+      "__pycache__/**",
+      ".venv/**"
+    ]
+  }
+}
