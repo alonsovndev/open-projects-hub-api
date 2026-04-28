@@ -10,12 +10,6 @@
 - The project is now a Python FastAPI API.
 - Package root: `src/app/`.
 - Tests live in `src/tests/`.
-- Base dependencies currently live in `requirements.txt`.
-- No `pyproject.toml` exists right now.
-- No `.cursor/rules/` directory exists.
-- No `.cursorrules` file exists.
-- No `.github/copilot-instructions.md` file exists.
-- OpenCode project config now lives in `opencode.json` and `.opencode/agents/backend-python-agent.md`.
 
 ## Technology Stack
 
@@ -135,7 +129,7 @@
 - Prefer small use cases with explicit inputs and outputs.
 - Avoid deep nesting when guard clauses are clearer.
 - Keep classes narrow in responsibility.
-- Prefer composition over inheritance.
+- Prefer composition to inheritance.
 
 ## Error Handling
 
@@ -164,18 +158,3 @@
 - Update this file when commands, architecture, or conventions change.
 - Keep examples aligned with the actual codebase.
 - Do not claim support for tools or workflows that are not configured.
-
-## OpenCode Setup
-
-- Project-level OpenCode config: `opencode.json`.
-- Custom backend subagent: `.opencode/agents/backend-python-agent.md`.
-- Suggested usage: invoke `@backend-python-agent` for backend-specific FastAPI work.
-- Custom commands available through OpenCode:
-  - `/backend-login`
-  - `/backend-test`
-
-## Cursor / Copilot Rules
-
-- Cursor rules present: no.
-- Copilot instructions present: no.
-- No external editor-agent instruction files were available to merge.
