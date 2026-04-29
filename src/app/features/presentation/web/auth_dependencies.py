@@ -8,7 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app.config.app_config import AppConfig
 from src.app.features.domain.exceptions.auth_exceptions import UnauthorizedError
 from src.app.features.domain.value_objects.user_role import UserRole
-from src.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 security = HTTPBearer()
 

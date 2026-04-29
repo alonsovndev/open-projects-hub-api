@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
-from src.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.fixture

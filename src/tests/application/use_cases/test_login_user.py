@@ -7,9 +7,9 @@ from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.domain.exceptions.auth_exceptions import InvalidCredentialsError
 from src.app.features.domain.value_objects.email import Email
 from src.app.features.domain.value_objects.user_role import UserRole
-from src.shared.domain.value_objects.entity_id import EntityId
-from src.shared.infrastructure.security.jwt_handler import JWTHandler
-from src.shared.infrastructure.security.password_handler import PasswordHandler
+from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
 @pytest.fixture

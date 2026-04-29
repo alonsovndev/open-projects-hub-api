@@ -4,8 +4,8 @@ from pyaml_env import parse_config
 from threading import Lock
 from typing import Dict, Any, Optional
 
-from src.shared.utils.log_util import log
-from src.shared.utils.retry_decorator import retry_on_exception
+from src.app.shared.utils.log_util import log
+from src.app.shared.utils.retry_decorator import retry_on_exception
 from src.app.config.paths import Paths
 
 APP_ENV = "APP_ENV"

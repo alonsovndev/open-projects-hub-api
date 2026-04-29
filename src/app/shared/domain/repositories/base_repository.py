@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, List, Optional
 
-from src.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.value_objects.entity_id import EntityId
 
 T = TypeVar('T')
 ID = TypeVar('ID')

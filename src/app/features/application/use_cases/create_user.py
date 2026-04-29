@@ -2,8 +2,8 @@ from src.app.features.application.dtos.user_dto import UserCreateRequest, UserRe
 from src.app.features.application.dtos.user_dto_mapper import map_create_request_to_entity, map_entity_to_dto_user
 from src.app.features.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.domain.repositories.user_repository import UserRepository
-from src.shared.infrastructure.security.password_handler import PasswordHandler
-from src.shared.utils.log_util import log
+from src.app.shared.infrastructure.security.password_handler import PasswordHandler
+from src.app.shared.utils.log_util import log
 
 
 class CreateUserUseCase:

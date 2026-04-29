@@ -1,10 +1,8 @@
-from uuid import UUID
-
 from src.app.features.application.dtos.user_dto_mapper import UserResponse, map_entity_to_dto_user
 from src.app.features.application.exceptions.user_exception import UserDoesNotExistException
 from src.app.features.domain.repositories.user_repository import UserRepository
-from src.shared.domain.value_objects.entity_id import EntityId
-from src.shared.utils.log_util import log
+from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.utils.log_util import log
 
 
 class GetUserByIdUseCase:

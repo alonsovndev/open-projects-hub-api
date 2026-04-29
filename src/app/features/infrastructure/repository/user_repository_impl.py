@@ -1,6 +1,5 @@
 from typing import Optional, List
 
-import bcrypt
 from sqlalchemy import select
 import sqlalchemy.exc
 
@@ -10,12 +9,12 @@ from src.app.features.domain.repositories.user_repository import UserRepository
 from src.app.features.domain.value_objects.email import Email
 from src.app.features.infrastructure.models.user_model import UserModel
 from src.app.features.infrastructure.repository.user_model_mapper import map_model_to_entity
-from src.shared.domain.repositories.base_repository import ID, T
+from src.app.shared.domain.repositories.base_repository import ID, T
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.shared.domain.value_objects.entity_id import EntityId
-from src.shared.utils.log_util import log
+from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.utils.log_util import log
 
 
 class DatabaseConnectionError(Exception):

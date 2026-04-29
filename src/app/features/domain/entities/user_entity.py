@@ -3,8 +3,8 @@ from typing import Optional
 
 from src.app.features.domain.value_objects.email import Email
 from src.app.features.domain.value_objects.user_role import UserRole
-from src.shared.domain.entities.base_entity import BaseEntity
-from src.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.entities.base_entity import BaseEntity
+from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 class UserEntity(BaseEntity):

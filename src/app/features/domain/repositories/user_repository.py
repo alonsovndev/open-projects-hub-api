@@ -1,10 +1,10 @@
 from abc import abstractmethod
-from typing import Optional, List
+from typing import Optional
 
 from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.domain.value_objects.email import Email
-from src.shared.domain.repositories.base_repository import BaseRepository, ID, T
-from src.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.repositories.base_repository import BaseRepository
+from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 class UserRepository(BaseRepository[UserEntity, EntityId]):

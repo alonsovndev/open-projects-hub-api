@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from src.shared.domain.value_objects.entity_id import EntityId
-from src.shared.utils.date_util import get_current_datetime
+from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.utils.date_util import get_current_datetime
 
 
 class BaseEntity:

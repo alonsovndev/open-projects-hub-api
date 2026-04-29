@@ -1,13 +1,13 @@
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.domain.value_objects.email import Email
 from src.app.features.domain.value_objects.user_role import UserRole
-from src.shared.domain.value_objects.entity_id import EntityId
-from src.shared.infrastructure.security.password_handler import PasswordHandler
+from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
 @pytest.fixture

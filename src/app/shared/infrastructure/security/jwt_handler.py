@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 import jwt
 
-from src.shared.utils.log_util import log
+from src.app.shared.utils.log_util import log
 
 
 class JWTHandler:

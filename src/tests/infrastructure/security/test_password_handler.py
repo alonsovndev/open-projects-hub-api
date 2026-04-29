@@ -1,6 +1,4 @@
-import pytest
-
-from src.shared.infrastructure.security.password_handler import PasswordHandler
+from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
 class TestPasswordHandler:

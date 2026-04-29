@@ -1,7 +1,7 @@
 from src.app.features.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
 from src.app.features.application.use_cases.login_user import LoginUserUseCase
 from src.app.features.domain.repositories.user_repository import UserRepository
-from src.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 class AuthService:

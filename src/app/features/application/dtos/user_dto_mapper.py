@@ -6,7 +6,7 @@ from uuid import uuid4
 from src.app.features.application.dtos.user_dto import UserCreateRequest, UserResponse
 from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.domain.value_objects.email import Email
-from src.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.value_objects.entity_id import EntityId
 
 def map_entity_to_dto_user(user_entity:  Union[BaseModel, UserEntity]) -> UserResponse:
     """

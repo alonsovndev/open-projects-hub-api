@@ -8,8 +8,8 @@ from src.app.features.application.services.auth_service import AuthService
 from src.app.features.application.services.user_service import UserService
 from src.app.features.infrastructure.repository.user_repository_impl import UserRepositoryImpl
 from src.app.features.presentation.web.auth_dependencies import get_jwt_handler
-from src.shared.infrastructure.config.postgres_db_conn import PostgresDbConnection
-from src.shared.utils.config_util import get_config_value
+from src.app.shared.infrastructure.config.postgres_db_conn import PostgresDbConnection
+from src.app.shared.utils.config_util import get_config_value
 
 app_config: dict = AppConfig.instance().config
 

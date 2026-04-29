@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 
-from src.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 class TestJWTHandler:

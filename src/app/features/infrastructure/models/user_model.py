@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Enum as SQLEnum
 
 from src.app.features.domain.value_objects.user_role import UserRole
-from src.shared.infrastructure.models.base_model import BaseModel
+from src.app.shared.infrastructure.models.base_model import BaseModel
 
 
 class UserModel(BaseModel):

@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngin
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
-from src.shared.utils.config_util import get_config_value
-from src.shared.utils.log_util import log
+from src.app.shared.utils.config_util import get_config_value
+from src.app.shared.utils.log_util import log
 
 
 class PostgresDbConnection:

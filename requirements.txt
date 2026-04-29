@@ -1,22 +1,32 @@
+# Web Framework
 fastapi==0.115.11
 uvicorn==0.34.0
+gunicorn==23.0.0
+
+# Data Validation
 pydantic==2.10.6
 email-validator==2.2.0
-aiosmtplib==4.0.0
-python-dotenv==1.0.1
+
+# Database
 SQLAlchemy==2.0.39
-psycopg2-binary==2.9.10
-gunicorn==23.0.0
-backoff==2.2.1
-pyaml-env==1.2.2
-passlib[bcrypt]==1.7.4
-pyjwt==2.10.1
-python-jose[cryptography]==3.4.0
 alembic==1.15.1
-pytest==7.4.2
-pyaml_env~=1.2.2
 asyncpg==0.30.0
+psycopg2-binary==2.9.10
 greenlet==3.3.0
+
+# Security & Authentication
+pyjwt==2.10.1
 bcrypt==5.0.0
+
+# Configuration
+python-dotenv==1.0.1
+pyaml-env==1.2.2
+
+# Utilities
+backoff==2.2.1
+aiosmtplib==4.0.0
 httpx==0.28.1
+
+# Testing
+pytest==8.3.4
 pytest-asyncio==0.25.3

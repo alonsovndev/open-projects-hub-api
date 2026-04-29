@@ -8,11 +8,11 @@ jwt:
   access_token_expire_minutes: 1440
 
 postgres:
-  username: "admin"
+  username: "open-projects-hub-admin"
   password: !ENV ${POSTGRES_PASSWORD}
-  host: "localhost"
+  host: "dev-host"
   port: 5432
-  dbname: "templatedb"
+  dbname: "open-projects-hub-db"
   echo: true  # SQLAlchemy echo logs
   pool_size: 10
   max_over_flow: 10
