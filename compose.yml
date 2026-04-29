@@ -1,0 +1,47 @@
+services:
+  app:
+    container_name: template_api_app
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy  # Wait for postgres to be healthy
+    env_file:
+      - .env
+    environment:
+        APP_ENV: "docker"
+    ports:
+      - "8080:8080"
+    command: ["./start.sh"]
+    networks:
+      - template_network
+
+  postgres:
+    image: postgres:15
+    container_name: template_api_app_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: templatedb
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d templatedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - template_network
+
+volumes:
+  postgres_data:
+
+networks:
+  template_network:
+    driver: bridge

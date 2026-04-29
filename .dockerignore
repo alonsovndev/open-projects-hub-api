@@ -1,0 +1,34 @@
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Environment files
+.env
+*.env
+
+# Git and version control
+.git/
+.gitignore
+
+# Docker artifacts
+Dockerfile
+compose.yml
+
+
+# Editor & OS files
+*.swp
+*.swo
+*.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Tests (optional, if not needed in image)
+tests/

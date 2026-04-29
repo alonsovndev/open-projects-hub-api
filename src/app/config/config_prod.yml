@@ -1,0 +1,15 @@
+app:
+  name: "App API"
+  version: "1.0.0"
+
+postgres:
+  username: "templateAdmin"
+  password: !ENV ${POSTGRES_PASSWORD}
+  host: "prod-host"
+  port: 5432
+  dbname: "templatedb"
+  echo: true  # SQLAlchemy echo logs
+  pool_size: 10
+  max_over_flow: 10
+  pool_timeout: 30
+
