@@ -2,6 +2,11 @@ app:
   name: "App API"
   version: "1.0.0"
 
+jwt:
+  secret_key: !ENV ${SECRET_KEY}
+  algorithm: "HS256"
+  access_token_expire_minutes: 480
+
 postgres:
   username: "templateAdmin"
   password: !ENV ${POSTGRES_PASSWORD}

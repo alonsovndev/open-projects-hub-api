@@ -2,7 +2,7 @@ from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.infrastructure.models.user_model import UserModel
 
 
-def map_model_to_entity(user_model: UserModel):
+def map_model_to_entity(user_model: UserModel) -> UserEntity:
     """Maps a user model to a user entity."""
 
     return UserEntity(
@@ -11,6 +11,7 @@ def map_model_to_entity(user_model: UserModel):
         first_name=user_model.first_name,
         last_name=user_model.last_name,
         password_hash=user_model.password_hash,
+        role=user_model.role,
         created_at=user_model.created_at,
         updated_at=user_model.updated_at,
     )

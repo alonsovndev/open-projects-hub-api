@@ -81,7 +81,7 @@ class UserRepositoryImpl(UserRepository):
 
             log.info("[create_user] about to access .value fields")
 
-            user_model = UserModel(id=user.id.value, email=user.email.value, first_name=user.first_name, last_name=user.last_name, password_hash=user.password_hash,)
+            user_model = UserModel(id=user.id.value, email=user.email.value, first_name=user.first_name, last_name=user.last_name, password_hash=user.password_hash, role=user.role)
 
             self.db_session.add(user_model)
             await self.db_session.commit()

@@ -2,8 +2,9 @@ from src.app.features.application.dtos.user_dto import UserCreateRequest, UserRe
 from src.app.features.application.dtos.user_dto_mapper import map_create_request_to_entity, map_entity_to_dto_user
 from src.app.features.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.domain.repositories.user_repository import UserRepository
+from src.shared.infrastructure.security.password_handler import PasswordHandler
 from src.shared.utils.log_util import log
-import bcrypt
+
 
 class CreateUserUseCase:
 
@@ -12,7 +13,7 @@ class CreateUserUseCase:
 
     async def execute(self, payload: UserCreateRequest) -> UserResponse:
         try:
-            password_hash = bcrypt.hashpw(payload.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            password_hash = PasswordHandler.hash_password(payload.password)
 
             new_user_entity = map_create_request_to_entity(payload, password_hash)
 
