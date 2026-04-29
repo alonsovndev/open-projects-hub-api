@@ -2,6 +2,11 @@ app:
   name: "App API"
   version: "1.0.0"
 
+jwt:
+  secret_key: !ENV ${SECRET_KEY}
+  algorithm: "HS256"
+  access_token_expire_minutes: 1440
+
 postgres:
   username: "admin"
   password: !ENV ${POSTGRES_PASSWORD}
@@ -12,6 +17,5 @@ postgres:
   pool_size: 10
   max_over_flow: 10
   pool_timeout: 30
-
 
 
