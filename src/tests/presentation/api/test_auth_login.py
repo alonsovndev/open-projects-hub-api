@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,11 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
+def _hash_password_sync(password: str) -> str:
+    """Helper to hash password synchronously for test fixtures."""
+    return asyncio.run(PasswordHandler.hash_password(password))
+
+
 @pytest.fixture
 def client():
     return TestClient(fastApiApp)
@@ -18,7 +24,7 @@ def client():
 @pytest.fixture
 def mock_admin_user():
     """Fixture for an admin user entity."""
-    password_hash = PasswordHandler.hash_password("Admin123!")
+    password_hash = _hash_password_sync("Admin123!")
 
     return UserEntity(
         id=EntityId.generate(),
@@ -33,7 +39,7 @@ def mock_admin_user():
 @pytest.fixture
 def mock_regular_user():
     """Fixture for a regular user entity."""
-    password_hash = PasswordHandler.hash_password("User123!")
+    password_hash = _hash_password_sync("User123!")
 
     return UserEntity(
         id=EntityId.generate(),

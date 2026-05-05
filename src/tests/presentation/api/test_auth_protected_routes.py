@@ -16,7 +16,7 @@ def app_jwt_handler():
     """JWT handler using the app's configured secret key."""
     config = AppConfig.instance()
     secret_key = config.get_config("jwt.secret_key")
-    return JWTHandler(secret_key=secret_key, expiration_minutes=60)
+    return JWTHandler(secret_key=secret_key, expiration_minutes=60, validate_secret=False)
 
 
 @pytest.fixture

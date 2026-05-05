@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from unittest.mock import AsyncMock
 
 from src.app.features.application.dtos.auth_dto import LoginRequest
@@ -14,12 +15,16 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 
 @pytest.fixture
 def jwt_handler():
-    return JWTHandler(secret_key="test-secret", expiration_minutes=60)
+    return JWTHandler(
+        secret_key="test-secret-key-that-is-at-least-32-characters-long",
+        expiration_minutes=60,
+        validate_secret=False  # Disable validation for tests
+    )
 
 
-@pytest.fixture
-def mock_admin_user():
-    password_hash = PasswordHandler.hash_password("Admin123!")
+@pytest_asyncio.fixture
+async def mock_admin_user():
+    password_hash = await PasswordHandler.hash_password("Admin123!")
     return UserEntity(
         id=EntityId.generate(),
         email=Email("admin@example.com"),
@@ -79,7 +84,7 @@ class TestLoginUserUseCase:
     @pytest.mark.asyncio
     async def test_execute_sets_correct_role_in_response(self, jwt_handler):
         """Test that role is correctly set in response."""
-        password_hash = PasswordHandler.hash_password("User123!")
+        password_hash = await PasswordHandler.hash_password("User123!")
         regular_user = UserEntity(
             id=EntityId.generate(),
             email=Email("user@example.com"),

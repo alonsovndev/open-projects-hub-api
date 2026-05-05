@@ -11,9 +11,10 @@ class TestJWTHandler:
     @pytest.fixture
     def jwt_handler(self):
         return JWTHandler(
-            secret_key="test-secret-key",
+            secret_key="test-secret-key-that-is-at-least-32-characters-long",
             algorithm="HS256",
             expiration_minutes=60,
+            validate_secret=False,  # Disable validation for tests
         )
 
     def test_create_access_token_includes_claims(self, jwt_handler):
@@ -24,7 +25,7 @@ class TestJWTHandler:
             role="ADMIN",
         )
 
-        payload = jwt.decode(token, "test-secret-key", algorithms=["HS256"])
+        payload = jwt.decode(token, jwt_handler.secret_key, algorithms=["HS256"])
 
         assert payload["sub"] == "123"
         assert payload["email"] == "test@example.com"
@@ -58,7 +59,7 @@ class TestJWTHandler:
             "exp": exp_time,
         }
 
-        expired_token = jwt.encode(payload, "test-secret-key", algorithm="HS256")
+        expired_token = jwt.encode(payload, jwt_handler.secret_key, algorithm="HS256")
 
         with pytest.raises(jwt.ExpiredSignatureError):
             jwt_handler.decode_access_token(expired_token)
@@ -110,6 +111,6 @@ class TestJWTHandler:
             additional_claims={"custom_claim": "value"},
         )
 
-        payload = jwt.decode(token, "test-secret-key", algorithms=["HS256"])
+        payload = jwt.decode(token, jwt_handler.secret_key, algorithms=["HS256"])
 
         assert payload["custom_claim"] == "value"
