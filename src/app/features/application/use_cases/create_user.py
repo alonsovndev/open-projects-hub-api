@@ -13,7 +13,7 @@ class CreateUserUseCase:
 
     async def execute(self, payload: UserCreateRequest) -> UserResponse:
         try:
-            password_hash = PasswordHandler.hash_password(payload.password)
+            password_hash = await PasswordHandler.hash_password(payload.password)
 
             new_user_entity = map_create_request_to_entity(payload, password_hash)
 
@@ -24,6 +24,11 @@ class CreateUserUseCase:
                 raise UserAlreadyExistsException(str(new_user_entity.email))
 
             created_user = await self.user_repository.save(new_user_entity)
+            
+            # Repository returns None if duplicate email exists
+            if created_user is None:
+                log.warning(f"Race condition: User with email {new_user_entity.email} was created by another request")
+                raise UserAlreadyExistsException(str(new_user_entity.email))
 
             response_dto = map_entity_to_dto_user(created_user)
 

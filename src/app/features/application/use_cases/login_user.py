@@ -38,10 +38,12 @@ class LoginUserUseCase:
                 log.warning(f"Login attempt with non-existent email: {payload.email}")
                 raise InvalidCredentialsError()
 
-            if not PasswordHandler.verify_password(
+            password_valid = await PasswordHandler.verify_password(
                 payload.password,
                 user_entity.password_hash,
-            ):
+            )
+            
+            if not password_valid:
                 log.warning(f"Failed login attempt for user: {user_entity.id}")
                 raise InvalidCredentialsError()
 
