@@ -1,11 +1,14 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from src.app.config.app_config import AppConfig
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from src.app.config.app_config import AppConfig
 from src.app.features.presentation.web.routes.auth_routes import router as auth_router
 from src.app.features.presentation.web.routes.user_routes import router as user_router
+from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 
 ENV = os.getenv("APP_ENV", "local")
 
@@ -14,6 +17,10 @@ app_name = config.get_config("app.name")
 app_version = config.get_config("app.version")
 
 fastApiApp = FastAPI(title=app_name, version=app_version)
+
+# Register rate limiter with FastAPI
+fastApiApp.state.limiter = limiter
+fastApiApp.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 if ENV not in ("local", "container"):
     fastApiApp.docs_url = None
