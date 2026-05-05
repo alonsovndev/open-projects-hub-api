@@ -7,15 +7,6 @@ This directory contains comprehensive documentation for the Open Projects Hub AP
 ```
 docs/
 ├── README.md                      # This file - documentation index
-├── evaluation/                    # Code audit and quality assessments
-│   └── v1.md                     # Initial code audit (score: 7/10)
-├── features/                      # Feature specifications and plans
-│   ├── v1.md                     # Original implementation plan
-│   └── v2-improved.md            # Improved plan incorporating audit fixes
-├── implementation/                # Implementation details and progress
-│   ├── phase1-summary.md         # Phase 1 completion details
-│   ├── phase2-next-steps.md      # Roadmap for Phases 2-4
-│   └── quick-reference.md        # Quick reference guide (TL;DR)
 ├── api/                          # API documentation
 │   ├── README.md                 # API overview
 │   ├── authentication.md         # Auth endpoints and flows
