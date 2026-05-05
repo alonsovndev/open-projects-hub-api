@@ -1,3 +1,4 @@
+import asyncio
 import bcrypt
 
 from src.app.shared.utils.log_util import log
@@ -6,12 +7,17 @@ from src.app.shared.utils.log_util import log
 class PasswordHandler:
     """
     Handles password hashing and verification using bcrypt.
+    
+    Uses asyncio.to_thread() to prevent blocking the event loop during
+    CPU-intensive bcrypt operations.
     """
 
     @staticmethod
-    def hash_password(plain_password: str) -> str:
+    async def hash_password(plain_password: str) -> str:
         """
-        Hashes a plain text password using bcrypt.
+        Hashes a plain text password using bcrypt asynchronously.
+        
+        Runs bcrypt operations in a thread pool to prevent blocking the event loop.
 
         Args:
             plain_password: Plain text password
@@ -19,17 +25,21 @@ class PasswordHandler:
         Returns:
             Hashed password string
         """
-        password_hash = bcrypt.hashpw(
-            plain_password.encode("utf-8"),
-            bcrypt.gensalt(),
-        ).decode("utf-8")
-
+        def _hash():
+            return bcrypt.hashpw(
+                plain_password.encode("utf-8"),
+                bcrypt.gensalt(),
+            ).decode("utf-8")
+        
+        password_hash = await asyncio.to_thread(_hash)
         return password_hash
 
     @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
+    async def verify_password(plain_password: str, hashed_password: str) -> bool:
         """
-        Verifies a plain text password against a hashed password.
+        Verifies a plain text password against a hashed password asynchronously.
+        
+        Runs bcrypt operations in a thread pool to prevent blocking the event loop.
 
         Args:
             plain_password: Plain text password to verify
@@ -39,11 +49,15 @@ class PasswordHandler:
             True if password matches, False otherwise
         """
         try:
-            result = bcrypt.checkpw(
-                plain_password.encode("utf-8"),
-                hashed_password.encode("utf-8"),
-            )
+            def _verify():
+                return bcrypt.checkpw(
+                    plain_password.encode("utf-8"),
+                    hashed_password.encode("utf-8"),
+                )
+            
+            result = await asyncio.to_thread(_verify)
             return result
         except Exception as e:
             log.error(f"Error verifying password: {str(e)}")
             return False
+

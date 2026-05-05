@@ -3,7 +3,6 @@ from typing import Optional, List
 from sqlalchemy import select
 import sqlalchemy.exc
 
-from src.app.features.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.domain.entities.user_entity import UserEntity
 from src.app.features.domain.repositories.user_repository import UserRepository
 from src.app.features.domain.value_objects.email import Email
@@ -70,17 +69,40 @@ class UserRepositoryImpl(UserRepository):
     async def find_by_name(self, record: str) -> Optional[UserEntity]:
         pass
 
-    async def save(self, user: UserEntity) -> UserEntity:
+    async def save(self, user: UserEntity) -> Optional[UserEntity]:
+        """
+        Saves a user entity to the database.
+        
+        Returns None if a duplicate email exists (infrastructure concern).
+        Let the application layer decide how to handle duplicates.
+
+        Args:
+            user: UserEntity to save
+
+        Returns:
+            UserEntity if saved successfully, None if duplicate email exists
+
+        Raises:
+            DatabaseConnectionError: If database connection fails
+            Exception: For other unexpected errors
+        """
         try:
             result = await self.db_session.execute(select(UserModel).where(UserModel.email == user.email.value))
 
             if result.scalar_one_or_none():
-                log.warning(f"[save] User with email {user.email} already exists")
-                raise UserAlreadyExistsException(user.email.value)
+                log.warning(f"[save] User with email {user.email} already exists - returning None")
+                return None
 
             log.info("[create_user] about to access .value fields")
 
-            user_model = UserModel(id=user.id.value, email=user.email.value, first_name=user.first_name, last_name=user.last_name, password_hash=user.password_hash, role=user.role)
+            user_model = UserModel(
+                id=user.id.value,
+                email=user.email.value,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                password_hash=user.password_hash,
+                role=user.role
+            )
 
             self.db_session.add(user_model)
             await self.db_session.commit()
@@ -91,9 +113,14 @@ class UserRepositoryImpl(UserRepository):
 
         except sqlalchemy.exc.IntegrityError as e:
             await self.db_session.rollback()
-
             log.error(f"[save] IntegrityError while saving user with email {user.email}: {e}")
-            raise UserAlreadyExistsException(user.email.value) from e
+            # Return None for duplicate email constraint violations
+            return None
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            await self.db_session.rollback()
+            log.error(f"[save] Database connection error: {str(db_error)}")
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
             await self.db_session.rollback()
