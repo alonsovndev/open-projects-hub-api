@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.utils.date_util import get_current_datetime
 
 
 class BaseEntity:
@@ -14,8 +13,8 @@ class BaseEntity:
                  ):
         self.id: EntityId = id or EntityId.generate()
 
-        self.created_at: datetime = created_at or get_current_datetime()
-        self.updated_at: datetime = updated_at or get_current_datetime()
+        self.created_at: datetime = created_at or datetime.now()
+        self.updated_at: datetime = updated_at or datetime.now()
 
     def mark_as_updated(self) -> None:
-        self.updated_at = get_current_datetime()
+        self.updated_at = datetime.now()

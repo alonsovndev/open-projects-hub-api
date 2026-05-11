@@ -34,14 +34,20 @@ class JWTHandler:
         secret_key: str,
         algorithm: str = "HS256",
         expiration_minutes: int = 1440,
+        refresh_expiration_minutes: int = 10080,  # 7 days
         validate_secret: bool = True,
+        audience: Optional[str] = None,
+        issuer: Optional[str] = None,
     ):
         """
         Args:
             secret_key: Secret key for signing tokens
             algorithm: JWT algorithm (default: HS256)
-            expiration_minutes: Token expiration time in minutes (default: 24 hours)
+            expiration_minutes: Access token expiration time in minutes (default: 24 hours)
+            refresh_expiration_minutes: Refresh token expiration time in minutes (default: 7 days)
             validate_secret: Whether to validate secret strength (default: True, disable for tests)
+            audience: Expected audience claim (default: None, auto-set to "open-projects-hub-api")
+            issuer: Expected issuer claim (default: None, auto-set to "open-projects-hub-api")
         
         Raises:
             JWTSecretError: If secret key is weak or invalid
@@ -52,6 +58,9 @@ class JWTHandler:
         self.secret_key = secret_key
         self.algorithm = algorithm
         self.expiration_minutes = expiration_minutes
+        self.refresh_expiration_minutes = refresh_expiration_minutes
+        self.audience = audience or "open-projects-hub-api"
+        self.issuer = issuer or "open-projects-hub-api"
 
     @classmethod
     def _validate_secret_key(cls, secret_key: str) -> None:
@@ -114,6 +123,8 @@ class JWTHandler:
             "role": role,
             "iat": now,
             "exp": expires_at,
+            "aud": self.audience,
+            "iss": self.issuer,
         }
 
         if additional_claims:
@@ -124,9 +135,45 @@ class JWTHandler:
 
         return token
 
+    def create_refresh_token(
+        self,
+        user_id: str,
+        email: str,
+        role: str,
+    ) -> str:
+        """
+        Creates a JWT refresh token with longer expiration.
+
+        Args:
+            user_id: User's unique identifier
+            email: User's email address
+            role: User's role (ADMIN or USER)
+
+        Returns:
+            Encoded JWT refresh token string
+        """
+        now = datetime.now(tz=timezone.utc)
+        expires_at = now + timedelta(minutes=self.refresh_expiration_minutes)
+
+        payload: Dict[str, Any] = {
+            "sub": user_id,
+            "email": email,
+            "role": role,
+            "iat": now,
+            "exp": expires_at,
+            "aud": self.audience,
+            "iss": self.issuer,
+            "type": "refresh",  # Mark as refresh token
+        }
+
+        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+        log.info(f"JWT refresh token created for user {user_id}")
+
+        return token
+
     def decode_access_token(self, token: str) -> Dict[str, Any]:
         """
-        Decodes and validates a JWT token.
+        Decodes and validates a JWT token with audience and issuer verification.
 
         Args:
             token: JWT token string
@@ -136,6 +183,8 @@ class JWTHandler:
 
         Raises:
             jwt.ExpiredSignatureError: If token has expired
+            jwt.InvalidAudienceError: If audience claim doesn't match
+            jwt.InvalidIssuerError: If issuer claim doesn't match
             jwt.InvalidTokenError: If token is invalid
         """
         try:
@@ -143,10 +192,25 @@ class JWTHandler:
                 token,
                 self.secret_key,
                 algorithms=[self.algorithm],
+                audience=self.audience,
+                issuer=self.issuer,
+                options={
+                    "require": ["exp", "iat", "sub", "aud", "iss"],
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "verify_aud": True,
+                    "verify_iss": True,
+                },
             )
             return payload
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired JWT token")
+            raise
+        except jwt.InvalidAudienceError:
+            log.warning(f"JWT token has invalid audience (expected: {self.audience})")
+            raise
+        except jwt.InvalidIssuerError:
+            log.warning(f"JWT token has invalid issuer (expected: {self.issuer})")
             raise
         except jwt.InvalidTokenError as e:
             log.warning(f"Invalid JWT token: {str(e)}")
@@ -167,4 +231,47 @@ class JWTHandler:
             return True
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return False
+
+    def decode_refresh_token(self, token: str) -> Dict[str, Any]:
+        """
+        Decodes and validates a refresh token with type verification.
+
+        Args:
+            token: JWT refresh token string
+
+        Returns:
+            Dictionary containing token payload
+
+        Raises:
+            jwt.ExpiredSignatureError: If token has expired
+            jwt.InvalidTokenError: If token is invalid or not a refresh token
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                self.secret_key,
+                algorithms=[self.algorithm],
+                audience=self.audience,
+                issuer=self.issuer,
+                options={
+                    "require": ["exp", "iat", "sub", "aud", "iss"],
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "verify_aud": True,
+                    "verify_iss": True,
+                },
+            )
+            
+            # Verify this is a refresh token
+            if payload.get("type") != "refresh":
+                log.warning("Attempted to use non-refresh token for refresh operation")
+                raise jwt.InvalidTokenError("Token is not a refresh token")
+            
+            return payload
+        except jwt.ExpiredSignatureError:
+            log.warning("Attempted to decode expired refresh token")
+            raise
+        except jwt.InvalidTokenError as e:
+            log.warning(f"Invalid refresh token: {str(e)}")
+            raise
 
