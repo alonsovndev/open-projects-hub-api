@@ -1,12 +1,12 @@
 """
 Tests for UserCreateRequest password validation.
 
-Tests the password complexity requirements added in Phase 1.
+Tests the password complexity requirements.
 """
 import pytest
 from pydantic import ValidationError
 
-from src.app.features.application.dtos.user_dto import UserCreateRequest
+from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 
 
 class TestPasswordComplexityValidation:
@@ -15,8 +15,7 @@ class TestPasswordComplexityValidation:
     def test_valid_password_passes_validation(self):
         """Test that a valid password passes all validation rules."""
         user_request = UserCreateRequest(
-            first_name="John",
-            last_name="Doe",
+            display_name="John Doe",
             email="john@example.com",
             password="SecurePass123"
         )
@@ -27,8 +26,7 @@ class TestPasswordComplexityValidation:
         """Test that password shorter than 8 characters is rejected."""
         with pytest.raises(ValidationError) as exc_info:
             UserCreateRequest(
-                first_name="John",
-                last_name="Doe",
+                display_name="John Doe",
                 email="john@example.com",
                 password="Short1"  # Only 6 characters
             )
@@ -36,38 +34,23 @@ class TestPasswordComplexityValidation:
         errors = exc_info.value.errors()
         assert any("at least 8 characters" in str(error["msg"]) for error in errors)
 
-    def test_password_missing_uppercase_raises_error(self):
-        """Test that password without uppercase letter is rejected."""
+    def test_password_missing_letter_raises_error(self):
+        """Test that password without letter is rejected."""
         with pytest.raises(ValidationError) as exc_info:
             UserCreateRequest(
-                first_name="John",
-                last_name="Doe",
+                display_name="John Doe",
                 email="john@example.com",
-                password="lowercase123"  # No uppercase
+                password="12345678"  # No letters
             )
         
         errors = exc_info.value.errors()
-        assert any("uppercase letter" in str(error["msg"]) for error in errors)
-
-    def test_password_missing_lowercase_raises_error(self):
-        """Test that password without lowercase letter is rejected."""
-        with pytest.raises(ValidationError) as exc_info:
-            UserCreateRequest(
-                first_name="John",
-                last_name="Doe",
-                email="john@example.com",
-                password="UPPERCASE123"  # No lowercase
-            )
-        
-        errors = exc_info.value.errors()
-        assert any("lowercase letter" in str(error["msg"]) for error in errors)
+        assert any("letter" in str(error["msg"]) for error in errors)
 
     def test_password_missing_digit_raises_error(self):
         """Test that password without digit is rejected."""
         with pytest.raises(ValidationError) as exc_info:
             UserCreateRequest(
-                first_name="John",
-                last_name="Doe",
+                display_name="John Doe",
                 email="john@example.com",
                 password="NoDigitsHere"  # No digit
             )
@@ -78,8 +61,7 @@ class TestPasswordComplexityValidation:
     def test_password_with_special_characters_is_allowed(self):
         """Test that passwords with special characters are accepted."""
         user_request = UserCreateRequest(
-            first_name="John",
-            last_name="Doe",
+            display_name="John Doe",
             email="john@example.com",
             password="Secure@Pass123!"
         )
@@ -89,8 +71,7 @@ class TestPasswordComplexityValidation:
     def test_exactly_8_characters_with_all_requirements_passes(self):
         """Test that exactly 8 characters with all requirements passes."""
         user_request = UserCreateRequest(
-            first_name="John",
-            last_name="Doe",
+            display_name="John Doe",
             email="john@example.com",
             password="Pass123x"  # Exactly 8 chars
         )

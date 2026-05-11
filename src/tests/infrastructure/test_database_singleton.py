@@ -5,7 +5,7 @@ This test ensures that the database connection manager is created only once
 and reused across multiple requests, preventing connection pool exhaustion.
 """
 import pytest
-from src.app.features.presentation.web.dependencies import get_db_connection
+from src.app.shared.presentation.dependencies import get_db_connection
 
 
 def test_get_db_connection_returns_singleton():
@@ -64,7 +64,7 @@ async def test_multiple_sessions_share_same_engine():
     
     This simulates what happens across multiple HTTP requests.
     """
-    from src.app.features.presentation.web.dependencies import get_database_session
+    from src.app.shared.presentation.dependencies import get_database_session
     
     sessions_info = []
     

@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
-from src.app.features.domain.entities.user_entity import UserEntity
-from src.app.features.domain.value_objects.email import Email
-from src.app.features.domain.value_objects.user_role import UserRole
+from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.value_objects.email import Email
+from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -43,8 +43,8 @@ def mock_admin_user():
     return UserEntity(
         id=EntityId.generate(),
         email=Email("admin@example.com"),
-        first_name="Admin",
-        last_name="User",
+        display_name="Admin User",
+        
         password_hash=password_hash,
         role=UserRole.ADMIN,
     )
@@ -56,7 +56,7 @@ class TestLoginRateLimiting:
     def test_rate_limit_allows_requests_within_limit(self, client, mock_admin_user):
         """Test that requests within rate limit are allowed."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             # Make 3 requests (well within 5/15min limit)
@@ -78,7 +78,7 @@ class TestLoginRateLimiting:
     def test_rate_limit_includes_retry_after_header(self, client, mock_admin_user):
         """Test that rate limit response includes Retry-After header."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             # Make requests up to the limit (5 requests)
@@ -97,7 +97,7 @@ class TestLoginRateLimiting:
     def test_login_rate_limit_is_per_endpoint(self, client, mock_admin_user):
         """Test that rate limit is specific to login endpoint."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             # Make login requests
@@ -118,7 +118,7 @@ class TestLoginRateLimiting:
     def test_failed_login_attempts_count_toward_rate_limit(self, client):
         """Test that failed login attempts also count toward rate limit."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=None),  # User not found
         ):
             # Make multiple failed attempts

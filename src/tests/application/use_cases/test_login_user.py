@@ -2,12 +2,12 @@ import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock
 
-from src.app.features.application.dtos.auth_dto import LoginRequest
-from src.app.features.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.domain.entities.user_entity import UserEntity
-from src.app.features.domain.exceptions.auth_exceptions import InvalidCredentialsError
-from src.app.features.domain.value_objects.email import Email
-from src.app.features.domain.value_objects.user_role import UserRole
+from src.app.features.user.application.dtos.auth_dto import LoginRequest
+from src.app.features.user.application.use_cases.login_user import LoginUserUseCase
+from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.exceptions.auth_exceptions import InvalidCredentialsError
+from src.app.features.user.domain.value_objects.email import Email
+from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
@@ -28,8 +28,7 @@ async def mock_admin_user():
     return UserEntity(
         id=EntityId.generate(),
         email=Email("admin@example.com"),
-        first_name="Admin",
-        last_name="User",
+        display_name="Admin User",
         password_hash=password_hash,
         role=UserRole.ADMIN,
     )
@@ -52,7 +51,7 @@ class TestLoginUserUseCase:
         assert result.access_token == result.token
         assert result.email == "admin@example.com"
         assert result.display_name == "Admin User"
-        assert result.role == "ADMIN"
+        assert result.role == "admin"
         assert result.user.email == "admin@example.com"
 
     @pytest.mark.asyncio
@@ -88,10 +87,9 @@ class TestLoginUserUseCase:
         regular_user = UserEntity(
             id=EntityId.generate(),
             email=Email("user@example.com"),
-            first_name="Regular",
-            last_name="User",
+            display_name="Regular User",
             password_hash=password_hash,
-            role=UserRole.USER,
+            role=UserRole.VIEWER,
         )
 
         mock_repo = AsyncMock()
@@ -102,4 +100,4 @@ class TestLoginUserUseCase:
 
         result = await use_case.execute(payload)
 
-        assert result.role == "USER"
+        assert result.role == "viewer"

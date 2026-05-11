@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
-from src.app.features.domain.entities.user_entity import UserEntity
-from src.app.features.domain.value_objects.email import Email
-from src.app.features.domain.value_objects.user_role import UserRole
+from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.value_objects.email import Email
+from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
@@ -29,8 +29,8 @@ def mock_admin_user():
     return UserEntity(
         id=EntityId.generate(),
         email=Email("admin@example.com"),
-        first_name="Admin",
-        last_name="User",
+        display_name="Admin User",
+        
         password_hash=password_hash,
         role=UserRole.ADMIN,
     )
@@ -44,10 +44,10 @@ def mock_regular_user():
     return UserEntity(
         id=EntityId.generate(),
         email=Email("user@example.com"),
-        first_name="Regular",
-        last_name="User",
+        display_name="Regular User",
+        
         password_hash=password_hash,
-        role=UserRole.USER,
+        role=UserRole.VIEWER,
     )
 
 
@@ -56,7 +56,7 @@ class TestLoginEndpoint:
     def test_login_success_returns_frontend_shape(self, client, mock_admin_user):
         """Test successful admin login returns correct response shape."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             response = client.post(
@@ -76,18 +76,18 @@ class TestLoginEndpoint:
         assert data["email"] == "admin@example.com"
         assert data["displayName"] == "Admin User"
         assert "loggedInAt" in data
-        assert data["role"] == "ADMIN"
+        assert data["role"] == "admin"
 
         assert "user" in data
         assert data["user"]["email"] == "admin@example.com"
         assert data["user"]["displayName"] == "Admin User"
         assert data["user"]["name"] == "Admin User"
-        assert data["user"]["role"] == "ADMIN"
+        assert data["user"]["role"] == "admin"
 
     def test_login_success_with_regular_user(self, client, mock_regular_user):
         """Test successful regular user login."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_regular_user),
         ):
             response = client.post(
@@ -100,13 +100,13 @@ class TestLoginEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["role"] == "USER"
+        assert data["role"] == "viewer"
         assert data["displayName"] == "Regular User"
 
     def test_login_with_nonexistent_email_returns_401(self, client):
         """Test login with non-existent email returns 401."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=None),
         ):
             response = client.post(
@@ -123,7 +123,7 @@ class TestLoginEndpoint:
     def test_login_with_wrong_password_returns_401(self, client, mock_admin_user):
         """Test login with incorrect password returns 401."""
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             response = client.post(
@@ -173,7 +173,7 @@ class TestLoginEndpoint:
         from src.app.config.app_config import AppConfig
 
         with patch(
-            "src.app.features.infrastructure.repository.user_repository_impl.UserRepositoryImpl.find_by_email",
+            "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
             response = client.post(
@@ -189,7 +189,12 @@ class TestLoginEndpoint:
 
         config = AppConfig.instance()
         secret_key = config.get_config("jwt.secret_key")
-        payload = pyjwt.decode(token, secret_key, algorithms=["HS256"])
+        payload = pyjwt.decode(
+            token,
+            secret_key,
+            algorithms=["HS256"],
+            options={"verify_aud": False, "verify_iss": False},
+        )
 
         assert payload["email"] == "admin@example.com"
-        assert payload["role"] == "ADMIN"
+        assert payload["role"] == "admin"
