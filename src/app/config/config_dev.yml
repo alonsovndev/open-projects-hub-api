@@ -7,13 +7,29 @@ jwt:
   algorithm: "HS256"
   access_token_expire_minutes: 1440
 
+cors:
+  origins:
+    - !ENV ${CORS_ORIGINS:http://localhost:5173}
+  allow_credentials: true
+  allow_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+    - "OPTIONS"
+  allow_headers:
+    - "Authorization"
+    - "Content-Type"
+    - "Accept"
+
 postgres:
   username: "open-projects-hub-admin"
   password: !ENV ${POSTGRES_PASSWORD}
   host: "dev-host"
   port: 5432
   dbname: "open-projects-hub-db"
-  echo: true  # SQLAlchemy echo logs
+  echo: false  # SQLAlchemy echo logs
   pool_size: 10
   max_over_flow: 10
   pool_timeout: 30

@@ -90,10 +90,45 @@ class AppConfig:
 
             self.config = parse_config(path=str(full_config_file_path))
             log.info(f"Successfully loaded configuration from: {config_file}")
+            
+            # Validate production configuration
+            if self.env == "prod":
+                self._validate_production_config()
 
         except Exception as e:
             log.error(f"Error loading configuration file {config_file}. Exception: {e}")
             raise
+
+    def _validate_production_config(self):
+        """
+        Validates that critical configuration values are set in production environment.
+        Raises RuntimeError if required secrets are missing or invalid.
+        """
+        # Validate JWT secret
+        jwt_secret = self.get_config("jwt.secret_key")
+        if not jwt_secret or jwt_secret.startswith("${") or len(jwt_secret) < 32:
+            raise RuntimeError(
+                "Production configuration error: JWT secret_key must be set "
+                "and at least 32 characters long. Set SECRET_KEY environment variable."
+            )
+        
+        # Validate database password
+        db_password = self.get_config("postgres.password")
+        if not db_password or db_password.startswith("${"):
+            raise RuntimeError(
+                "Production configuration error: Database password must be set. "
+                "Set POSTGRES_PASSWORD environment variable."
+            )
+        
+        # Validate database host
+        db_host = self.get_config("postgres.host")
+        if not db_host or db_host.startswith("${"):
+            raise RuntimeError(
+                "Production configuration error: Database host must be set. "
+                "Set POSTGRES_HOST environment variable."
+            )
+        
+        log.info("Production configuration validation passed")
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """
