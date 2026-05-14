@@ -1,8 +1,9 @@
 """List stories use case."""
-from typing import List, Optional
+from typing import Optional
 
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.infrastructure.mappers.story_mapper import to_story_response
 
 
@@ -26,7 +27,7 @@ class ListStoriesUseCase:
         status: Optional[str] = None,
         priority: Optional[str] = None,
         assigned_to: Optional[str] = None,
-    ) -> List[StoryResponse]:
+    ) -> PaginatedResponse[StoryResponse]:
         """
         Execute list stories use case.
         
@@ -39,7 +40,7 @@ class ListStoriesUseCase:
             assigned_to: Optional assigned user filter
             
         Returns:
-            List of StoryResponse objects
+            PaginatedResponse containing pagination metadata and StoryResponse items
             
         Raises:
             ValueError: If validation fails
@@ -52,18 +53,38 @@ class ListStoriesUseCase:
         if priority and priority not in ["low", "medium", "high"]:
             raise ValueError("Priority must be one of: low, medium, high")
         
-        # Get entities from repository
+        # Convert string UUIDs
+        project_uuid = self._to_uuid(project_id) if project_id else None
+        assigned_to_uuid = self._to_uuid(assigned_to) if assigned_to else None
+        
+        # Get total count and entities from repository
+        total = await self._repository.count(
+            project_id=project_uuid,
+            status=status,
+            priority=priority,
+            assigned_to=assigned_to_uuid,
+        )
         entities = await self._repository.find_all(
             limit=limit,
             offset=offset,
-            project_id=self._to_uuid(project_id) if project_id else None,
+            project_id=project_uuid,
             status=status,
             priority=priority,
-            assigned_to=self._to_uuid(assigned_to) if assigned_to else None,
+            assigned_to=assigned_to_uuid,
         )
         
         # Convert to DTOs using shared mapper
-        return [to_story_response(e) for e in entities]
+        items = [to_story_response(e) for e in entities]
+        
+        # Calculate page number (1-indexed)
+        page = (offset // limit) + 1 if limit > 0 else 1
+        
+        return PaginatedResponse(
+            total=total,
+            page=page,
+            per_page=limit,
+            items=items,
+        )
     
     @staticmethod
     def _to_uuid(value: str):
