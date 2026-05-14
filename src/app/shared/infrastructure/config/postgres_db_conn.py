@@ -25,6 +25,7 @@ class PostgresDbConnection:
         self.pool_size: int = int(get_config_value(postgres_config, "pool-size", default=10))
         self.max_over_flow: int = int(get_config_value(postgres_config, "max-over-flow", default=5))
         self.pool_timeout: int = int(get_config_value(postgres_config, "pool-timeout", default=30))
+        self.pool_pre_ping: bool = get_config_value(postgres_config, "pool-pre-ping", default=True)
 
         self.db_url = (
             f"postgresql+asyncpg://{self.db_username}:"
@@ -39,6 +40,7 @@ class PostgresDbConnection:
             pool_size=self.pool_size,
             max_overflow=self.max_over_flow,
             pool_timeout=self.pool_timeout,
+            pool_pre_ping=self.pool_pre_ping,
         )
 
         log.info("Initializing SQLAlchemy asynchronous sessionmaker...")
