@@ -26,3 +26,18 @@ class InsufficientPermissionsError(AuthenticationError):
     def __init__(self, message: str = "Insufficient permissions"):
         self.message = message
         super().__init__(self.message)
+
+
+class AccountLockedError(AuthenticationError):
+    """Raised when account is temporarily locked due to failed login attempts."""
+
+    def __init__(
+        self,
+        message: str = "Account temporarily locked",
+        remaining_seconds: int = 0,
+        failed_attempts: int = 0
+    ):
+        self.message = message
+        self.remaining_seconds = remaining_seconds
+        self.failed_attempts = failed_attempts
+        super().__init__(self.message)
