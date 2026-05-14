@@ -35,12 +35,12 @@ class UpdatePreferencesRequest(BaseModel):
     
     @field_validator("theme")
     @classmethod
-    def validate_theme(cls, v: Optional[str]) -> Optional[str]:
+    def validate_theme(cls, theme_value: Optional[str]) -> Optional[str]:
         """
         Validate theme value.
         
         Args:
-            v: Theme string
+            theme_value: Theme string
             
         Returns:
             Validated theme
@@ -48,20 +48,20 @@ class UpdatePreferencesRequest(BaseModel):
         Raises:
             ValueError: If theme is not valid
         """
-        if v is not None:
+        if theme_value is not None:
             valid_themes = ["light", "dark", "auto"]
-            if v not in valid_themes:
+            if theme_value not in valid_themes:
                 raise ValueError(f"Invalid theme. Must be one of: {', '.join(valid_themes)}")
-        return v
+        return theme_value
     
     @field_validator("language")
     @classmethod
-    def validate_language(cls, v: Optional[str]) -> Optional[str]:
+    def validate_language(cls, language_value: Optional[str]) -> Optional[str]:
         """
         Validate language code (basic validation).
         
         Args:
-            v: Language code
+            language_value: Language code
             
         Returns:
             Validated language code
@@ -69,7 +69,7 @@ class UpdatePreferencesRequest(BaseModel):
         Raises:
             ValueError: If language code is invalid
         """
-        if v is not None:
-            if len(v) < 2 or len(v) > 10:
+        if language_value is not None:
+            if len(language_value) < 2 or len(language_value) > 10:
                 raise ValueError("Language code must be between 2 and 10 characters")
-        return v
+        return language_value
