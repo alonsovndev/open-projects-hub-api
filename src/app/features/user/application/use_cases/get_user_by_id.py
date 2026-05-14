@@ -24,9 +24,9 @@ class GetUserByIdUseCase:
 
             return response_dto
 
-        except ValueError as e:
+        except ValueError:
             raise
-        except UserDoesNotExistException as e:
+        except UserDoesNotExistException:
             raise
-        except Exception as e:
+        except Exception:
             raise

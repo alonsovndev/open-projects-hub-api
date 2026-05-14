@@ -1,20 +1,32 @@
 from src.app.features.user.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
-from src.app.features.user.domain.exceptions.auth_exceptions import InvalidCredentialsError
+from src.app.features.user.domain.exceptions.auth_exceptions import (
+    InvalidCredentialsError,
+    AccountLockedError
+)
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
+from src.app.shared.infrastructure.security.account_lockout_service import (
+    get_account_lockout_service
+)
 from src.app.shared.utils.log_util import log
 
 
 class LoginUserUseCase:
     """
     Use case for authenticating users and issuing JWT tokens.
+    
+    Implements account lockout to prevent brute-force attacks:
+    - Locks account after 5 consecutive failed attempts
+    - Progressive lockout duration (15m → 30m → 60m → 120m)
+    - Resets on successful login
     """
 
     def __init__(self, user_repository: UserRepository, jwt_handler: JWTHandler):
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
+        self.lockout_service = get_account_lockout_service()
 
     async def execute(self, payload: LoginRequest) -> AdminLoginResponse:
         """
@@ -27,15 +39,37 @@ class LoginUserUseCase:
             AdminLoginResponse with token and user details
 
         Raises:
+            AccountLockedError: If account is temporarily locked
             InvalidCredentialsError: If credentials are invalid
         """
+        email_lower = str(payload.email).lower().strip()
+        
+        # Check if account is locked out
+        is_locked = await self.lockout_service.is_locked_out(email_lower)
+        if is_locked:
+            lockout_info = await self.lockout_service.get_lockout_info(email_lower)
+            log.warning(
+                f"Login attempt for locked account: {email_lower}",
+                extra={
+                    "email": email_lower,
+                    "remaining_seconds": lockout_info.get("remaining_seconds", 0)
+                }
+            )
+            raise AccountLockedError(
+                message=f"Account temporarily locked. Try again in {lockout_info.get('remaining_minutes', 0)} minutes.",
+                remaining_seconds=lockout_info.get("remaining_seconds", 0),
+                failed_attempts=lockout_info.get("failed_attempts", 0)
+            )
+        
         try:
             user_entity = await self.user_repository.find_by_email(
-                Email(str(payload.email).lower().strip())
+                Email(email_lower)
             )
 
             if not user_entity:
-                log.warning(f"Login attempt with non-existent email: {payload.email}")
+                log.warning(f"Login attempt with non-existent email: {email_lower}")
+                # Record failed attempt even for non-existent users (prevents user enumeration timing attacks)
+                await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
 
             password_valid = await PasswordHandler.verify_password(
@@ -44,9 +78,31 @@ class LoginUserUseCase:
             )
             
             if not password_valid:
-                log.warning(f"Failed login attempt for user: {user_entity.id}")
+                log.warning(
+                    f"Failed login attempt for user: {user_entity.id}",
+                    extra={
+                        "user_id": str(user_entity.id),
+                        "email": email_lower
+                    }
+                )
+                # Record failed attempt
+                await self.lockout_service.record_failed_attempt(email_lower)
+                
+                # Get current attempt count for logging
+                failed_attempts = await self.lockout_service.get_failed_attempts(email_lower)
+                log.info(
+                    f"Failed login attempts: {failed_attempts}",
+                    extra={
+                        "email": email_lower,
+                        "failed_attempts": failed_attempts
+                    }
+                )
+                
                 raise InvalidCredentialsError()
 
+            # Successful authentication - clear any lockout state
+            await self.lockout_service.record_successful_login(email_lower)
+            
             token = self.jwt_handler.create_access_token(
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
@@ -64,7 +120,7 @@ class LoginUserUseCase:
             log.info(f"User logged in successfully: {user_entity.id}")
             return response
 
-        except InvalidCredentialsError:
+        except (InvalidCredentialsError, AccountLockedError):
             raise
         except Exception as e:
             log.error(f"Unexpected error in LoginUserUseCase: {str(e)}")

@@ -7,6 +7,7 @@ from pydantic.alias_generators import to_camel
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
 from src.app.shared.utils.log_util import log
 import jwt
 
@@ -38,8 +39,10 @@ class RefreshTokenUseCase:
     """
     Use case for refreshing access tokens using refresh tokens.
     
-    Implements token rotation: each refresh generates a new access token
-    AND a new refresh token, invalidating the old refresh token.
+    Implements token rotation with single-use refresh tokens:
+    - Each refresh generates new access token AND new refresh token
+    - Old refresh token is immediately revoked and cannot be reused
+    - Prevents token replay attacks and stolen token reuse
     """
 
     def __init__(self, user_repository: UserRepository, jwt_handler: JWTHandler):
@@ -50,6 +53,9 @@ class RefreshTokenUseCase:
         """
         Refresh access token using refresh token.
         
+        Implements single-use refresh tokens: the old refresh token is
+        immediately revoked after use, preventing token reuse attacks.
+        
         Args:
             payload: RefreshTokenRequest with refresh token
             
@@ -58,15 +64,26 @@ class RefreshTokenUseCase:
             
         Raises:
             jwt.ExpiredSignatureError: If refresh token has expired
-            jwt.InvalidTokenError: If refresh token is invalid
+            jwt.InvalidTokenError: If refresh token is invalid or already used
             ValueError: If user not found
         """
+        token_revocation = get_token_revocation_service()
+        
         try:
+            # Check if token has already been used (revoked)
+            if token_revocation.is_revoked(payload.refresh_token):
+                log.warning(f"Attempt to reuse revoked refresh token")
+                raise jwt.InvalidTokenError("Refresh token has already been used")
+            
             # Decode and validate refresh token
             refresh_payload = self.jwt_handler.decode_refresh_token(payload.refresh_token)
             
             user_id = refresh_payload.get("sub")
             email = refresh_payload.get("email")
+            
+            # Revoke the old refresh token immediately (single-use token)
+            token_revocation.revoke_token(payload.refresh_token)
+            log.info(f"Refresh token revoked for user: {user_id}")
             
             # Verify user still exists
             user_entity = await self.user_repository.find_by_email(Email(email))
