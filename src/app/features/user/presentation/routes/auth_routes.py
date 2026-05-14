@@ -24,7 +24,7 @@ router = APIRouter()
 
 
 @router.post("/login", response_model=AdminLoginResponse)
-@limiter.limit("5/15minutes")
+@limiter.limit("10/minute")
 async def login(
     request: Request,
     payload: LoginRequest,
@@ -33,7 +33,7 @@ async def login(
     """
     Authenticate user and return JWT token with user details.
     
-    Rate limited to 5 attempts per 15 minutes per IP address to prevent brute force attacks.
+    Rate limited to 10 attempts per minute per IP address to prevent brute force attacks.
 
     Args:
         request: FastAPI request object (required for rate limiting)
@@ -58,17 +58,22 @@ async def login(
 
 
 @router.post("/register", response_model=AdminLoginResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def register(
+    request: Request,
     payload: UserCreateRequest,
     register_use_case: RegisterUserUseCase = Depends(get_register_use_case),
 ) -> AdminLoginResponse:
     """
     Register new user and return JWT token (auto-login).
     
+    Rate limited to 5 attempts per minute per IP address to prevent abuse.
+    
     Public endpoint - no authentication required.
     New users default to 'viewer' role.
 
     Args:
+        request: FastAPI request object (required for rate limiting)
         payload: UserCreateRequest with email, password, displayName
         register_use_case: Injected RegisterUserUseCase
 
@@ -100,8 +105,10 @@ async def refresh_token(
     """
     Refresh access token using refresh token.
     
-    Implements token rotation: returns new access token AND new refresh token.
-    The old refresh token becomes invalid after use.
+    Implements single-use refresh token rotation:
+    - Returns new access token (15min TTL) AND new refresh token (7 days)
+    - Old refresh token is immediately revoked and cannot be reused
+    - Prevents token replay attacks
     
     Rate limited to 10 attempts per 15 minutes per IP address.
 

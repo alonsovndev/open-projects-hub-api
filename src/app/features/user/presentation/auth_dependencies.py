@@ -1,11 +1,9 @@
 from functools import lru_cache
 from typing import Any, Dict
-from uuid import UUID
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.config.app_config import AppConfig
 from src.app.features.user.domain.exceptions.auth_exceptions import UnauthorizedError
@@ -115,9 +113,7 @@ def create_story_owner_or_admin_dependency(story_id: str):
             HTTPException: 404 if story not found
             HTTPException: 400 if story_id is invalid
         """
-        from src.app.features.user.presentation.dependencies import get_database_session
-        from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
-        
+
         # Admin bypass - admins can modify any story
         user_role = current_user.get("role")
         if user_role == UserRole.ADMIN.value:
