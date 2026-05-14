@@ -14,6 +14,7 @@ postgres:
   port: 5432
   dbname: "open-projects-hub-db"
   echo: true  # SQLAlchemy echo logs
-  pool_size: 10
-  max_over_flow: 10
-  pool_timeout: 30
+  pool_size: 10  # Maximum number of permanent connections
+  max_over_flow: 10  # Maximum overflow connections beyond pool_size
+  pool_timeout: 30  # Seconds to wait for connection from pool
+  pool_pre_ping: true  # Verify connections before using (prevents stale connections)

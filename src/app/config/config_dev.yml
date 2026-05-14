@@ -5,7 +5,7 @@ app:
 jwt:
   secret_key: !ENV ${SECRET_KEY}
   algorithm: "HS256"
-  access_token_expire_minutes: 1440
+  access_token_expire_minutes: 15  # Reduced from 1440 (24h) to 15min for improved security
 
 cors:
   origins:
@@ -30,7 +30,8 @@ postgres:
   port: 5432
   dbname: "open-projects-hub-db"
   echo: false  # SQLAlchemy echo logs
-  pool_size: 10
-  max_over_flow: 10
-  pool_timeout: 30
+  pool_size: 10  # Maximum number of permanent connections
+  max_over_flow: 10  # Maximum overflow connections beyond pool_size
+  pool_timeout: 30  # Seconds to wait for connection from pool
+  pool_pre_ping: true  # Verify connections before using (prevents stale connections)
 
