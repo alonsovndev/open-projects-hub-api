@@ -1,8 +1,9 @@
 """List projects use case."""
-from typing import List, Optional
+from typing import Optional
 
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.infrastructure.mappers.project_mapper import to_project_response
 
 
@@ -23,7 +24,7 @@ class ListProjectsUseCase:
         limit: int = 20,
         offset: int = 0,
         status: Optional[str] = None,
-    ) -> List[ProjectResponse]:
+    ) -> PaginatedResponse[ProjectResponse]:
         """
         Execute list projects use case.
         
@@ -33,9 +34,10 @@ class ListProjectsUseCase:
             status: Optional status filter (active, completed, archived)
             
         Returns:
-            List of ProjectResponse objects
+            PaginatedResponse containing pagination metadata and ProjectResponse items
         """
-        # Fetch from repository
+        # Fetch total count and items from repository
+        total = await self._repository.count(status=status)
         entities = await self._repository.find_all(
             limit=limit,
             offset=offset,
@@ -43,4 +45,14 @@ class ListProjectsUseCase:
         )
         
         # Convert to DTOs using shared mapper
-        return [to_project_response(entity) for entity in entities]
+        items = [to_project_response(entity) for entity in entities]
+        
+        # Calculate page number (1-indexed)
+        page = (offset // limit) + 1 if limit > 0 else 1
+        
+        return PaginatedResponse(
+            total=total,
+            page=page,
+            per_page=limit,
+            items=items,
+        )

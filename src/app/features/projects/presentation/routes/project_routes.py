@@ -15,6 +15,7 @@ from src.app.features.projects.application.use_cases.delete_project import Delet
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
+from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.features.projects.presentation.dependencies import (
     get_create_project_use_case,
     get_delete_project_use_case,
@@ -65,14 +66,14 @@ async def create_project(
     )
 
 
-@router.get("", response_model=list[ProjectResponse])
+@router.get("", response_model=PaginatedResponse[ProjectResponse])
 async def list_projects(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     status: Optional[str] = Query(default=None),
     current_user: Dict[str, Any] = Depends(get_current_user),
     use_case: ListProjectsUseCase = Depends(get_list_projects_use_case),
-) -> list[ProjectResponse]:
+) -> PaginatedResponse[ProjectResponse]:
     """
     List projects with pagination.
     
@@ -86,7 +87,7 @@ async def list_projects(
         use_case: Injected ListProjectsUseCase
         
     Returns:
-        List of ProjectResponse objects
+        PaginatedResponse containing pagination metadata and list of ProjectResponse objects
         
     Raises:
         400: Invalid query parameters
