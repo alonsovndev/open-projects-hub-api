@@ -28,6 +28,7 @@ from src.app.features.stories.presentation.dependencies import (
     get_update_story_use_case,
 )
 from src.app.features.user.presentation.auth_dependencies import get_current_user
+from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.presentation.base_handler import BaseRouteHandler
@@ -73,7 +74,7 @@ async def create_story(
     )
 
 
-@router.get("", response_model=list[StoryResponse])
+@router.get("", response_model=PaginatedResponse[StoryResponse])
 async def list_stories(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -83,7 +84,7 @@ async def list_stories(
     assigned_to: Optional[str] = Query(default=None),
     current_user: Dict[str, Any] = Depends(get_current_user),
     use_case: ListStoriesUseCase = Depends(get_list_stories_use_case),
-) -> list[StoryResponse]:
+) -> PaginatedResponse[StoryResponse]:
     """
     List stories with filters.
     
@@ -100,7 +101,7 @@ async def list_stories(
         use_case: Injected ListStoriesUseCase
         
     Returns:
-        List of StoryResponse objects
+        PaginatedResponse containing pagination metadata and list of StoryResponse objects
         
     Raises:
         400: Invalid query parameters
@@ -120,14 +121,14 @@ async def list_stories(
     return await handler.execute(execute)
 
 
-@router.get("/by-project/{project_id}", response_model=list[StoryResponse])
+@router.get("/by-project/{project_id}", response_model=PaginatedResponse[StoryResponse])
 async def get_stories_by_project(
     project_id: UUID,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     current_user: Dict[str, Any] = Depends(get_current_user),
     use_case: GetStoriesByProjectUseCase = Depends(get_get_stories_by_project_use_case),
-) -> list[StoryResponse]:
+) -> PaginatedResponse[StoryResponse]:
     """
     Get all stories for a specific project.
     
@@ -141,7 +142,7 @@ async def get_stories_by_project(
         use_case: Injected GetStoriesByProjectUseCase
         
     Returns:
-        List of StoryResponse objects
+        PaginatedResponse containing pagination metadata and list of StoryResponse objects
         
     Raises:
         401: Unauthorized
