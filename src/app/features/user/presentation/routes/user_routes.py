@@ -295,7 +295,7 @@ async def get_user_by_id(
     return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: UserCreateRequest,
     create_user_use_case: CreateUserUseCase = Depends(get_create_user_use_case),
@@ -304,12 +304,21 @@ async def create_user(
     """
     Create a new user (admin only).
     
-    Requires ADMIN role.
+    Standard REST endpoint: POST /v1/users
+    Requires ADMIN role. For public self-registration, use POST /v1/auth/register instead.
     
     Args:
         payload: User creation request
         create_user_use_case: Injected use case (direct injection, no service layer)
         current_user: Current authenticated admin user
+        
+    Returns:
+        UserResponse with created user data
+        
+    Raises:
+        403: Forbidden (non-admin user)
+        409: Conflict (email already exists)
+        422: Validation error (invalid payload)
     """
     async def execute():
         return await create_user_use_case.execute(payload)

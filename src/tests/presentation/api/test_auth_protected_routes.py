@@ -60,9 +60,9 @@ class TestAuthDependencies:
         assert response.status_code == 401
 
     def test_register_without_token_returns_403(self, client):
-        """Test accessing admin-only register route without Authorization header returns 403."""
+        """Test accessing admin-only user creation route without Authorization header returns 403."""
         response = client.post(
-            "/v1/users/register",
+            "/v1/users",
             json={
                 "email": "new@example.com",
                 "password": "Password123",
@@ -74,9 +74,9 @@ class TestAuthDependencies:
         assert response.status_code == 403
 
     def test_register_with_user_token_returns_403(self, client, user_token):
-        """Test accessing admin-only register route with non-admin token returns 403."""
+        """Test accessing admin-only user creation route with non-admin token returns 403."""
         response = client.post(
-            "/v1/users/register",
+            "/v1/users",
             headers={"Authorization": f"Bearer {user_token}"},
             json={
                 "email": "new@example.com",
