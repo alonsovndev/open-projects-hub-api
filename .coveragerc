@@ -1,0 +1,65 @@
+# Coverage configuration for pytest-cov
+# See: https://coverage.readthedocs.io/en/latest/config.html
+
+[run]
+source = src/app
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */site-packages/*
+    */venv/*
+    */virtualenv/*
+    src/app/gunicorn_conf.py
+    src/app/main.py
+
+branch = True
+parallel = False
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+sort = Cover
+
+# Lines to exclude from coverage
+exclude_lines =
+    # Standard pragmas
+    pragma: no cover
+    
+    # Don't complain about missing debug-only code
+    def __repr__
+    def __str__
+    
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abstract
+    
+    # Don't complain about protocol methods
+    @staticmethod
+    @classmethod
+    
+    # Don't complain about pass statements
+    pass
+    
+    # Don't complain about ellipsis
+    ...
+
+[html]
+directory = htmlcov
+title = Open Projects Hub API - Test Coverage Report
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json
+show_contexts = True
