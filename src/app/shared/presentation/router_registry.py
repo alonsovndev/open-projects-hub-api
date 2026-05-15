@@ -28,10 +28,9 @@ def register_routers(app) -> None:
     )
     
     # User management routes
-    # TODO: Validate best practices for endpoint naming conventions
     app.include_router(
         user_router,
-        prefix="/v1/user",
+        prefix="/v1/users",
         tags=["Users"]
     )
     

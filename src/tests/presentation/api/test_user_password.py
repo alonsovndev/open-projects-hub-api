@@ -1,7 +1,7 @@
 """
 Integration tests for user password change endpoint.
 
-Tests POST /v1/user/password.
+Tests POST /v1/users/me/password.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -37,7 +37,7 @@ def viewer_token(app_jwt_handler):
 
 
 class TestChangePasswordEndpoint:
-    """Tests for POST /v1/user/password endpoint."""
+    """Tests for POST /v1/users/me/password endpoint."""
 
     def test_change_password_success(self, client, viewer_token):
         """Test successful password change."""
@@ -46,7 +46,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(return_value=None)
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",
@@ -61,7 +61,7 @@ class TestChangePasswordEndpoint:
     def test_change_password_unauthorized_without_token(self, client):
         """Test that POST /password requires authentication."""
         response = client.post(
-            "/v1/user/password",
+            "/v1/users/me/password",
             json={
                 "currentPassword": "OldPass123",
                 "newPassword": "NewPass456"
@@ -77,7 +77,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(side_effect=ValueError("Current password is incorrect"))
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "WrongPass",
@@ -95,7 +95,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(side_effect=ValueError("Password must be at least 8 characters"))
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",
@@ -113,7 +113,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(side_effect=ValueError("Password must contain at least one letter"))
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",
@@ -131,7 +131,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(side_effect=ValueError("Password must contain at least one digit"))
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",
@@ -149,7 +149,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef"))
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",
@@ -166,7 +166,7 @@ class TestChangePasswordEndpoint:
             new=AsyncMock(return_value=None)
         ):
             response = client.post(
-                "/v1/user/password",
+                "/v1/users/me/password",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={
                     "currentPassword": "OldPass123",  # camelCase

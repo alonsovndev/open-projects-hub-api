@@ -72,7 +72,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 # Profile endpoints (must come before /{user_id} to avoid path conflicts)
-@router.get("/profile", response_model=UserResponse)
+@router.get("/me/profile", response_model=UserResponse)
 async def get_user_profile(
     current_user: Dict[str, Any] = Depends(get_current_user),
     use_case: GetUserProfileUseCase = Depends(get_user_profile_use_case),
@@ -101,7 +101,7 @@ async def get_user_profile(
     )
 
 
-@router.patch("/profile", response_model=UserResponse)
+@router.patch("/me/profile", response_model=UserResponse)
 async def update_user_profile(
     payload: UpdateProfileRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -134,7 +134,7 @@ async def update_user_profile(
     )
 
 
-@router.post("/password", status_code=status.HTTP_200_OK)
+@router.post("/me/password", status_code=status.HTTP_200_OK)
 async def change_password(
     payload: ChangePasswordRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -176,7 +176,7 @@ async def change_password(
 
 
 # Preferences endpoints (must come before /{user_id} to avoid path conflicts)
-@router.get("/preferences", response_model=UserPreferencesResponse)
+@router.get("/me/preferences", response_model=UserPreferencesResponse)
 async def get_user_preferences(
     current_user: Dict[str, Any] = Depends(get_current_user),
     use_case: GetUserPreferencesUseCase = Depends(get_user_preferences_use_case),
@@ -214,7 +214,7 @@ async def get_user_preferences(
     )
 
 
-@router.patch("/preferences", response_model=UserPreferencesResponse)
+@router.patch("/me/preferences", response_model=UserPreferencesResponse)
 async def update_user_preferences(
     payload: UpdatePreferencesRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),

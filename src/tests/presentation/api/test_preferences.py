@@ -1,7 +1,7 @@
 """
 Integration tests for user preferences endpoints.
 
-Tests GET /v1/user/preferences and PATCH /v1/user/preferences.
+Tests GET /v1/users/me/preferences and PATCH /v1/users/me/preferences.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -39,7 +39,7 @@ def viewer_token(app_jwt_handler):
 
 
 class TestGetUserPreferencesEndpoint:
-    """Tests for GET /v1/user/preferences endpoint."""
+    """Tests for GET /v1/users/me/preferences endpoint."""
 
     def test_get_preferences_success(self, client, viewer_token):
         """Test successful preferences retrieval."""
@@ -55,7 +55,7 @@ class TestGetUserPreferencesEndpoint:
             new=AsyncMock(return_value=mock_preferences)
         ):
             response = client.get(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"}
             )
 
@@ -82,7 +82,7 @@ class TestGetUserPreferencesEndpoint:
             new=AsyncMock(return_value=mock_default)
         ):
             response = client.get(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"}
             )
 
@@ -94,13 +94,13 @@ class TestGetUserPreferencesEndpoint:
 
     def test_get_preferences_unauthorized_without_token(self, client):
         """Test that GET /preferences requires authentication."""
-        response = client.get("/v1/user/preferences")
+        response = client.get("/v1/users/me/preferences")
 
         assert response.status_code == 403  # HTTPBearer returns 403 when missing
 
 
 class TestUpdateUserPreferencesEndpoint:
-    """Tests for PATCH /v1/user/preferences endpoint."""
+    """Tests for PATCH /v1/users/me/preferences endpoint."""
 
     def test_update_preferences_theme_only(self, client, viewer_token):
         """Test updating theme preference only."""
@@ -116,7 +116,7 @@ class TestUpdateUserPreferencesEndpoint:
             new=AsyncMock(return_value=updated_preferences)
         ):
             response = client.patch(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"theme": "light"}
             )
@@ -141,7 +141,7 @@ class TestUpdateUserPreferencesEndpoint:
             new=AsyncMock(return_value=updated_preferences)
         ):
             response = client.patch(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"language": "es"}
             )
@@ -166,7 +166,7 @@ class TestUpdateUserPreferencesEndpoint:
             new=AsyncMock(return_value=updated_preferences)
         ):
             response = client.patch(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"theme": "dark", "language": "fr"}
             )
@@ -180,7 +180,7 @@ class TestUpdateUserPreferencesEndpoint:
     def test_update_preferences_invalid_theme(self, client, viewer_token):
         """Test that invalid theme returns 400."""
         response = client.patch(
-            "/v1/user/preferences",
+            "/v1/users/me/preferences",
             headers={"Authorization": f"Bearer {viewer_token}"},
             json={"theme": "invalid"}
         )
@@ -190,7 +190,7 @@ class TestUpdateUserPreferencesEndpoint:
     def test_update_preferences_unauthorized_without_token(self, client):
         """Test that PATCH /preferences requires authentication."""
         response = client.patch(
-            "/v1/user/preferences",
+            "/v1/users/me/preferences",
             json={"theme": "dark"}
         )
 
@@ -210,7 +210,7 @@ class TestUpdateUserPreferencesEndpoint:
             new=AsyncMock(return_value=updated_preferences)
         ):
             response = client.patch(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"theme": "light"}  # camelCase works same as snake_case
             )
@@ -232,7 +232,7 @@ class TestUpdateUserPreferencesEndpoint:
             new=AsyncMock(return_value=existing_preferences)
         ):
             response = client.patch(
-                "/v1/user/preferences",
+                "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={}
             )

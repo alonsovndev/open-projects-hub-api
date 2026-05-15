@@ -1,7 +1,7 @@
 """
 Integration tests for user profile endpoints.
 
-Tests GET /v1/user/profile and PATCH /v1/user/profile.
+Tests GET /v1/users/me/profile and PATCH /v1/users/me/profile.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -49,7 +49,7 @@ def mock_user_response():
 
 
 class TestGetUserProfileEndpoint:
-    """Tests for GET /v1/user/profile endpoint."""
+    """Tests for GET /v1/users/me/profile endpoint."""
 
     def test_get_profile_success(self, client, viewer_token):
         """Test successful profile retrieval for authenticated user."""
@@ -65,7 +65,7 @@ class TestGetUserProfileEndpoint:
             new=AsyncMock(return_value=mock_user_response)
         ):
             response = client.get(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"}
             )
 
@@ -79,7 +79,7 @@ class TestGetUserProfileEndpoint:
 
     def test_get_profile_unauthorized_without_token(self, client):
         """Test that GET /profile requires authentication."""
-        response = client.get("/v1/user/profile")
+        response = client.get("/v1/users/me/profile")
 
         assert response.status_code == 403  # HTTPBearer returns 403 when missing
 
@@ -90,7 +90,7 @@ class TestGetUserProfileEndpoint:
             new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef"))
         ):
             response = client.get(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"}
             )
 
@@ -98,7 +98,7 @@ class TestGetUserProfileEndpoint:
 
 
 class TestUpdateUserProfileEndpoint:
-    """Tests for PATCH /v1/user/profile endpoint."""
+    """Tests for PATCH /v1/users/me/profile endpoint."""
 
     def test_update_profile_success(self, client, viewer_token):
         """Test successful profile update."""
@@ -114,7 +114,7 @@ class TestUpdateUserProfileEndpoint:
             new=AsyncMock(return_value=updated_response)
         ):
             response = client.patch(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"displayName": "Updated Name"}
             )
@@ -129,7 +129,7 @@ class TestUpdateUserProfileEndpoint:
     def test_update_profile_unauthorized_without_token(self, client):
         """Test that PATCH /profile requires authentication."""
         response = client.patch(
-            "/v1/user/profile",
+            "/v1/users/me/profile",
             json={"displayName": "New Name"}
         )
 
@@ -142,7 +142,7 @@ class TestUpdateUserProfileEndpoint:
             new=AsyncMock(side_effect=ValueError("Display name cannot be empty"))
         ):
             response = client.patch(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"displayName": ""}
             )
@@ -159,7 +159,7 @@ class TestUpdateUserProfileEndpoint:
             new=AsyncMock(side_effect=ValueError("Display name must not exceed 255 characters"))
         ):
             response = client.patch(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"displayName": long_name}
             )
@@ -174,7 +174,7 @@ class TestUpdateUserProfileEndpoint:
             new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef"))
         ):
             response = client.patch(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"displayName": "New Name"}
             )
@@ -195,7 +195,7 @@ class TestUpdateUserProfileEndpoint:
             new=AsyncMock(return_value=updated_response)
         ):
             response = client.patch(
-                "/v1/user/profile",
+                "/v1/users/me/profile",
                 headers={"Authorization": f"Bearer {viewer_token}"},
                 json={"displayName": "Camel Case Test"}  # camelCase
             )
