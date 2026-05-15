@@ -92,16 +92,15 @@ class TestFindById:
         assert entity is None
     
     @pytest.mark.asyncio
-    async def test_find_by_id_returns_none_on_exception(self, repository, mock_session):
-        """Test finding project by ID returns None when exception occurs."""
+    async def test_find_by_id_raises_exception_on_database_error(self, repository, mock_session):
+        """Test finding project by ID raises exception when database error occurs."""
         # Arrange
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
         
-        # Act
-        entity = await repository.find_by_id(EntityId.generate().value)
-        
-        # Assert
-        assert entity is None
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.find_by_id(EntityId.generate().value)
 
 
 class TestFindAll:
@@ -154,16 +153,15 @@ class TestFindAll:
         mock_session.execute.assert_called_once()
     
     @pytest.mark.asyncio
-    async def test_find_all_returns_empty_list_on_exception(self, repository, mock_session):
-        """Test finding all projects returns empty list on exception."""
+    async def test_find_all_raises_exception_on_database_error(self, repository, mock_session):
+        """Test finding all projects raises exception when database error occurs."""
         # Arrange
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
         
-        # Act
-        entities = await repository.find_all()
-        
-        # Assert
-        assert entities == []
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.find_all()
 
 
 class TestSave:
@@ -208,16 +206,17 @@ class TestSave:
         mock_session.refresh.assert_called_once()
     
     @pytest.mark.asyncio
-    async def test_save_returns_none_on_exception(self, repository, mock_session, sample_project_entity):
-        """Test saving project returns None on exception."""
+    async def test_save_raises_exception_on_database_error(self, repository, mock_session, sample_project_entity):
+        """Test saving project raises exception when database error occurs."""
         # Arrange
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
         
-        # Act
-        saved_entity = await repository.save(sample_project_entity)
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.save(sample_project_entity)
         
-        # Assert
-        assert saved_entity is None
+        # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
 
@@ -256,16 +255,17 @@ class TestDelete:
         mock_session.delete.assert_not_called()
     
     @pytest.mark.asyncio
-    async def test_delete_returns_false_on_exception(self, repository, mock_session):
-        """Test deleting project returns False on exception."""
+    async def test_delete_raises_exception_on_database_error(self, repository, mock_session):
+        """Test deleting project raises exception when database error occurs."""
         # Arrange
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
         
-        # Act
-        deleted = await repository.delete(EntityId.generate().value)
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.delete(EntityId.generate().value)
         
-        # Assert
-        assert deleted is False
+        # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
 
@@ -303,13 +303,12 @@ class TestCount:
         mock_session.execute.assert_called_once()
     
     @pytest.mark.asyncio
-    async def test_count_returns_zero_on_exception(self, repository, mock_session):
-        """Test counting projects returns 0 on exception."""
+    async def test_count_raises_exception_on_database_error(self, repository, mock_session):
+        """Test counting projects raises exception when database error occurs."""
         # Arrange
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
         
-        # Act
-        count = await repository.count()
-        
-        # Assert
-        assert count == 0
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.count()

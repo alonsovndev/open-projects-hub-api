@@ -5,7 +5,7 @@ Tests the rate limiting functionality added in Phase 1.
 """
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
@@ -59,9 +59,9 @@ class TestLoginRateLimiting:
             "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
-            # Make 3 requests (well within 5/15min limit)
+            # Make 5 requests (well within 10/minute limit)
             responses = []
-            for _ in range(3):
+            for _ in range(5):
                 response = client.post(
                     "/v1/auth/login",
                     json={
@@ -81,8 +81,8 @@ class TestLoginRateLimiting:
             "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
         ):
-            # Make requests up to the limit (5 requests)
-            for i in range(5):
+            # Make requests up to the limit (10 requests)
+            for i in range(10):
                 response = client.post(
                     "/v1/auth/login",
                     json={
@@ -91,11 +91,28 @@ class TestLoginRateLimiting:
                     },
                 )
                 
-                # First 5 should work or fail with auth error (not rate limit)
+                # First 10 should work or fail with auth error (not rate limit)
                 assert response.status_code in [200, 401]
 
-    def test_login_rate_limit_is_per_endpoint(self, client, mock_admin_user):
+    @patch("src.app.shared.presentation.health_checks.get_db_connection")
+    def test_login_rate_limit_is_per_endpoint(self, mock_get_db, client, mock_admin_user):
         """Test that rate limit is specific to login endpoint."""
+        # Mock database for health check endpoint
+        mock_connection = AsyncMock()
+        mock_connection.execute = AsyncMock(return_value=None)
+        
+        # Create a proper async context manager mock
+        mock_connection_ctx = AsyncMock()
+        mock_connection_ctx.__aenter__ = AsyncMock(return_value=mock_connection)
+        mock_connection_ctx.__aexit__ = AsyncMock(return_value=None)
+        
+        mock_engine = MagicMock()
+        mock_engine.connect = MagicMock(return_value=mock_connection_ctx)
+        
+        mock_db = MagicMock()
+        mock_db.engine = mock_engine
+        mock_get_db.return_value = mock_db
+        
         with patch(
             "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
@@ -137,7 +154,7 @@ class TestLoginRateLimiting:
             assert all(r.status_code == 401 for r in responses)
 
     def test_rate_limit_configuration_is_correct(self):
-        """Test that rate limit is configured correctly (5/15minutes)."""
+        """Test that rate limit is configured correctly (10/minute for login, 5/minute for register)."""
         from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
         
         # Check that limiter exists and is configured
@@ -148,5 +165,5 @@ class TestLoginRateLimiting:
         # Verify key_func is set (used to identify clients by IP)
         assert limiter._key_func is not None
         
-        # Note: The specific 5/15minutes limit is applied via decorator on login endpoint,
-        # which is verified by the integration tests above
+        # Note: The specific 10/minute (login) and 5/minute (register) limits 
+        # are applied via decorator on endpoints, verified by integration tests above

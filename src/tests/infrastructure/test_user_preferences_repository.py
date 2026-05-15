@@ -98,18 +98,17 @@ class TestFindByUserId:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_returns_none_on_exception(
+    async def test_find_by_user_id_raises_exception_on_database_error(
         self, repository, mock_session, user_id
     ):
-        """Test find_by_user_id returns None when exception occurs."""
+        """Test find_by_user_id raises exception when database error occurs."""
         # Mock exception
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
-        # Execute
-        result = await repository.find_by_user_id(user_id)
-
-        # Assert
-        assert result is None
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.find_by_user_id(user_id)
 
 
 class TestSave:
@@ -155,38 +154,40 @@ class TestSave:
         mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_returns_none_on_exception(
+    async def test_save_raises_exception_on_database_error(
         self, repository, mock_session, preferences_entity
     ):
-        """Test save returns None when exception occurs."""
+        """Test save raises exception when database error occurs."""
         # Mock exception during execute
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
-        # Execute
-        result = await repository.save(preferences_entity)
-
-        # Assert
-        assert result is None
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.save(preferences_entity)
+        
+        # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_rolls_back_on_commit_failure(
+    async def test_save_raises_exception_on_commit_failure(
         self, repository, mock_session, preferences_entity
     ):
-        """Test save rolls back transaction on commit failure."""
+        """Test save raises exception when commit fails."""
         # Mock: find returns None
+        from sqlalchemy.exc import SQLAlchemyError
         mock_find_result = MagicMock()
         mock_find_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_find_result
         
         # Mock commit failure
-        mock_session.commit.side_effect = Exception("Commit failed")
+        mock_session.commit.side_effect = SQLAlchemyError("Commit failed")
 
-        # Execute
-        result = await repository.save(preferences_entity)
-
-        # Assert
-        assert result is None
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Commit failed"):
+            await repository.save(preferences_entity)
+        
+        # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
 
@@ -228,16 +229,17 @@ class TestDeleteByUserId:
         mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_delete_by_user_id_returns_false_on_exception(
+    async def test_delete_by_user_id_raises_exception_on_database_error(
         self, repository, mock_session, user_id
     ):
-        """Test delete returns False when exception occurs."""
+        """Test delete raises exception when database error occurs."""
         # Mock exception
-        mock_session.execute.side_effect = Exception("Database error")
+        from sqlalchemy.exc import SQLAlchemyError
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
-        # Execute
-        result = await repository.delete_by_user_id(user_id)
-
-        # Assert
-        assert result is False
+        # Act & Assert
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.delete_by_user_id(user_id)
+        
+        # Verify rollback was called
         mock_session.rollback.assert_called_once()

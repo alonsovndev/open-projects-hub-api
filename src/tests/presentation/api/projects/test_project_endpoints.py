@@ -134,10 +134,19 @@ class TestListProjectsEndpoint:
     """Test GET /v1/projects endpoint."""
     
     def test_list_projects_returns_array(self, client: TestClient, admin_token: str, mock_project_response):
-        """Test listing projects returns array."""
+        """Test listing projects returns paginated response."""
+        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+        
+        paginated_response = PaginatedResponse(
+            total=1,
+            page=1,
+            per_page=20,
+            items=[mock_project_response]
+        )
+        
         with patch(
             "src.app.features.projects.application.use_cases.list_projects.ListProjectsUseCase.execute",
-            new=AsyncMock(return_value=[mock_project_response]),
+            new=AsyncMock(return_value=paginated_response),
         ):
             response = client.get(
                 "/v1/projects",
@@ -146,7 +155,15 @@ class TestListProjectsEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert "total" in data
+        assert "page" in data
+        assert "per_page" in data
+        assert "items" in data
+        assert isinstance(data["items"], list)
+        assert data["total"] == 1
+        assert data["page"] == 1
+        assert data["per_page"] == 20
     
     def test_list_projects_unauthorized_without_token(self, client: TestClient):
         """Test listing projects without token returns 403."""

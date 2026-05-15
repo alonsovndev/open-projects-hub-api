@@ -11,6 +11,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -47,6 +48,7 @@ class TestListProjectsUseCase:
             updated_at=datetime.now(),
         )
         
+        mock_repo.count.return_value = 2
         mock_repo.find_all.return_value = [project1, project2]
         
         use_case = ListProjectsUseCase(mock_repo)
@@ -55,11 +57,15 @@ class TestListProjectsUseCase:
         result = await use_case.execute()
         
         # Assert
-        assert isinstance(result, list)
-        assert len(result) == 2
-        assert all(isinstance(p, ProjectResponse) for p in result)
-        assert result[0].name == "Project 1"
-        assert result[1].name == "Project 2"
+        assert isinstance(result, PaginatedResponse)
+        assert result.total == 2
+        assert result.page == 1
+        assert result.per_page == 20
+        assert len(result.items) == 2
+        assert all(isinstance(p, ProjectResponse) for p in result.items)
+        assert result.items[0].name == "Project 1"
+        assert result.items[1].name == "Project 2"
+        mock_repo.count.assert_called_once_with(status=None)
         mock_repo.find_all.assert_called_once_with(limit=20, offset=0, status=None)
 
     @pytest.mark.asyncio
@@ -67,6 +73,7 @@ class TestListProjectsUseCase:
         """Test project listing with pagination parameters."""
         # Setup
         mock_repo = AsyncMock()
+        mock_repo.count.return_value = 100
         mock_repo.find_all.return_value = []
         
         use_case = ListProjectsUseCase(mock_repo)
@@ -75,7 +82,12 @@ class TestListProjectsUseCase:
         result = await use_case.execute(limit=10, offset=20)
         
         # Assert
-        assert isinstance(result, list)
+        assert isinstance(result, PaginatedResponse)
+        assert result.total == 100
+        assert result.page == 3  # offset 20 / limit 10 = page 3
+        assert result.per_page == 10
+        assert len(result.items) == 0
+        mock_repo.count.assert_called_once_with(status=None)
         mock_repo.find_all.assert_called_once_with(limit=10, offset=20, status=None)
 
     @pytest.mark.asyncio
@@ -96,6 +108,7 @@ class TestListProjectsUseCase:
             updated_at=datetime.now(),
         )
         
+        mock_repo.count.return_value = 1
         mock_repo.find_all.return_value = [active_project]
         
         use_case = ListProjectsUseCase(mock_repo)
@@ -104,15 +117,19 @@ class TestListProjectsUseCase:
         result = await use_case.execute(status="active")
         
         # Assert
-        assert len(result) == 1
-        assert result[0].status == "active"
+        assert isinstance(result, PaginatedResponse)
+        assert result.total == 1
+        assert len(result.items) == 1
+        assert result.items[0].status == "active"
+        mock_repo.count.assert_called_once_with(status="active")
         mock_repo.find_all.assert_called_once_with(limit=20, offset=0, status="active")
 
     @pytest.mark.asyncio
     async def test_execute_returns_empty_list_when_no_projects(self):
-        """Test that empty result returns empty list."""
+        """Test that empty result returns empty paginated response."""
         # Setup
         mock_repo = AsyncMock()
+        mock_repo.count.return_value = 0
         mock_repo.find_all.return_value = []
         
         use_case = ListProjectsUseCase(mock_repo)
@@ -121,22 +138,29 @@ class TestListProjectsUseCase:
         result = await use_case.execute()
         
         # Assert
-        assert isinstance(result, list)
-        assert len(result) == 0
+        assert isinstance(result, PaginatedResponse)
+        assert result.total == 0
+        assert len(result.items) == 0
 
     @pytest.mark.asyncio
     async def test_execute_with_all_parameters(self):
         """Test project listing with all parameters."""
         # Setup
         mock_repo = AsyncMock()
+        mock_repo.count.return_value = 200
         mock_repo.find_all.return_value = []
         
         use_case = ListProjectsUseCase(mock_repo)
         
         # Execute
-        await use_case.execute(limit=50, offset=100, status="completed")
+        result = await use_case.execute(limit=50, offset=100, status="completed")
         
         # Assert
+        assert isinstance(result, PaginatedResponse)
+        assert result.total == 200
+        assert result.page == 3  # offset 100 / limit 50 = page 3
+        assert result.per_page == 50
+        mock_repo.count.assert_called_once_with(status="completed")
         mock_repo.find_all.assert_called_once_with(
             limit=50,
             offset=100,
@@ -161,6 +185,7 @@ class TestListProjectsUseCase:
             updated_at=datetime.now(),
         )
         
+        mock_repo.count.return_value = 1
         mock_repo.find_all.return_value = [project]
         
         use_case = ListProjectsUseCase(mock_repo)
@@ -169,8 +194,10 @@ class TestListProjectsUseCase:
         result = await use_case.execute()
         
         # Assert
-        assert result[0].id == str(project.id.value)
-        assert result[0].name == "Full Project"
-        assert result[0].description == "Complete Description"
-        assert result[0].status == "archived"
-        assert result[0].created_by == str(project.created_by.value)
+        assert isinstance(result, PaginatedResponse)
+        assert len(result.items) == 1
+        assert result.items[0].id == str(project.id.value)
+        assert result.items[0].name == "Full Project"
+        assert result.items[0].description == "Complete Description"
+        assert result.items[0].status == "archived"
+        assert result.items[0].created_by == str(project.created_by.value)

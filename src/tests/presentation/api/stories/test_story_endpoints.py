@@ -113,10 +113,19 @@ class TestListStoriesEndpoint:
     """Test GET /v1/stories endpoint."""
     
     def test_list_stories_returns_array(self, client: TestClient, admin_token: str, mock_story_response):
-        """Test listing stories returns array."""
+        """Test listing stories returns paginated response."""
+        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+        
+        paginated_response = PaginatedResponse(
+            total=1,
+            page=1,
+            per_page=20,
+            items=[mock_story_response]
+        )
+        
         with patch(
             "src.app.features.stories.application.use_cases.list_stories.ListStoriesUseCase.execute",
-            new=AsyncMock(return_value=[mock_story_response]),
+            new=AsyncMock(return_value=paginated_response),
         ):
             response = client.get(
                 "/v1/stories",
@@ -125,13 +134,27 @@ class TestListStoriesEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert "total" in data
+        assert "page" in data
+        assert "per_page" in data
+        assert "items" in data
+        assert isinstance(data["items"], list)
     
     def test_list_stories_with_filters(self, client: TestClient, admin_token: str, mock_story_response):
         """Test listing stories with status filter."""
+        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+        
+        paginated_response = PaginatedResponse(
+            total=1,
+            page=1,
+            per_page=20,
+            items=[mock_story_response]
+        )
+        
         with patch(
             "src.app.features.stories.application.use_cases.list_stories.ListStoriesUseCase.execute",
-            new=AsyncMock(return_value=[mock_story_response]),
+            new=AsyncMock(return_value=paginated_response),
         ):
             response = client.get(
                 "/v1/stories?status=todo&priority=high",
@@ -139,6 +162,9 @@ class TestListStoriesEndpoint:
             )
         
         assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+        assert "items" in data
     
     def test_list_stories_unauthorized_without_token(self, client: TestClient):
         """Test listing stories without token returns 403."""
@@ -261,10 +287,19 @@ class TestGetStoriesByProjectEndpoint:
     """Test GET /v1/stories/by-project/{project_id} endpoint."""
     
     def test_get_stories_by_project_success(self, client: TestClient, admin_token: str, mock_story_response):
-        """Test getting stories by project returns stories."""
+        """Test getting stories by project returns paginated response."""
+        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+        
+        paginated_response = PaginatedResponse(
+            total=1,
+            page=1,
+            per_page=20,
+            items=[mock_story_response]
+        )
+        
         with patch(
             "src.app.features.stories.application.use_cases.get_stories_by_project.GetStoriesByProjectUseCase.execute",
-            new=AsyncMock(return_value=[mock_story_response]),
+            new=AsyncMock(return_value=paginated_response),
         ):
             response = client.get(
                 "/v1/stories/by-project/550e8400-e29b-41d4-a716-446655440001",
@@ -273,7 +308,10 @@ class TestGetStoriesByProjectEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert "total" in data
+        assert "items" in data
+        assert isinstance(data["items"], list)
 
 
 class TestAssignStoryEndpoint:

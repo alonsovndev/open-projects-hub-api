@@ -13,6 +13,16 @@ from src.app.features.user.domain.entities.user_entity import UserEntity, UserRo
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
+
+
+@pytest.fixture(autouse=True)
+def clear_token_revocation():
+    """Clear token revocation service before each test."""
+    service = get_token_revocation_service()
+    service.clear_all()
+    yield
+    service.clear_all()
 
 
 @pytest.fixture
@@ -168,4 +178,32 @@ class TestRefreshTokenUseCase:
         # Execute should raise InvalidTokenError (not a refresh token)
         request = RefreshTokenRequest(refresh_token=access_token)
         with pytest.raises(pyjwt.InvalidTokenError, match="not a refresh token"):
+            await use_case.execute(request)
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_cannot_be_reused(
+        self, jwt_handler, user_entity, mock_user_repository
+    ):
+        """Test that refresh token cannot be reused after one use (single-use token)."""
+        # Create refresh token
+        refresh_token = jwt_handler.create_refresh_token(
+            user_id=str(user_entity.id),
+            email=str(user_entity.email),
+            role=user_entity.role.value,
+        )
+
+        # Mock repository to return user
+        mock_user_repository.find_by_email = AsyncMock(return_value=user_entity)
+
+        # Create use case
+        use_case = RefreshTokenUseCase(mock_user_repository, jwt_handler)
+
+        # First use should succeed
+        request = RefreshTokenRequest(refresh_token=refresh_token)
+        response1 = await use_case.execute(request)
+        assert response1.access_token is not None
+        assert response1.refresh_token is not None
+
+        # Second use of same token should fail (token revoked)
+        with pytest.raises(pyjwt.InvalidTokenError, match="already been used"):
             await use_case.execute(request)
