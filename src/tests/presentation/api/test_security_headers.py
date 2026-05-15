@@ -61,3 +61,21 @@ class TestSecurityHeaders:
         # HSTS should only be present in production
         # In test/local/dev, it should not be set
         assert "Strict-Transport-Security" not in response.headers
+
+    def test_csp_allows_swagger_ui_on_docs_endpoint(self, client):
+        """Verify Content-Security-Policy allows Swagger UI resources on /docs."""
+        response = client.get("/docs")
+        
+        csp = response.headers["Content-Security-Policy"]
+        
+        # Should allow Swagger UI resources
+        assert "https://cdn.jsdelivr.net" in csp
+        assert "'unsafe-inline'" in csp
+        assert "'unsafe-eval'" in csp
+        
+    def test_csp_strict_on_api_endpoints(self, client):
+        """Verify Content-Security-Policy is strict on API endpoints."""
+        response = client.get("/health")
+        
+        # API endpoints should have strict CSP
+        assert response.headers["Content-Security-Policy"] == "default-src 'none'; frame-ancestors 'none'"

@@ -20,10 +20,12 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     Add security headers to all responses.
     
     Headers added:
-    - Strict-Transport-Security: Enforce HTTPS (HSTS)
+    - Strict-Transport-Security: Enforce HTTPS (HSTS) - production only
     - X-Content-Type-Options: Prevent MIME type sniffing
     - X-Frame-Options: Prevent clickjacking
     - Content-Security-Policy: Restrict resource loading
+      * Local/Dev: Allows Swagger UI on /docs endpoint
+      * Production: Strict policy on all endpoints (docs disabled)
     - X-XSS-Protection: Enable XSS filter (legacy browsers)
     - Referrer-Policy: Control referrer information
     - Permissions-Policy: Control browser features
@@ -47,8 +49,27 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     # Prevent clickjacking
     response.headers["X-Frame-Options"] = "DENY"
     
-    # Content Security Policy (restrict to API only, no scripts/styles)
-    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    # Content Security Policy - More permissive in local/dev, strict in production
+    # In local/dev: Allow Swagger UI resources on /docs endpoint
+    # In production: Strict CSP on all endpoints (no documentation endpoints exposed)
+    if ENV in ("local", "dev", "development"):
+        # Allow Swagger UI resources for local development
+        if request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
+            # Swagger UI requires: CDN resources, inline scripts, and unsafe-eval
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://fastapi.tiangolo.com; "
+                "font-src 'self' data:; "
+                "connect-src 'self'"
+            )
+        else:
+            # Strict CSP for API endpoints (no scripts/styles allowed)
+            response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    else:
+        # Production: strict CSP on all endpoints (docs should be disabled in production)
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     
     # XSS Protection (legacy browsers)
     response.headers["X-XSS-Protection"] = "1; mode=block"
