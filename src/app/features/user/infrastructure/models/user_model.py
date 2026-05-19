@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Enum as SQLEnum
+from sqlalchemy import Column, String
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.infrastructure.models.base_model import BaseModel
@@ -15,4 +16,4 @@ class UserModel(BaseModel):
     email = Column(String(255), unique=True, nullable=False, index=True)
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.VIEWER)
+    role = Column(PgEnum('admin', 'viewer', name='userrole', create_type=False), nullable=False, default='viewer')

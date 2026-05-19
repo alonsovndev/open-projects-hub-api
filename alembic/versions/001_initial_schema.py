@@ -25,7 +25,13 @@ def upgrade() -> None:
     """Create initial schema: users and user_preferences tables."""
     
     # ========================================
-    # 1. CREATE USERS TABLE
+    # 1. CREATE ENUM TYPE FOR USER ROLES
+    # ========================================
+    user_role_enum = postgresql.ENUM('admin', 'viewer', name='userrole', create_type=False)
+    user_role_enum.create(op.get_bind(), checkfirst=True)
+    
+    # ========================================
+    # 2. CREATE USERS TABLE
     # ========================================
     op.create_table(
         'users',
@@ -33,7 +39,7 @@ def upgrade() -> None:
         sa.Column('email', sa.String(length=255), nullable=False),
         sa.Column('display_name', sa.String(length=255), nullable=False),
         sa.Column('password_hash', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.String(length=20), nullable=False, server_default='viewer'),
+        sa.Column('role', user_role_enum, nullable=False, server_default='viewer'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -77,3 +83,7 @@ def downgrade() -> None:
     op.drop_index('ix_users_created_at', table_name='users')
     op.drop_index('ix_users_email', table_name='users')
     op.drop_table('users')
+    
+    # Drop enum type
+    user_role_enum = postgresql.ENUM('admin', 'viewer', name='userrole')
+    user_role_enum.drop(op.get_bind(), checkfirst=True)

@@ -100,7 +100,7 @@ class UserRepositoryImpl(UserRepository):
                 email=user.email.value,
                 display_name=user.display_name,
                 password_hash=user.password_hash,
-                role=user.role
+                role=user.role.value
             )
 
             self.db_session.add(user_model)
@@ -217,7 +217,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.email = user.email.value
             user_model.display_name = user.display_name
             user_model.password_hash = user.password_hash
-            user_model.role = user.role
+            user_model.role = user.role.value
             
             await self.db_session.commit()
             await self.db_session.refresh(user_model)
