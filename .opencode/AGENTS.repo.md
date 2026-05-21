@@ -7,48 +7,43 @@ This file contains repository-specific rules and preferences.
 - Apply only to this repository.
 - Do not duplicate global rules from ${HOME}/.config/opencode.
 
-## What to Define Here
+## Domain Boundaries
 
-1. Domain boundaries and terminology for this repo
-2. Build, test, and lint commands
-3. Security and data constraints unique to this repo
-4. Performance and reliability goals
-5. Any local conventions not already covered globally
+- Main API bootstrap is `src/app/app.py`; ASGI entrypoint for deployments is `src/main.py` (`app = fastApiApp`).
+- Business code is feature-first under `src/app/features/{user,projects,stories,dashboard}` with layered folders (`application/`, `domain/`, `infrastructure/`, `presentation/`).
+- Cross-feature concerns live under `src/app/shared/` and follow the same layered split; prefer shared modules only for true cross-feature reuse.
+- API routers are centrally wired in `src/app/shared/presentation/router_registry.py` under `/v1/*` prefixes.
 
-## Token Discipline
+## Build, Test, and Run Commands
 
-- Keep this file short.
-- Link to local docs instead of copying large guides.
-- Add only rules that are specific to this repository.
+- Install: `make install`
+- Run API locally: `make run` (uses `uvicorn src.app.app:fastApiApp --reload --port 8000`)
+- Unit/default tests (no DB): `make test` or `make test-unit` (both ignore `src/tests/integration/`)
+- DB-backed integration tests: `make test-integration` (requires PostgreSQL)
+- Marker-based E2E tests: `make test-e2e` (runs `pytest -m e2e`)
+- Coverage: `make coverage` (unit-focused, `--cov-fail-under=80`), `make coverage-all` (includes DB tests), `make coverage-report`
+- Lint/format targets in `Makefile` are placeholders today; do not report lint/format as executed unless explicit tools were run.
 
-## Code Style and Naming Conventions
+## Data, Security, and Environment Constraints
 
-### Self-Documenting Code
+- Configuration is environment-driven via `APP_ENV` and `src/app/config/config_<env>.yml`; loaded by `src/app/config/app_config.py`.
+- Docker startup runs migrations before serving (`scripts/start-api.sh` executes `alembic upgrade head`).
+- Integration tests require PostgreSQL (`compose.yml` service `postgres` or an equivalent local instance).
+- In non-local/container environments, API docs are disabled in `src/app/app.py` (`docs_url`, `redoc_url`, `openapi_url` set to `None`).
 
-- Use descriptive, meaningful variable names that clearly indicate their purpose
-- Avoid single-letter or abbreviated variable names except in very limited contexts:
-  - Loop counters in simple iterations (e.g., `i`, `j`)
-  - Mathematical formulas where convention dictates (e.g., `x`, `y`)
-- **Never use generic names like `v`, `val`, `tmp`, `data` without additional context**
-- Examples:
-  - ❌ `v: str` → ✅ `theme_value: str`
-  - ❌ `val: int` → ✅ `user_count: int`
-  - ❌ `tmp: dict` → ✅ `preferences_dict: dict`
-  - ❌ `data: list` → ✅ `project_items: list`
+## Naming Conventions (Quick Reference)
 
-### Comments
+**Use case parameters:**
+- `request: CreateProjectRequest` (not `command`)
+- `created_by: str` (context from JWT)
+- `project_id: str` (explicit IDs, not generic `id`)
 
-- **Do not add obvious comments** that merely restate what the code does
-- Comments should explain **WHY**, not **WHAT**
-- Good comments explain:
-  - Business logic rationale
-  - Non-obvious algorithmic choices
-  - Workarounds for external constraints
-  - Important warnings or gotchas
-- Examples:
-  - ❌ `# Set theme to light` (obvious)
-  - ❌ `# Loop through users` (obvious)
-  - ❌ `# Return the result` (obvious)
-  - ✅ `# Using bcrypt rounds=12 per security team requirement (2024-05)`
-  - ✅ `# Cache for 5min to avoid rate limiting from external API`
-  - ✅ `# HACK: API returns null instead of empty array, normalizing here`
+**Variable names:**
+- ❌ Generic: `command`, `data`, `tmp`, `val`
+- ✅ Self-documenting: `request`, `user_count`, `theme_value`
+
+**Comments:**
+- Explain WHY, not WHAT
+- Only for non-obvious logic
+
+See `.opencode/knowledge/repo-standards.md` for detailed implementation patterns.

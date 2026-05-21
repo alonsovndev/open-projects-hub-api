@@ -99,6 +99,7 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 | **Edit the Minimum**          | Modify only what's required. Don't reformat, refactor unrelated code, or expand scope |
 | **Don't Repeat Code**         | Search for existing utilities first. Extract shared logic after 2-3 repetitions       |
 | **Don't Explain the Obvious** | Show code directly for simple tasks. Explain WHY, not WHAT. Skip preambles            |
+| **Flag Over-engineering**     | Call out when the ask adds unnecessary complexity; suggest simpler alternatives first |
 | **Test Before Done**          | Run tests + build + type-check before claiming completion                             |
 
 ## Rules
@@ -115,6 +116,14 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Match the style and naming already present; don't impose new patterns
 - No premature optimization or abstraction
 
+### Flag Over-engineering
+
+- When a request adds unnecessary abstraction, complexity, or features, call it out immediately
+- When trying to apply a programming pattern or architecture that doesn't fit the problem, flag it
+- Suggest the simplest solution that satisfies the actual need
+- Ask clarifying questions if the scope seems misaligned with stated goals
+- Propose simpler alternatives before implementing the complex version
+
 ### Don't Repeat Code
 
 - Check `src/shared/utils/`, `src/shared/components/`, feature utilities before writing new code
@@ -126,6 +135,7 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - ❌ "Here's what I did..." / "I've updated..." → ✅ just show the result
 - Comments only for non-obvious logic, not line-by-line narration
 - Response scale: simple edit = code only; medium = 1-line summary + code; complex = tradeoffs then implementation
+
 ### Test Before Done
 
 - Never claim completion without running tests, build, and type-check
@@ -195,14 +205,6 @@ This file contains repository-specific rules and preferences.
 - Cross-feature concerns live under `src/app/shared/` and follow the same layered split; prefer shared modules only for true cross-feature reuse.
 - API routers are centrally wired in `src/app/shared/presentation/router_registry.py` under `/v1/*` prefixes.
 
-## What to Define Here
-
-1. Domain boundaries and terminology for this repo
-2. Build, test, and lint commands
-3. Security and data constraints unique to this repo
-4. Performance and reliability goals
-5. Any local conventions not already covered globally
-
 ## Build, Test, and Run Commands
 
 - Install: `make install`
@@ -220,11 +222,22 @@ This file contains repository-specific rules and preferences.
 - Integration tests require PostgreSQL (`compose.yml` service `postgres` or an equivalent local instance).
 - In non-local/container environments, API docs are disabled in `src/app/app.py` (`docs_url`, `redoc_url`, `openapi_url` set to `None`).
 
-## Token Discipline
+## Naming Conventions (Quick Reference)
 
-- Keep this file short.
-- Link to local docs instead of copying large guides.
-- Add only rules that are specific to this repository.
+**Use case parameters:**
+- `request: CreateProjectRequest` (not `command`)
+- `created_by: str` (context from JWT)
+- `project_id: str` (explicit IDs, not generic `id`)
+
+**Variable names:**
+- ❌ Generic: `command`, `data`, `tmp`, `val`
+- ✅ Self-documenting: `request`, `user_count`, `theme_value`
+
+**Comments:**
+- Explain WHY, not WHAT
+- Only for non-obvious logic
+
+See `.opencode/knowledge/repo-standards.md` for detailed implementation patterns.
 
 ### Source: ./.opencode/knowledge/repo-standards.md
 
@@ -232,24 +245,65 @@ This file contains repository-specific rules and preferences.
 
 Repository-specific standards for making safe, minimal changes in this codebase.
 
-## Suggested Sections
-
-- Architecture boundaries
-- API contract rules
-- Data and migration constraints
-- Testing strategy for this repo
-- Deployment notes (if needed)
-
 ## Architecture Boundaries
 
 - Keep feature logic inside its feature package in `src/app/features/*`; avoid leaking feature-specific code into `src/app/shared/*`.
 - Presentation layer (routes/DTOs/dependencies) stays in `presentation/`; use cases stay in `application/`; persistence/adapters stay in `infrastructure/`.
 - Preserve central router registration in `src/app/shared/presentation/router_registry.py` instead of mounting routers ad hoc.
 
+## Clean Code Practices
+
+### Use Case Design
+
+**Follow Command Pattern with DTOs:**
+- Use case methods should accept DTOs (e.g., `CreateProjectRequest`) rather than many individual parameters
+- Keep context parameters separate (e.g., `created_by: str` from JWT token)
+- Maximum 2-3 parameters per use case method (typically: DTO + context)
+
+**Parameter naming:**
+- Use `request` for input DTOs (matches `XxxRequest` type name)
+- Use explicit ID names: `project_id`, `user_id`, `story_id` (not generic `id`)
+- Use `created_by` for actor context from authentication
+
+**Example:**
+```python
+# ✅ Good
+async def execute(self, request: CreateProjectRequest, created_by: str) -> ProjectResponse:
+    pass
+
+# ❌ Bad (too many params)
+async def execute(self, name: str, code: str, client_id: str, desc: str, ...) -> ProjectResponse:
+    pass
+```
+
+### Route Handler Patterns
+
+**Pass DTOs directly to use cases:**
+```python
+# ✅ Good - pass DTO directly
+use_case.execute(request=payload, created_by=user_id)
+
+# ❌ Bad - manual unpacking
+use_case.execute(
+    name=payload.name,
+    code=payload.code,
+    client_id=payload.client_id,
+    # ... many lines
+)
+```
+
+### Variable Naming
+
+- Use self-documenting names that match their type or purpose
+- Avoid generic names: `command`, `data`, `tmp`, `val`
+- Match DTO type names: `CreateProjectRequest` → `request`
+- Be explicit with IDs and context variables
+
 ## API Contract Rules
 
 - Keep endpoint versioning under `/v1` as defined by router prefixes in `src/app/shared/presentation/router_registry.py`.
 - Align route updates with docs in `docs/api/README.md` when paths or auth requirements change.
+- DTOs use `camelCase` for JSON (Pydantic `alias_generator=to_camel`) but Python code uses `snake_case`.
 
 ## Data and Migration Constraints
 
@@ -266,6 +320,29 @@ Repository-specific standards for making safe, minimal changes in this codebase.
 
 - Docker service exposes API on `:8080` (`compose.yml`) while local `make run` serves on `:8000`; verify the correct base URL in tests/docs.
 - Container runtime entrypoint is `src.main:app` via Gunicorn (`scripts/start-api.sh`), not direct `uvicorn` module execution.
+
+## Refactoring Guidelines
+
+### When Refactoring Use Cases
+
+1. **Check parameter count** - If > 4 parameters, refactor to use DTO
+2. **Use existing DTOs** - Most features have `CreateXxxRequest` and `UpdateXxxRequest` DTOs
+3. **Keep context separate** - Authentication/authorization context stays as separate params
+4. **Update routes** - Change route handlers to pass DTOs directly (no unpacking)
+5. **Update tests** - Modify test fixtures to create DTOs instead of passing individual params
+6. **Verify** - Run `make test-unit` to ensure no regressions
+
+### Repository Pattern Consistency
+
+- All repositories use plain `ABC` with explicit methods (no `BaseRepository`)
+- Return types should match domain needs (e.g., `Tuple[ProjectEntity, str]` for project + client name)
+- Repository methods use domain entities, not DTOs or models directly
+
+### Mapper Location
+
+- Mappers live in feature's `application/mappers/` directory (not `shared/`)
+- Mappers convert between domain entities and application DTOs
+- Keep mappers close to the DTOs they work with
 
 ## Keep It Lean
 
