@@ -177,23 +177,18 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 422
 
-    def test_register_with_empty_display_name_returns_400(self, client):
-        """Test registration with empty displayName returns 400."""
-        with patch(
-            "src.app.features.user.application.use_cases.register_user.RegisterUserUseCase.execute",
-            new=AsyncMock(side_effect=ValueError("Display name cannot be empty")),
-        ):
-            response = client.post(
-                "/v1/auth/register",
-                json={
-                    "email": "newuser@example.com",
-                    "password": "SecurePass1",
-                    "displayName": "",
-                },
-            )
+    def test_register_with_empty_display_name_returns_422(self, client):
+        """Test registration with empty displayName returns 422 (Pydantic validation)."""
+        response = client.post(
+            "/v1/auth/register",
+            json={
+                "email": "newuser@example.com",
+                "password": "SecurePass1",
+                "displayName": "",
+            },
+        )
 
-        assert response.status_code == 400
-        assert "Display name cannot be empty" in response.json()["detail"]
+        assert response.status_code == 422
 
     def test_register_defaults_to_viewer_role(self, client, mock_register_response):
         """Test that registration defaults to viewer role."""
