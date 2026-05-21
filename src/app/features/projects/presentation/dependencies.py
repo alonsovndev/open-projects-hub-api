@@ -7,13 +7,16 @@ from src.app.features.projects.application.use_cases.delete_project import Delet
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
+from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
+from src.app.features.clients.domain.repositories.client_repository import ClientRepository
+from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
 from src.app.shared.presentation.dependencies import get_database_session
 
 
 async def get_project_repository(
     session: AsyncSession = Depends(get_database_session),
-) -> ProjectRepositoryImpl:
+) -> ProjectRepository:
     """
     Get project repository instance.
     
@@ -21,28 +24,45 @@ async def get_project_repository(
         session: Database session
         
     Returns:
-        ProjectRepositoryImpl instance
+        ProjectRepository instance
     """
     return ProjectRepositoryImpl(session)
 
 
+async def get_client_repository(
+    session: AsyncSession = Depends(get_database_session),
+) -> ClientRepository:
+    """
+    Get client repository instance.
+    
+    Args:
+        session: Database session
+        
+    Returns:
+        ClientRepository instance
+    """
+    return ClientRepositoryImpl(session)
+
+
 async def get_create_project_use_case(
-    repository: ProjectRepositoryImpl = Depends(get_project_repository),
+    project_repository: ProjectRepository = Depends(get_project_repository),
+    client_repository: ClientRepository = Depends(get_client_repository),
 ) -> CreateProjectUseCase:
     """
     Get CreateProjectUseCase instance.
     
     Args:
-        repository: Project repository
+        project_repository: Project repository
+        client_repository: Client repository
         
     Returns:
         CreateProjectUseCase instance
     """
-    return CreateProjectUseCase(repository)
+    return CreateProjectUseCase(project_repository, client_repository)
 
 
 async def get_list_projects_use_case(
-    repository: ProjectRepositoryImpl = Depends(get_project_repository),
+    repository: ProjectRepository = Depends(get_project_repository),
 ) -> ListProjectsUseCase:
     """
     Get ListProjectsUseCase instance.
@@ -57,7 +77,7 @@ async def get_list_projects_use_case(
 
 
 async def get_project_by_id_use_case(
-    repository: ProjectRepositoryImpl = Depends(get_project_repository),
+    repository: ProjectRepository = Depends(get_project_repository),
 ) -> GetProjectByIdUseCase:
     """
     Get GetProjectByIdUseCase instance.
@@ -72,22 +92,24 @@ async def get_project_by_id_use_case(
 
 
 async def get_update_project_use_case(
-    repository: ProjectRepositoryImpl = Depends(get_project_repository),
+    project_repository: ProjectRepository = Depends(get_project_repository),
+    client_repository: ClientRepository = Depends(get_client_repository),
 ) -> UpdateProjectUseCase:
     """
     Get UpdateProjectUseCase instance.
     
     Args:
-        repository: Project repository
+        project_repository: Project repository
+        client_repository: Client repository
         
     Returns:
         UpdateProjectUseCase instance
     """
-    return UpdateProjectUseCase(repository)
+    return UpdateProjectUseCase(project_repository, client_repository)
 
 
 async def get_delete_project_use_case(
-    repository: ProjectRepositoryImpl = Depends(get_project_repository),
+    repository: ProjectRepository = Depends(get_project_repository),
 ) -> DeleteProjectUseCase:
     """
     Get DeleteProjectUseCase instance.

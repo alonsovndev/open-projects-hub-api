@@ -11,6 +11,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
@@ -21,42 +22,46 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_returns_list_of_projects(self):
         """Test successful project listing."""
-        # Setup
         mock_repo = AsyncMock()
-        
+
         project1 = ProjectEntity(
             id=EntityId.generate(),
             name="Project 1",
+            code="PRJ1",
             description="Description 1",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
             status=ProjectStatus.ACTIVE,
+            priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         project2 = ProjectEntity(
             id=EntityId.generate(),
             name="Project 2",
+            code="PRJ2",
             description="Description 2",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
             status=ProjectStatus.COMPLETED,
+            priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         mock_repo.count.return_value = 2
-        mock_repo.find_all.return_value = [project1, project2]
-        
+        mock_repo.find_all.return_value = [(project1, "Client 1"), (project2, "Client 2")]
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute()
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert result.total == 2
         assert result.page == 1
@@ -71,20 +76,18 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_with_pagination(self):
         """Test project listing with pagination parameters."""
-        # Setup
         mock_repo = AsyncMock()
         mock_repo.count.return_value = 100
         mock_repo.find_all.return_value = []
-        
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute(limit=10, offset=20)
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert result.total == 100
-        assert result.page == 3  # offset 20 / limit 10 = page 3
+        assert result.page == 3
         assert result.per_page == 10
         assert len(result.items) == 0
         mock_repo.count.assert_called_once_with(status=None)
@@ -93,30 +96,31 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_with_status_filter(self):
         """Test project listing with status filter."""
-        # Setup
         mock_repo = AsyncMock()
-        
+
         active_project = ProjectEntity(
             id=EntityId.generate(),
             name="Active Project",
+            code="ACT1",
             description=None,
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
             status=ProjectStatus.ACTIVE,
+            priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         mock_repo.count.return_value = 1
-        mock_repo.find_all.return_value = [active_project]
-        
+        mock_repo.find_all.return_value = [(active_project, "Client")]
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute(status="active")
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert result.total == 1
         assert len(result.items) == 1
@@ -127,17 +131,15 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_returns_empty_list_when_no_projects(self):
         """Test that empty result returns empty paginated response."""
-        # Setup
         mock_repo = AsyncMock()
         mock_repo.count.return_value = 0
         mock_repo.find_all.return_value = []
-        
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute()
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert result.total == 0
         assert len(result.items) == 0
@@ -145,20 +147,18 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_with_all_parameters(self):
         """Test project listing with all parameters."""
-        # Setup
         mock_repo = AsyncMock()
         mock_repo.count.return_value = 200
         mock_repo.find_all.return_value = []
-        
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute(limit=50, offset=100, status="completed")
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert result.total == 200
-        assert result.page == 3  # offset 100 / limit 50 = page 3
+        assert result.page == 3
         assert result.per_page == 50
         mock_repo.count.assert_called_once_with(status="completed")
         mock_repo.find_all.assert_called_once_with(
@@ -170,30 +170,31 @@ class TestListProjectsUseCase:
     @pytest.mark.asyncio
     async def test_execute_maps_all_entity_fields(self):
         """Test that all entity fields are correctly mapped to response."""
-        # Setup
         mock_repo = AsyncMock()
-        
+
         project = ProjectEntity(
             id=EntityId.generate(),
             name="Full Project",
+            code="FULL",
             description="Complete Description",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
             status=ProjectStatus.ARCHIVED,
+            priority=ProjectPriority.HIGH,
             start_date=None,
             end_date=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         mock_repo.count.return_value = 1
-        mock_repo.find_all.return_value = [project]
-        
+        mock_repo.find_all.return_value = [(project, "Client")]
+        mock_repo.get_story_counts_batch.return_value = {}
+
         use_case = ListProjectsUseCase(mock_repo)
-        
-        # Execute
+
         result = await use_case.execute()
-        
-        # Assert
+
         assert isinstance(result, PaginatedResponse)
         assert len(result.items) == 1
         assert result.items[0].id == str(project.id.value)

@@ -1,6 +1,6 @@
 """Project repository interface."""
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
@@ -10,15 +10,15 @@ class ProjectRepository(ABC):
     """Repository interface for Project aggregate."""
     
     @abstractmethod
-    async def find_by_id(self, project_id: UUID) -> Optional[ProjectEntity]:
+    async def find_by_id(self, project_id: UUID) -> Optional[Tuple[ProjectEntity, str]]:
         """
-        Find project by ID.
+        Find project by ID with client name.
         
         Args:
             project_id: Project UUID
             
         Returns:
-            ProjectEntity if found, None otherwise
+            Tuple of (ProjectEntity, client_name) if found, None otherwise
         """
         pass
     
@@ -28,7 +28,7 @@ class ProjectRepository(ABC):
         limit: int = 20,
         offset: int = 0,
         status: Optional[str] = None,
-    ) -> List[ProjectEntity]:
+    ) -> List[Tuple[ProjectEntity, str]]:
         """
         Find all projects with pagination and optional filtering.
         
@@ -38,7 +38,7 @@ class ProjectRepository(ABC):
             status: Optional status filter (active, completed, archived)
             
         Returns:
-            List of ProjectEntity objects
+            List of tuples (ProjectEntity, client_name)
         """
         pass
     
@@ -78,5 +78,31 @@ class ProjectRepository(ABC):
             
         Returns:
             Number of projects
+        """
+        pass
+    
+    @abstractmethod
+    async def get_story_counts(self, project_id: UUID) -> Tuple[int, int]:
+        """
+        Get total and completed story counts for a project.
+        
+        Args:
+            project_id: Project UUID
+            
+        Returns:
+            Tuple of (total_stories, completed_stories)
+        """
+        pass
+    
+    @abstractmethod
+    async def get_story_counts_batch(self, project_ids: List[UUID]) -> Dict[UUID, Tuple[int, int]]:
+        """
+        Get story counts for multiple projects in a single query.
+        
+        Args:
+            project_ids: List of project UUIDs
+            
+        Returns:
+            Dict mapping project_id to (total_stories, completed_stories)
         """
         pass

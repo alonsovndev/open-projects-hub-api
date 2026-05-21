@@ -3,6 +3,8 @@ from datetime import date, datetime
 from typing import Optional
 
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.features.projects.domain.validators.project_validators import ProjectValidators
 from src.app.shared.domain.entities.base_entity import BaseEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
@@ -19,9 +21,12 @@ class ProjectEntity(BaseEntity):
         self,
         id: EntityId,
         name: str,
+        code: str,
         description: Optional[str],
         created_by: EntityId,
+        client_id: EntityId,
         status: ProjectStatus,
+        priority: ProjectPriority,
         start_date: Optional[date],
         end_date: Optional[date],
         created_at: datetime,
@@ -33,9 +38,12 @@ class ProjectEntity(BaseEntity):
         Args:
             id: Unique project identifier
             name: Project name (required, max 255 chars)
+            code: Project code (required, unique, max 50 chars)
             description: Optional project description
             created_by: User ID of project creator
+            client_id: Client ID associated with project
             status: Project status (active, completed, archived)
+            priority: Project priority (low, medium, high)
             start_date: Optional project start date
             end_date: Optional project end date
             created_at: Timestamp when project was created
@@ -44,38 +52,32 @@ class ProjectEntity(BaseEntity):
         Raises:
             ValueError: If validation fails
         """
-        self._validate_name(name)
-        self._validate_dates(start_date, end_date)
+        # Validate domain invariants
+        ProjectValidators.validate_name(name)
+        ProjectValidators.validate_code(code)
+        ProjectValidators.validate_dates(start_date, end_date)
         
-        # Initialize base entity (id, created_at, updated_at)
         super().__init__(id=id, created_at=created_at, updated_at=updated_at)
         
-        # Project-specific fields
         self._name = name
+        self._code = code
         self._description = description
         self._created_by = created_by
+        self._client_id = client_id
         self._status = status
+        self._priority = priority
         self._start_date = start_date
         self._end_date = end_date
-    
-    @staticmethod
-    def _validate_name(name: str) -> None:
-        """Validate project name."""
-        if not name or not name.strip():
-            raise ValueError("Project name cannot be empty")
-        if len(name) > 255:
-            raise ValueError("Project name cannot exceed 255 characters")
-    
-    @staticmethod
-    def _validate_dates(start_date: Optional[date], end_date: Optional[date]) -> None:
-        """Validate start and end dates."""
-        if start_date and end_date and end_date < start_date:
-            raise ValueError("End date cannot be before start date")
     
     @property
     def name(self) -> str:
         """Get project name."""
         return self._name
+    
+    @property
+    def code(self) -> str:
+        """Get project code."""
+        return self._code
     
     @property
     def description(self) -> Optional[str]:
@@ -88,9 +90,19 @@ class ProjectEntity(BaseEntity):
         return self._created_by
     
     @property
+    def client_id(self) -> EntityId:
+        """Get client ID."""
+        return self._client_id
+    
+    @property
     def status(self) -> ProjectStatus:
         """Get project status."""
         return self._status
+    
+    @property
+    def priority(self) -> ProjectPriority:
+        """Get project priority."""
+        return self._priority
     
     @property
     def start_date(self) -> Optional[date]:
@@ -105,8 +117,11 @@ class ProjectEntity(BaseEntity):
     def update_details(
         self,
         name: Optional[str] = None,
+        code: Optional[str] = None,
         description: Optional[str] = None,
+        client_id: Optional[EntityId] = None,
         status: Optional[ProjectStatus] = None,
+        priority: Optional[ProjectPriority] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> None:
@@ -115,8 +130,11 @@ class ProjectEntity(BaseEntity):
         
         Args:
             name: New project name (if provided)
+            code: New project code (if provided)
             description: New description (if provided)
+            client_id: New client ID (if provided)
             status: New status (if provided)
+            priority: New priority (if provided)
             start_date: New start date (if provided)
             end_date: New end date (if provided)
             
@@ -124,20 +142,30 @@ class ProjectEntity(BaseEntity):
             ValueError: If validation fails
         """
         if name is not None:
-            self._validate_name(name)
+            ProjectValidators.validate_name(name)
             self._name = name
+        
+        if code is not None:
+            ProjectValidators.validate_code(code)
+            self._code = code
         
         if description is not None:
             self._description = description
         
+        if client_id is not None:
+            self._client_id = client_id
+        
         if status is not None:
             self._status = status
         
-        # Handle date updates
+        if priority is not None:
+            self._priority = priority
+        
+        # Validate date combination before applying to prevent inconsistent state
         new_start = start_date if start_date is not None else self._start_date
         new_end = end_date if end_date is not None else self._end_date
         
-        self._validate_dates(new_start, new_end)
+        ProjectValidators.validate_dates(new_start, new_end)
         
         if start_date is not None:
             self._start_date = start_date
@@ -166,8 +194,11 @@ class ProjectEntity(BaseEntity):
     def create(
         cls,
         name: str,
+        code: str,
         created_by: EntityId,
+        client_id: EntityId,
         description: Optional[str] = None,
+        priority: Optional[ProjectPriority] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> "ProjectEntity":
@@ -176,8 +207,11 @@ class ProjectEntity(BaseEntity):
         
         Args:
             name: Project name
+            code: Project code (unique identifier)
             created_by: User ID of creator
+            client_id: Client ID associated with project
             description: Optional description
+            priority: Optional priority (defaults to MEDIUM)
             start_date: Optional start date
             end_date: Optional end date
             
@@ -191,9 +225,12 @@ class ProjectEntity(BaseEntity):
         return cls(
             id=EntityId.generate(),
             name=name,
+            code=code,
             description=description,
             created_by=created_by,
+            client_id=client_id,
             status=ProjectStatus.default(),
+            priority=priority or ProjectPriority.default(),
             start_date=start_date,
             end_date=end_date,
             created_at=now,

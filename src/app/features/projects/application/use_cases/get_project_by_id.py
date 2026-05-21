@@ -4,7 +4,7 @@ from typing import Optional
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.infrastructure.mappers.project_mapper import to_project_response
+from src.app.features.projects.application.mappers.project_mapper import to_project_response
 
 
 class GetProjectByIdUseCase:
@@ -35,11 +35,13 @@ class GetProjectByIdUseCase:
         # Parse and validate UUID
         entity_id = EntityId.from_string(project_id)
         
-        # Fetch from repository
-        entity = await self._repository.find_by_id(entity_id.value)
+        result = await self._repository.find_by_id(entity_id.value)
         
-        if not entity:
+        if not result:
             return None
         
-        # Return DTO using shared mapper
-        return to_project_response(entity)
+        entity, client_name = result
+        
+        total_stories, completed_stories = await self._repository.get_story_counts(entity_id.value)
+        
+        return to_project_response(entity, client_name, total_stories, completed_stories)

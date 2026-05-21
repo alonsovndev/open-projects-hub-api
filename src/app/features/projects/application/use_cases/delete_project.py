@@ -31,5 +31,4 @@ class DeleteProjectUseCase:
         # Parse and validate UUID
         entity_id = EntityId.from_string(project_id)
         
-        # Delete from repository
         return await self._repository.delete(entity_id.value)

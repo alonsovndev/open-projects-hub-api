@@ -55,13 +55,7 @@ async def create_project(
         500: Internal server error
     """
     return await handler.execute_with_payload_extraction(
-        execute_fn=lambda user_id: use_case.execute(
-            name=payload.name,
-            created_by=user_id,
-            description=payload.description,
-            start_date=payload.start_date,
-            end_date=payload.end_date,
-        ),
+        execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
         current_user=current_user,
     )
 
@@ -175,14 +169,7 @@ async def update_project(
         500: Internal server error
     """
     async def execute():
-        result = await use_case.execute(
-            project_id=str(project_id),
-            name=payload.name,
-            description=payload.description,
-            status=payload.status,
-            start_date=payload.start_date,
-            end_date=payload.end_date,
-        )
+        result = await use_case.execute(project_id=str(project_id), request=payload)
         
         if not result:
             raise HTTPException(

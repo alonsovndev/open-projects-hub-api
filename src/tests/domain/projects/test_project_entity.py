@@ -15,6 +15,7 @@ class TestProjectEntityCreation:
     def test_create_project_with_required_fields(self):
         """Test creating project with only required fields."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         
         with patch("src.app.features.projects.domain.entities.project_entity.datetime") as mock_datetime:
             mock_now = datetime(2026, 5, 9, 12, 0, 0)
@@ -22,12 +23,16 @@ class TestProjectEntityCreation:
             
             project = ProjectEntity.create(
                 name="Test Project",
+                code="TEST",
                 created_by=created_by,
+                client_id=client_id,
             )
         
         assert project.name == "Test Project"
+        assert project.code == "TEST"
         assert project.description is None
         assert project.created_by == created_by
+        assert project.client_id == client_id
         assert project.status == ProjectStatus.ACTIVE
         assert project.start_date is None
         assert project.end_date is None
@@ -38,12 +43,15 @@ class TestProjectEntityCreation:
     def test_create_project_with_all_fields(self):
         """Test creating project with all fields."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         start = date(2026, 5, 1)
         end = date(2026, 12, 31)
         
         project = ProjectEntity.create(
             name="Full Project",
+            code="FULL",
             created_by=created_by,
+            client_id=client_id,
             description="A complete project",
             start_date=start,
             end_date=end,
@@ -57,44 +65,56 @@ class TestProjectEntityCreation:
     def test_create_project_empty_name_raises_error(self):
         """Test creating project with empty name raises ValueError."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         
         with pytest.raises(ValueError, match="Project name cannot be empty"):
             ProjectEntity.create(
                 name="",
+                code="TEST",
                 created_by=created_by,
+                client_id=client_id,
             )
     
     def test_create_project_whitespace_name_raises_error(self):
         """Test creating project with whitespace-only name raises ValueError."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         
         with pytest.raises(ValueError, match="Project name cannot be empty"):
             ProjectEntity.create(
                 name="   ",
+                code="TEST",
                 created_by=created_by,
+                client_id=client_id,
             )
     
     def test_create_project_name_too_long_raises_error(self):
         """Test creating project with name > 255 chars raises ValueError."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         long_name = "a" * 256
         
         with pytest.raises(ValueError, match="Project name cannot exceed 255 characters"):
             ProjectEntity.create(
                 name=long_name,
+                code="TEST",
                 created_by=created_by,
+                client_id=client_id,
             )
     
     def test_create_project_end_before_start_raises_error(self):
         """Test creating project with end date before start date raises ValueError."""
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         start = date(2026, 12, 31)
         end = date(2026, 5, 1)
         
         with pytest.raises(ValueError, match="End date cannot be before start date"):
             ProjectEntity.create(
                 name="Invalid Project",
+                code="TEST",
                 created_by=created_by,
+                client_id=client_id,
                 start_date=start,
                 end_date=end,
             )
@@ -107,7 +127,9 @@ class TestProjectEntityUpdate:
         """Test updating project name."""
         project = ProjectEntity.create(
             name="Old Name",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
@@ -123,7 +145,9 @@ class TestProjectEntityUpdate:
         """Test updating project description."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         project.update_details(description="New description")
@@ -134,7 +158,9 @@ class TestProjectEntityUpdate:
         """Test updating project status."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         project.update_details(status=ProjectStatus.COMPLETED)
@@ -145,7 +171,9 @@ class TestProjectEntityUpdate:
         """Test updating project start and end dates."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         new_start = date(2026, 6, 1)
@@ -160,7 +188,9 @@ class TestProjectEntityUpdate:
         """Test updating with empty name raises ValueError."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         with pytest.raises(ValueError, match="Project name cannot be empty"):
@@ -170,7 +200,9 @@ class TestProjectEntityUpdate:
         """Test updating with invalid dates raises ValueError."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
             start_date=date(2026, 5, 1),
         )
         
@@ -185,7 +217,9 @@ class TestProjectEntityStatusTransitions:
         """Test archiving a project."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
@@ -201,7 +235,9 @@ class TestProjectEntityStatusTransitions:
         """Test completing a project."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
@@ -217,7 +253,9 @@ class TestProjectEntityStatusTransitions:
         """Test reactivating an archived project."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         project.archive()
         
@@ -234,7 +272,9 @@ class TestProjectEntityStatusTransitions:
         """Test reactivating a completed project."""
         project = ProjectEntity.create(
             name="Project",
+            code="TEST",
             created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
         )
         project.complete()
         
@@ -248,8 +288,11 @@ class TestProjectEntityProperties:
     
     def test_all_properties_accessible(self):
         """Test all properties are accessible."""
+        from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+        
         project_id = EntityId.generate()
         created_by = EntityId.generate()
+        client_id = EntityId.generate()
         start = date(2026, 5, 1)
         end = date(2026, 12, 31)
         now = datetime.now()
@@ -257,9 +300,12 @@ class TestProjectEntityProperties:
         project = ProjectEntity(
             id=project_id,
             name="Test Project",
+            code="TEST",
             description="Description",
             created_by=created_by,
+            client_id=client_id,
             status=ProjectStatus.ACTIVE,
+            priority=ProjectPriority.MEDIUM,
             start_date=start,
             end_date=end,
             created_at=now,
@@ -269,9 +315,12 @@ class TestProjectEntityProperties:
         # Verify all properties are accessible
         assert project.id == project_id
         assert project.name == "Test Project"
+        assert project.code == "TEST"
         assert project.description == "Description"
         assert project.created_by == created_by
+        assert project.client_id == client_id
         assert project.status == ProjectStatus.ACTIVE
+        assert project.priority == ProjectPriority.MEDIUM
         assert project.start_date == start
         assert project.end_date == end
         assert project.created_at == now

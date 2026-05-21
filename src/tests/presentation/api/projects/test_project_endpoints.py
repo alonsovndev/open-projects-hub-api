@@ -11,6 +11,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -54,12 +55,16 @@ def mock_project_entity():
     """Create a mock project entity."""
     entity_id = EntityId.from_string("550e8400-e29b-41d4-a716-446655440100")
     creator_id = EntityId.from_string("550e8400-e29b-41d4-a716-446655440001")
+    client_id = EntityId.from_string("550e8400-e29b-41d4-a716-446655440003")
     return ProjectEntity(
         id=entity_id,
         name="Test Project",
+        code="TEST",
         description="Test description",
         created_by=creator_id,
+        client_id=client_id,
         status=ProjectStatus.ACTIVE,
+        priority=ProjectPriority.MEDIUM,
         start_date=date(2026, 5, 1),
         end_date=date(2026, 12, 31),
         created_at=datetime(2026, 5, 9, 12, 0, 0),
@@ -73,9 +78,13 @@ def mock_project_response(mock_project_entity):
     return ProjectResponse(
         id=str(mock_project_entity.id.value),
         name=mock_project_entity.name,
+        code=mock_project_entity.code,
         description=mock_project_entity.description,
         created_by=str(mock_project_entity.created_by.value),
+        client_id=str(mock_project_entity.client_id.value),
+        client_name="Test Client",
         status=mock_project_entity.status.value,
+        priority=mock_project_entity.priority.value,
         start_date=mock_project_entity.start_date,
         end_date=mock_project_entity.end_date,
         created_at=mock_project_entity.created_at.isoformat(),
@@ -96,6 +105,8 @@ class TestCreateProjectEndpoint:
                 "/v1/projects",
                 json={
                     "name": "Test Project",
+                    "code": "TEST",
+                    "clientId": "550e8400-e29b-41d4-a716-446655440003",
                     "description": "Test description",
                     "startDate": "2026-05-01",
                     "endDate": "2026-12-31",
@@ -213,9 +224,13 @@ class TestUpdateProjectEndpoint:
         updated_response = ProjectResponse(
             id=mock_project_response.id,
             name="Updated Name",
+            code=mock_project_response.code,
             description=mock_project_response.description,
             created_by=mock_project_response.created_by,
+            client_id=mock_project_response.client_id,
+            client_name=mock_project_response.client_name,
             status=mock_project_response.status,
+            priority=mock_project_response.priority,
             start_date=mock_project_response.start_date,
             end_date=mock_project_response.end_date,
             created_at=mock_project_response.created_at,

@@ -3,6 +3,7 @@ from typing import Optional
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
@@ -24,9 +25,12 @@ class ProjectMapper:
         return ProjectEntity(
             id=EntityId.from_string(str(model.id)),
             name=model.name,
+            code=model.code,
             description=model.description,
             created_by=EntityId.from_string(str(model.created_by)),
+            client_id=EntityId.from_string(str(model.client_id)),
             status=ProjectStatus(model.status),
+            priority=ProjectPriority(model.priority),
             start_date=model.start_date,
             end_date=model.end_date,
             created_at=model.created_at,
@@ -48,8 +52,11 @@ class ProjectMapper:
         if existing_model:
             # Update existing model
             existing_model.name = entity.name
+            existing_model.code = entity.code
             existing_model.description = entity.description
+            existing_model.client_id = entity.client_id.value
             existing_model.status = entity.status.value
+            existing_model.priority = entity.priority.value
             existing_model.start_date = entity.start_date
             existing_model.end_date = entity.end_date
             existing_model.updated_at = entity.updated_at
@@ -59,9 +66,12 @@ class ProjectMapper:
         return ProjectModel(
             id=entity.id.value,
             name=entity.name,
+            code=entity.code,
             description=entity.description,
             created_by=entity.created_by.value,
+            client_id=entity.client_id.value,
             status=entity.status.value,
+            priority=entity.priority.value,
             start_date=entity.start_date,
             end_date=entity.end_date,
             created_at=entity.created_at,
