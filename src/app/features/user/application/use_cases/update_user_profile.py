@@ -54,7 +54,11 @@ class UpdateUserProfileUseCase:
             user_entity.display_name = display_name
             
             # Save updated entity
-            updated_entity = await self.user_repository.save(user_entity)
+            updated_entity = await self.user_repository.update(user_entity)
+            
+            if updated_entity is None:
+                log.error(f"Failed to update user profile: {user_id}")
+                raise ValueError("Failed to update user profile")
             
             response = UserResponse(
                 id=str(updated_entity.id.value),

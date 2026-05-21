@@ -307,8 +307,11 @@ async def create_user(
     Standard REST endpoint: POST /v1/users
     Requires ADMIN role. For public self-registration, use POST /v1/auth/register instead.
     
+    Admins can specify the role ('admin' or 'viewer') when creating users.
+    If role is not specified, defaults to 'viewer'.
+    
     Args:
-        payload: User creation request
+        payload: User creation request (email, password, displayName, optional role)
         create_user_use_case: Injected use case (direct injection, no service layer)
         current_user: Current authenticated admin user
         

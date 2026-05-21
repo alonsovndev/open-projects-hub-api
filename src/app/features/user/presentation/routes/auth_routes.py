@@ -70,11 +70,12 @@ async def register(
     Rate limited to 5 attempts per minute per IP address to prevent abuse.
     
     Public endpoint - no authentication required.
-    New users default to 'viewer' role.
+    New users default to 'viewer' role. To create admin users, 
+    use POST /v1/users (requires existing admin authentication).
 
     Args:
         request: FastAPI request object (required for rate limiting)
-        payload: UserCreateRequest with email, password, displayName
+        payload: UserCreateRequest with email, password, displayName (role defaults to viewer)
         register_use_case: Injected RegisterUserUseCase
 
     Returns:

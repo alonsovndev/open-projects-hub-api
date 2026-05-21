@@ -7,6 +7,8 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
+from src.app.features.user.domain.value_objects.theme import Theme
+
 
 class UserPreferencesResponse(BaseModel):
     """Response model for user preferences."""
@@ -37,7 +39,7 @@ class UpdatePreferencesRequest(BaseModel):
     @classmethod
     def validate_theme(cls, theme_value: Optional[str]) -> Optional[str]:
         """
-        Validate theme value.
+        Validate theme value against domain enum.
         
         Args:
             theme_value: Theme string
@@ -49,7 +51,7 @@ class UpdatePreferencesRequest(BaseModel):
             ValueError: If theme is not valid
         """
         if theme_value is not None:
-            valid_themes = ["light", "dark", "auto"]
+            valid_themes = [t.value for t in Theme]
             if theme_value not in valid_themes:
                 raise ValueError(f"Invalid theme. Must be one of: {', '.join(valid_themes)}")
         return theme_value

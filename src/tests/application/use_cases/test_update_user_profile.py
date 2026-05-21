@@ -40,7 +40,7 @@ class TestUpdateUserProfileUseCase:
             password_hash="hashed_password",
             role=UserRole.VIEWER
         )
-        mock_repo.save.return_value = updated_entity
+        mock_repo.update.return_value = updated_entity
         
         use_case = UpdateUserProfileUseCase(mock_repo)
         
@@ -51,7 +51,7 @@ class TestUpdateUserProfileUseCase:
         assert result.email == "user@example.com"
         
         mock_repo.find_by_id.assert_awaited_once()
-        mock_repo.save.assert_awaited_once()
+        mock_repo.update.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_execute_raises_not_found_for_nonexistent_user(self):
@@ -67,7 +67,7 @@ class TestUpdateUserProfileUseCase:
             await use_case.execute(user_id, display_name="New Name")
         
         mock_repo.find_by_id.assert_awaited_once()
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_validates_display_name_length(self):
@@ -90,7 +90,7 @@ class TestUpdateUserProfileUseCase:
         with pytest.raises(ValueError, match="Display name must not exceed 255 characters"):
             await use_case.execute(str(user_entity.id.value), display_name=long_name)
         
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_validates_empty_display_name(self):
@@ -111,7 +111,7 @@ class TestUpdateUserProfileUseCase:
         with pytest.raises(ValueError, match="Display name cannot be empty"):
             await use_case.execute(str(user_entity.id.value), display_name="")
         
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_preserves_other_fields(self):
@@ -128,21 +128,21 @@ class TestUpdateUserProfileUseCase:
         )
         mock_repo.find_by_id.return_value = user_entity
         
-        # Capture the saved entity
-        saved_entity = None
-        async def capture_save(entity):
-            nonlocal saved_entity
-            saved_entity = entity
+        # Capture the updated entity
+        updated_entity_captured = None
+        async def capture_update(entity):
+            nonlocal updated_entity_captured
+            updated_entity_captured = entity
             return entity
         
-        mock_repo.save.side_effect = capture_save
+        mock_repo.update.side_effect = capture_update
         
         use_case = UpdateUserProfileUseCase(mock_repo)
         
         await use_case.execute(str(user_id.value), display_name="Updated Admin")
         
-        # Verify saved entity preserves original fields
-        assert saved_entity.email.value == "admin@example.com"
-        assert saved_entity.role == UserRole.ADMIN
-        assert saved_entity.password_hash == "original_hash"
-        assert saved_entity.display_name == "Updated Admin"
+        # Verify updated entity preserves original fields
+        assert updated_entity_captured.email.value == "admin@example.com"
+        assert updated_entity_captured.role == UserRole.ADMIN
+        assert updated_entity_captured.password_hash == "original_hash"
+        assert updated_entity_captured.display_name == "Updated Admin"

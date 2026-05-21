@@ -44,7 +44,6 @@ class LoginUserUseCase:
         """
         email_lower = str(payload.email).lower().strip()
         
-        # Check if account is locked out
         is_locked = await self.lockout_service.is_locked_out(email_lower)
         if is_locked:
             lockout_info = await self.lockout_service.get_lockout_info(email_lower)
@@ -68,7 +67,7 @@ class LoginUserUseCase:
 
             if not user_entity:
                 log.warning(f"Login attempt with non-existent email: {email_lower}")
-                # Record failed attempt even for non-existent users (prevents user enumeration timing attacks)
+                # Record attempts for non-existent users to prevent timing-based user enumeration
                 await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
 
@@ -85,10 +84,8 @@ class LoginUserUseCase:
                         "email": email_lower
                     }
                 )
-                # Record failed attempt
                 await self.lockout_service.record_failed_attempt(email_lower)
                 
-                # Get current attempt count for logging
                 failed_attempts = await self.lockout_service.get_failed_attempts(email_lower)
                 log.info(
                     f"Failed login attempts: {failed_attempts}",
@@ -100,7 +97,6 @@ class LoginUserUseCase:
                 
                 raise InvalidCredentialsError()
 
-            # Successful authentication - clear any lockout state
             await self.lockout_service.record_successful_login(email_lower)
             
             token = self.jwt_handler.create_access_token(
