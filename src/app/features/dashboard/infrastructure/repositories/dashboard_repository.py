@@ -5,7 +5,7 @@ Provides single aggregated queries for dashboard statistics to minimize database
 """
 from typing import Optional
 from uuid import UUID
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -46,7 +46,7 @@ class DashboardRepository:
             select(
                 func.count(ProjectModel.id).label("total_projects"),
                 func.sum(
-                    func.case((ProjectModel.status == "active", 1), else_=0)
+                    case((ProjectModel.status == "active", 1), else_=0)
                 ).label("active_projects"),
             )
             .select_from(ProjectModel)
@@ -57,14 +57,14 @@ class DashboardRepository:
         story_counts_cols = [
             func.count(StoryModel.id).label("total_stories"),
             func.sum(
-                func.case((StoryModel.status == "done", 1), else_=0)
+                case((StoryModel.status == "done", 1), else_=0)
             ).label("completed_stories"),
         ]
         
         if user_id:
             story_counts_cols.append(
                 func.sum(
-                    func.case((StoryModel.assigned_to == user_id, 1), else_=0)
+                    case((StoryModel.assigned_to == user_id, 1), else_=0)
                 ).label("assigned_stories")
             )
         

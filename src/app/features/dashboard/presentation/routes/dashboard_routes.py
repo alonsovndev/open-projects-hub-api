@@ -2,7 +2,6 @@
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.params import Depends
 
 from src.app.features.dashboard.application.dtos.dashboard_dto import DashboardStatsResponse
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
@@ -33,21 +32,14 @@ async def get_dashboard_stats(
         401: Unauthorized
         500: Internal server error
     """
-    try:
-        user_id = current_user.get("sub")
-        
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
-            )
-        
-        result = await use_case.execute(user_id)
-        
-        return result
-        
-    except Exception:
+    user_id = current_user.get("sub")
+    
+    if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload"
         )
+    
+    result = await use_case.execute(user_id)
+    
+    return result

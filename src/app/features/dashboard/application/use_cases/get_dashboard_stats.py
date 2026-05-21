@@ -48,10 +48,9 @@ class GetDashboardStatsUseCase:
         """
         user_uuid = UUID(user_id)
         
-        # Get all count stats in a single optimized query
+        # Aggregate query optimization: fetch all counts in single database roundtrip
         stats = await self._dashboard_repo.get_aggregated_stats(user_uuid)
         
-        # Get recent projects (separate query for list data)
         recent_projects_raw = await self._project_repo.find_all(limit=5)
         recent_projects = [
             ProjectSummary(
@@ -60,10 +59,9 @@ class GetDashboardStatsUseCase:
                 status=p.status.value,
                 created_at=p.created_at.isoformat(),
             )
-            for p in recent_projects_raw
+            for p, client_name in recent_projects_raw
         ]
         
-        # Get recent stories (separate query for list data)
         recent_stories_raw = await self._story_repo.find_all(limit=5)
         recent_stories = [
             StorySummary(
