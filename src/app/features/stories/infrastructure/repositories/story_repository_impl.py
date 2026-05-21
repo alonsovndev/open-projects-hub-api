@@ -319,6 +319,7 @@ class StoryRepositoryImpl(StoryRepository):
         self,
         project_id: Optional[UUID] = None,
         status: Optional[str] = None,
+        priority: Optional[str] = None,
         assigned_to: Optional[UUID] = None,
     ) -> int:
         """
@@ -327,6 +328,7 @@ class StoryRepositoryImpl(StoryRepository):
         Args:
             project_id: Optional project filter
             status: Optional status filter
+            priority: Optional priority filter
             assigned_to: Optional assigned user filter
             
         Returns:
@@ -342,6 +344,8 @@ class StoryRepositoryImpl(StoryRepository):
                 stmt = stmt.where(StoryModel.project_id == project_id)
             if status:
                 stmt = stmt.where(StoryModel.status == status)
+            if priority:
+                stmt = stmt.where(StoryModel.priority == priority)
             if assigned_to:
                 stmt = stmt.where(StoryModel.assigned_to == assigned_to)
             

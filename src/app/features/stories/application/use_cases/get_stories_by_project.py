@@ -4,7 +4,7 @@ from uuid import UUID
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.shared.infrastructure.mappers.story_mapper import to_story_response
+from src.app.features.stories.application.mappers.story_mapper import to_story_response
 
 
 class GetStoriesByProjectUseCase:
@@ -38,7 +38,6 @@ class GetStoriesByProjectUseCase:
         """
         project_uuid = UUID(project_id)
         
-        # Get total count and entities
         total = await self._repository.count(project_id=project_uuid)
         entities = await self._repository.find_by_project_id(
             project_id=project_uuid,
@@ -46,7 +45,6 @@ class GetStoriesByProjectUseCase:
             offset=offset,
         )
         
-        # Convert to DTOs using shared mapper
         items = [to_story_response(e) for e in entities]
         
         # Calculate page number (1-indexed)

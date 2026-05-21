@@ -4,7 +4,7 @@ from typing import Optional
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.shared.infrastructure.mappers.story_mapper import to_story_response
+from src.app.features.stories.application.mappers.story_mapper import to_story_response
 
 
 class ListStoriesUseCase:
@@ -45,19 +45,17 @@ class ListStoriesUseCase:
         Raises:
             ValueError: If validation fails
         """
-        # Validate status
+        # Validate status enum early to provide clear user feedback
         if status and status not in ["todo", "in_progress", "done"]:
             raise ValueError("Status must be one of: todo, in_progress, done")
         
-        # Validate priority
+        # Validate priority enum early to provide clear user feedback
         if priority and priority not in ["low", "medium", "high"]:
             raise ValueError("Priority must be one of: low, medium, high")
         
-        # Convert string UUIDs
         project_uuid = self._to_uuid(project_id) if project_id else None
         assigned_to_uuid = self._to_uuid(assigned_to) if assigned_to else None
         
-        # Get total count and entities from repository
         total = await self._repository.count(
             project_id=project_uuid,
             status=status,
@@ -73,7 +71,6 @@ class ListStoriesUseCase:
             assigned_to=assigned_to_uuid,
         )
         
-        # Convert to DTOs using shared mapper
         items = [to_story_response(e) for e in entities]
         
         # Calculate page number (1-indexed)

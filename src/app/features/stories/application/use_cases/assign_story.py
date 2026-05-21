@@ -5,7 +5,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.infrastructure.mappers.story_mapper import to_story_response
+from src.app.features.stories.application.mappers.story_mapper import to_story_response
 
 
 class AssignStoryUseCase:
@@ -36,20 +36,16 @@ class AssignStoryUseCase:
         """
         from uuid import UUID
         
-        # Find existing story
         entity = await self._repository.find_by_id(UUID(story_id))
         
         if not entity:
             return None
         
-        # Assign to user
         entity.assign_to(EntityId.from_string(user_id))
         
-        # Save to repository
         saved_entity = await self._repository.save(entity)
         
         if not saved_entity:
             raise ValueError("Failed to assign story")
         
-        # Return DTO using shared mapper
         return to_story_response(saved_entity)

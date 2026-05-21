@@ -3,7 +3,7 @@ from typing import Optional
 
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.shared.infrastructure.mappers.story_mapper import to_story_response
+from src.app.features.stories.application.mappers.story_mapper import to_story_response
 
 
 class GetStoryByIdUseCase:

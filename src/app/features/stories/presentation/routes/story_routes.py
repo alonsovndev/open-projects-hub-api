@@ -62,14 +62,7 @@ async def create_story(
         500: Internal server error
     """
     return await handler.execute_with_payload_extraction(
-        execute_fn=lambda user_id: use_case.execute(
-            title=payload.title,
-            project_id=payload.project_id,
-            created_by=user_id,
-            description=payload.description,
-            priority=payload.priority,
-            points=payload.points,
-        ),
+        execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
         current_user=current_user,
     )
 
@@ -263,14 +256,7 @@ async def update_story(
                 )
         
         # Proceed with update
-        result = await use_case.execute(
-            story_id=str(story_id),
-            title=payload.title,
-            description=payload.description,
-            status=payload.status,
-            priority=payload.priority,
-            points=payload.points,
-        )
+        result = await use_case.execute(story_id=str(story_id), request=payload)
         
         if not result:
             raise HTTPException(

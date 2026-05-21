@@ -110,6 +110,7 @@ class StoryRepository(ABC):
         self,
         project_id: Optional[UUID] = None,
         status: Optional[str] = None,
+        priority: Optional[str] = None,
         assigned_to: Optional[UUID] = None,
     ) -> int:
         """
@@ -118,6 +119,7 @@ class StoryRepository(ABC):
         Args:
             project_id: Optional project filter
             status: Optional status filter
+            priority: Optional priority filter
             assigned_to: Optional assigned user filter
             
         Returns:

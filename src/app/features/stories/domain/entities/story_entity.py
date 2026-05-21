@@ -4,6 +4,7 @@ from typing import Optional
 
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.features.stories.domain.validators.story_validators import StoryValidators
 from src.app.shared.domain.entities.base_entity import BaseEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
@@ -49,13 +50,11 @@ class StoryEntity(BaseEntity):
         Raises:
             ValueError: If validation fails
         """
-        self._validate_title(title)
-        self._validate_points(points)
+        StoryValidators.validate_title(title)
+        StoryValidators.validate_points(points)
         
-        # Initialize base entity (id, created_at, updated_at)
         super().__init__(id=id, created_at=created_at, updated_at=updated_at)
         
-        # Story-specific fields
         self._title = title
         self._description = description
         self._project_id = project_id
@@ -64,22 +63,6 @@ class StoryEntity(BaseEntity):
         self._status = status
         self._priority = priority
         self._points = points
-    
-    @staticmethod
-    def _validate_title(title: str) -> None:
-        """Validate story title."""
-        if not title or not title.strip():
-            raise ValueError("Story title cannot be empty")
-        if len(title) > 255:
-            raise ValueError("Story title cannot exceed 255 characters")
-    
-    @staticmethod
-    def _validate_points(points: Optional[int]) -> None:
-        """Validate story points."""
-        if points is not None and points < 0:
-            raise ValueError("Story points cannot be negative")
-        if points is not None and points > 100:
-            raise ValueError("Story points cannot exceed 100")
     
     @property
     def title(self) -> str:
@@ -143,7 +126,7 @@ class StoryEntity(BaseEntity):
             ValueError: If validation fails
         """
         if title is not None:
-            self._validate_title(title)
+            StoryValidators.validate_title(title)
             self._title = title
         
         if description is not None:
@@ -156,7 +139,7 @@ class StoryEntity(BaseEntity):
             self._priority = priority
         
         if points is not None:
-            self._validate_points(points)
+            StoryValidators.validate_points(points)
             self._points = points
         
         self.mark_as_updated()

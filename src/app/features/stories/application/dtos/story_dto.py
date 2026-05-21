@@ -2,102 +2,132 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic.alias_generators import to_camel
+
+from src.app.features.stories.domain.validators.story_validators import StoryValidators
+from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 
 
 class CreateStoryRequest(BaseModel):
     """DTO for creating a story."""
     
-    title: str = Field(..., min_length=1, max_length=255, description="Story title")
-    description: Optional[str] = Field(None, description="Story description")
-    project_id: str = Field(..., description="Parent project ID (UUID)")
-    priority: Optional[str] = Field("medium", description="Priority: low, medium, high")
-    points: Optional[int] = Field(None, ge=0, le=100, description="Story points (0-100)")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
     
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "title": "Implement user login",
-                    "description": "Add authentication flow with JWT tokens",
-                    "project_id": "550e8400-e29b-41d4-a716-446655440001",
-                    "priority": "high",
-                    "points": 5,
-                }
-            ]
-        }
-    }
+    title: str
+    description: Optional[str] = None
+    project_id: str
+    priority: Optional[str] = "medium"
+    points: Optional[int] = None
+    
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Validate story title."""
+        StoryValidators.validate_title(v)
+        return v
+    
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
+        """Validate priority if provided."""
+        if v is not None:
+            valid_priorities = [p.value for p in StoryPriority]
+            if v not in valid_priorities:
+                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+        return v
+    
+    @field_validator("points")
+    @classmethod
+    def validate_points(cls, v: Optional[int]) -> Optional[int]:
+        """Validate story points if provided."""
+        if v is not None:
+            StoryValidators.validate_points(v)
+        return v
 
 
 class UpdateStoryRequest(BaseModel):
     """DTO for updating a story."""
     
-    title: Optional[str] = Field(None, min_length=1, max_length=255, description="Story title")
-    description: Optional[str] = Field(None, description="Story description")
-    status: Optional[str] = Field(None, description="Status: todo, in_progress, done")
-    priority: Optional[str] = Field(None, description="Priority: low, medium, high")
-    points: Optional[int] = Field(None, ge=0, le=100, description="Story points (0-100)")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
     
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "title": "Updated title",
-                    "status": "in_progress",
-                    "points": 8,
-                }
-            ]
-        }
-    }
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    points: Optional[int] = None
+    
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+        """Validate story title if provided."""
+        if v is not None:
+            StoryValidators.validate_title(v)
+        return v
+    
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        """Validate status if provided."""
+        if v is not None:
+            valid_statuses = [s.value for s in StoryStatus]
+            if v not in valid_statuses:
+                raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v
+    
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
+        """Validate priority if provided."""
+        if v is not None:
+            valid_priorities = [p.value for p in StoryPriority]
+            if v not in valid_priorities:
+                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+        return v
+    
+    @field_validator("points")
+    @classmethod
+    def validate_points(cls, v: Optional[int]) -> Optional[int]:
+        """Validate story points if provided."""
+        if v is not None:
+            StoryValidators.validate_points(v)
+        return v
 
 
 class AssignStoryRequest(BaseModel):
     """DTO for assigning a story to a user."""
     
-    user_id: str = Field(..., description="User ID to assign story to (UUID)")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
     
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "user_id": "550e8400-e29b-41d4-a716-446655440002",
-                }
-            ]
-        }
-    }
+    user_id: str
 
 
 class StoryResponse(BaseModel):
     """DTO for story response."""
     
-    id: str = Field(..., description="Story ID (UUID)")
-    title: str = Field(..., description="Story title")
-    description: Optional[str] = Field(None, description="Story description")
-    project_id: str = Field(..., description="Parent project ID")
-    created_by: str = Field(..., description="Creator user ID")
-    assigned_to: Optional[str] = Field(None, description="Assigned user ID")
-    status: str = Field(..., description="Status: todo, in_progress, done")
-    priority: str = Field(..., description="Priority: low, medium, high")
-    points: Optional[int] = Field(None, description="Story points")
-    created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
-    updated_at: str = Field(..., description="Last update timestamp (ISO 8601)")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
     
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "id": "550e8400-e29b-41d4-a716-446655440100",
-                    "title": "Implement user login",
-                    "description": "Add authentication flow",
-                    "project_id": "550e8400-e29b-41d4-a716-446655440001",
-                    "created_by": "550e8400-e29b-41d4-a716-446655440001",
-                    "assigned_to": "550e8400-e29b-41d4-a716-446655440002",
-                    "status": "todo",
-                    "priority": "high",
-                    "points": 5,
-                    "created_at": "2026-05-09T12:00:00Z",
-                    "updated_at": "2026-05-09T12:00:00Z",
-                }
-            ]
-        }
-    }
+    id: str
+    title: str
+    description: Optional[str]
+    project_id: str
+    created_by: str
+    assigned_to: Optional[str]
+    status: str
+    priority: str
+    points: Optional[int]
+    created_at: str
+    updated_at: str

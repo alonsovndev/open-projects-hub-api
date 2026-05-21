@@ -344,7 +344,7 @@ class TestAssignStoryEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["assigned_to"] == "550e8400-e29b-41d4-a716-446655440003"
+        assert data["assignedTo"] == "550e8400-e29b-41d4-a716-446655440003"
     
     def test_assign_story_not_found(self, client: TestClient, admin_token: str):
         """Test assigning non-existent story returns 404."""
