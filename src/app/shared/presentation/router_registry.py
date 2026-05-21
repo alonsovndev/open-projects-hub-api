@@ -8,6 +8,8 @@ from src.app.features.projects.presentation.routes.project_routes import router 
 from src.app.features.stories.presentation.routes.story_routes import router as story_router
 from src.app.features.user.presentation.routes.auth_routes import router as auth_router
 from src.app.features.user.presentation.routes.user_routes import router as user_router
+from src.app.features.clients.presentation.client_routes import router as client_router
+from src.app.features.refinement.presentation.routes import router as refinement_router
 
 
 def register_routers(app) -> None:
@@ -34,6 +36,13 @@ def register_routers(app) -> None:
         tags=["Users"]
     )
     
+    # Client management routes
+    app.include_router(
+        client_router,
+        prefix="/v1",
+        tags=["Clients"]
+    )
+    
     # Project management routes
     app.include_router(
         project_router,
@@ -46,6 +55,13 @@ def register_routers(app) -> None:
         story_router,
         prefix="/v1/stories",
         tags=["Stories"]
+    )
+    
+    # AI Refinement routes
+    app.include_router(
+        refinement_router,
+        prefix="/v1",
+        tags=["AI Refinement"]
     )
     
     # Dashboard routes

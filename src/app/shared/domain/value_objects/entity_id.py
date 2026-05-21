@@ -7,6 +7,7 @@ class EntityId:
     value: UUID
 
     def __post_init__(self):
+        # Enforce type safety at value object construction
         if not isinstance(self.value, UUID):
             raise ValueError("EntityId must be a valid UUID")
 

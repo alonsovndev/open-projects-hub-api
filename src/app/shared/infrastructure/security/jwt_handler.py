@@ -86,7 +86,7 @@ class JWTHandler:
                 "Minimum 32 characters required for security."
             )
         
-        # Check against known weak secrets (case-insensitive)
+        # Prevent common weak secrets that are easily guessable
         if secret_key.lower() in cls.WEAK_SECRETS:
             raise JWTSecretError(
                 f"JWT secret key '{secret_key}' is a known weak/default value. "
