@@ -16,7 +16,7 @@ from src.app.features.projects.application.use_cases.get_project_by_id import Ge
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.features.projects.presentation.dependencies import (
+from src.app.composition import (
     get_create_project_use_case,
     get_delete_project_use_case,
     get_list_projects_use_case,

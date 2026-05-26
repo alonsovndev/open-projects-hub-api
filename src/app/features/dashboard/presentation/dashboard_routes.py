@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.app.features.dashboard.application.dtos.dashboard_dto import DashboardStatsResponse
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
-from src.app.features.dashboard.presentation.dependencies import get_get_dashboard_stats_use_case
+from src.app.composition import get_dashboard_stats_use_case
 from src.app.features.auth.presentation.auth_dependencies import get_current_user
 
 router = APIRouter()
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/stats", response_model=DashboardStatsResponse)
 async def get_dashboard_stats(
     current_user: Dict[str, Any] = Depends(get_current_user),
-    use_case: GetDashboardStatsUseCase = Depends(get_get_dashboard_stats_use_case),
+    use_case: GetDashboardStatsUseCase = Depends(get_dashboard_stats_use_case),
 ) -> DashboardStatsResponse:
     """
     Get dashboard statistics for the current user.

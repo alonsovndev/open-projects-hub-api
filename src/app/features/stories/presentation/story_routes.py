@@ -18,7 +18,7 @@ from src.app.features.stories.application.use_cases.get_stories_by_project impor
 from src.app.features.stories.application.use_cases.get_story_by_id import GetStoryByIdUseCase
 from src.app.features.stories.application.use_cases.list_stories import ListStoriesUseCase
 from src.app.features.stories.application.use_cases.update_story import UpdateStoryUseCase
-from src.app.features.stories.presentation.dependencies import (
+from src.app.composition import (
     get_assign_story_use_case,
     get_create_story_use_case,
     get_delete_story_use_case,
@@ -224,7 +224,7 @@ async def update_story(
         user_role = current_user.get("role")
         if user_role != UserRole.ADMIN.value:
             # Not admin - check if user is story owner
-            from src.app.shared.persistence.db_session import get_database_session
+            from src.app.composition import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
             
             try:
@@ -297,7 +297,7 @@ async def delete_story(
         user_role = current_user.get("role")
         if user_role != UserRole.ADMIN.value:
             # Not admin - check if user is story owner
-            from src.app.shared.persistence.db_session import get_database_session
+            from src.app.composition import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
             
             try:

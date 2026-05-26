@@ -17,7 +17,7 @@ from src.app.features.refinement.application.use_cases.generate_stories_from_not
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
-from src.app.features.refinement.presentation.dependencies import (
+from src.app.composition import (
     get_approve_draft_use_case,
     get_approve_drafts_bulk_use_case,
     get_generate_stories_use_case,

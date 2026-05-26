@@ -12,7 +12,7 @@ from src.app.features.auth.application.use_cases.refresh_token import (
 )
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
-from src.app.features.auth.presentation.dependencies import (
+from src.app.composition import (
     get_login_use_case,
     get_register_use_case,
     get_refresh_token_use_case,

@@ -25,14 +25,14 @@ from src.app.features.user.application.use_cases.update_user_preferences import 
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.domain.value_objects.theme import Theme
 from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
-from src.app.features.user.presentation.dependencies import (
+from src.app.composition import (
     get_change_password_use_case,
     get_create_user_use_case,
     get_update_user_preferences_use_case,
     get_update_user_profile_use_case,
-    get_user_by_id_use_case,
-    get_user_preferences_use_case,
-    get_user_profile_use_case,
+    get_get_user_by_id_use_case,
+    get_get_user_preferences_use_case,
+    get_get_user_profile_use_case,
 )
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
@@ -75,7 +75,7 @@ class ChangePasswordRequest(BaseModel):
 @router.get("/me/profile", response_model=UserResponse)
 async def get_user_profile(
     current_user: Dict[str, Any] = Depends(get_current_user),
-    use_case: GetUserProfileUseCase = Depends(get_user_profile_use_case),
+    use_case: GetUserProfileUseCase = Depends(get_get_user_profile_use_case),
 ) -> UserResponse:
     """
     Get current user profile.
@@ -179,7 +179,7 @@ async def change_password(
 @router.get("/me/preferences", response_model=UserPreferencesResponse)
 async def get_user_preferences(
     current_user: Dict[str, Any] = Depends(get_current_user),
-    use_case: GetUserPreferencesUseCase = Depends(get_user_preferences_use_case),
+    use_case: GetUserPreferencesUseCase = Depends(get_get_user_preferences_use_case),
 ) -> UserPreferencesResponse:
     """
     Get user preferences.
@@ -276,7 +276,7 @@ async def update_user_preferences(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user_by_id(
     user_id: UUID,
-    get_user_use_case: GetUserByIdUseCase = Depends(get_user_by_id_use_case),
+    get_user_use_case: GetUserByIdUseCase = Depends(get_get_user_by_id_use_case),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> UserResponse:
     """

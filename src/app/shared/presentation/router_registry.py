@@ -39,7 +39,7 @@ def register_routers(app) -> None:
     # Client management routes
     app.include_router(
         client_router,
-        prefix="/v1",
+        prefix="/v1/clients",
         tags=["Clients"]
     )
     

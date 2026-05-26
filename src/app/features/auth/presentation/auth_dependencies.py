@@ -125,7 +125,7 @@ def create_story_owner_or_admin_dependency(story_id: str):
             story_entity_id = EntityId.from_string(story_id)
             
             # Get database session and repository
-            from src.app.shared.persistence.db_session import get_database_session
+            from src.app.composition import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
             
             async for session in get_database_session():
