@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.app.features.dashboard.application.dtos.dashboard_dto import DashboardStatsResponse
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
 from src.app.features.dashboard.presentation.dependencies import get_get_dashboard_stats_use_case
-from src.app.features.user.presentation.auth_dependencies import get_current_user
+from src.app.features.auth.presentation.auth_dependencies import get_current_user
 
 router = APIRouter()
 
