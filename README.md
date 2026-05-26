@@ -1,40 +1,113 @@
-# Open Projects Hub
+# Open Projects Hub API
 
+A FastAPI-based project management API with Clean Architecture, JWT authentication, and role-based access control.
 
+## 🚀 Quick Start
 
-
-## 🗄️ Database Management
-
-### Initial Setup
-
+### 1. Install Dependencies
 ```bash
-# Initialize Alembic (if not already done)
-alembic init alembic
-
-# Configure Alembic to use your database URL
-# Add this line to alembic/env.py (line 13):
-config.set_main_option("sqlalchemy.url", get_postgres_database_url())
+make install
 ```
 
-### Creating Migrations
-
+### 2. Run Database
 ```bash
-# Create a new migration after model changes
-alembic revision --autogenerate -m "Description of changes"
+docker-compose up postgres -d
 ```
 
-### Running Migrations
-
+### 3. Run Migrations
 ```bash
-# Apply all pending migrations
 alembic upgrade head
-
-# Upgrade to specific revision
-alembic upgrade <revision_id>
-
-# Downgrade one version
-alembic downgrade -1
-
-# View migration history
-alembic history
 ```
+
+### 4. Create First Admin User
+```bash
+DATABASE_URL="postgresql+asyncpg://open-projects-hub-admin:admin123@localhost:5432/open-projects-hub-db" \
+ADMIN_EMAIL="admin@example.com" \
+ADMIN_PASSWORD="Admin123!" \
+make seed-admin
+```
+
+### 5. Start API
+```bash
+make run
+```
+
+The API will be available at `http://localhost:8000`
+
+📖 **Full setup guide:** [docs/setup/ADMIN_SETUP.md](docs/setup/ADMIN_SETUP.md)
+📖 **Comprehensive project documentation:** [docs/README.md](docs/README.md)
+
+---
+
+## 🎨 Code Quality
+
+This project uses modern Python code quality tools to ensure clean, consistent, and secure code.
+
+### Tools
+
+- **[Ruff](https://docs.astral.sh/ruff/)** - Fast Python linter and formatter (replaces Black, isort, flake8)
+- **[Pytest](https://docs.pytest.org/)** - Testing framework with async support
+- **[MyPy](https://mypypy.readthedocs.io/)** - Static type checking
+- **[Bandit](https://bandit.readthedocs.io/)** - Security vulnerability scanning
+- **[Pre-commit](https://pre-commit.com/)** - Git hooks for automated quality checks
+
+### Quick Start
+
+```bash
+# Install development environment
+make install-dev
+
+# Run code quality checks
+make lint-fix format test
+
+# Commit (pre-commit hooks run automatically)
+git commit -m "feat(scope): description"
+```
+
+### Documentation
+
+- **[Complete Guide](docs/CODE_QUALITY.md)** - Comprehensive documentation
+- **[Quick Start](docs/QUICK_START_CODE_QUALITY.md)** - Essential commands
+- **[Setup Summary](docs/SETUP_SUMMARY.md)** - Installation overview
+
+### Available Commands
+
+```bash
+# Code quality
+make lint              # Check linting
+make lint-fix          # Fix linting issues
+make format            # Format code
+make format-check      # Check formatting
+make type-check        # Run type checker
+make security          # Run security scan
+
+# Testing
+make test              # Run all tests
+make test-unit         # Run unit tests only
+make test-integration  # Run integration tests
+make test-e2e          # Run E2E tests
+make coverage          # Run tests with coverage
+```
+
+### CI/CD
+
+All code quality checks run automatically on:
+- Push to `main`, `develop`, or `feature/**` branches
+- Pull requests to `main` or `develop`
+
+See `.github/workflows/ci-quality.yml` for details.
+
+### Commit Convention
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+Types: feat, fix, docs, style, refactor, test, chore
+```
+
+**Examples:**
+- `feat(auth): add JWT token refresh`
+- `fix(users): resolve email validation`
+- `test(projects): add integration tests`
