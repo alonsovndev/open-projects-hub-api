@@ -23,7 +23,27 @@ This file contains repository-specific rules and preferences.
 - DB-backed integration tests: `make test-integration` (requires PostgreSQL)
 - Marker-based E2E tests: `make test-e2e` (runs `pytest -m e2e`)
 - Coverage: `make coverage` (unit-focused, `--cov-fail-under=80`), `make coverage-all` (includes DB tests), `make coverage-report`
-- Lint/format targets in `Makefile` are placeholders today; do not report lint/format as executed unless explicit tools were run.
+
+## Quality Verification
+
+**After making any code changes, run these commands to verify quality:**
+
+1. **Linting**: `ruff check .` (check for issues) or `ruff check . --fix` (auto-fix)
+2. **Formatting**: `ruff format .` (format code)
+3. **Type Checking**: `mypy src/` (note: currently has known type annotation issues)
+4. **Unit Tests**: `make test-unit` (must pass before claiming work complete)
+5. **Security**: `bandit -r src/app -c pyproject.toml` (check for security issues)
+
+**Verification workflow:**
+```bash
+# Quick verification (before committing)
+ruff check . --fix && ruff format . && make test-unit
+
+# Full verification (before claiming "done")
+ruff check . && make test-unit && make coverage
+```
+
+**Note**: Pre-commit hooks will automatically run these checks on commit. Do not bypass with `--no-verify` unless explicitly requested by the user.
 
 ## Data, Security, and Environment Constraints
 

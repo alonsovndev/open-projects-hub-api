@@ -47,6 +47,9 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 ## Git & Version Control
 
 1. ❌ **Do not commit changes unless the user explicitly asks for a commit.**
+   - Wait for explicit instruction like "commit these changes" or "make a commit"
+   - Do NOT commit even when it seems like a logical next step
+   - After completing work, present status and ask if user wants to commit
 2. ❌ **Do not commit directly to `main` or `master` branches.**
 3. ❌ **Do not push or force-push unless the user explicitly asks.**
 4. ❌ **Never force-push to protected branches such as `main` or `master`.**
@@ -68,26 +71,28 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 14. ❌ **Do not change scripts, CI configuration, or test configuration merely to hide failures.**
 15. ❌ **Do not skip build verification before marking work complete.**
 16. ✅ **If build fails, fix the issue - never bypass the check.**
+17. ✅ **After making changes, always run available quality checks**: tests, linting, type-checking, and build commands.
+18. ✅ **Before claiming work is complete, verify the application still works** by running test suites and checking for regressions.
 
 ## Code & File Integrity
 
-17. ❌ **Do not use destructive git or filesystem commands unless the user explicitly requests them.**
-18. ❌ **Do not overwrite, discard, or revert user changes you did not make unless the user explicitly requests it.**
-19. ❌ **Do not delete files or folders without user confirmation when the deletion is not part of the explicit task.**
-20. ❌ **Do not modify package.json dependencies or scripts without understanding the impact and user approval.**
+19. ❌ **Do not use destructive git or filesystem commands unless the user explicitly requests them.**
+20. ❌ **Do not overwrite, discard, or revert user changes you did not make unless the user explicitly requests it.**
+21. ❌ **Do not delete files or folders without user confirmation when the deletion is not part of the explicit task.**
+22. ❌ **Do not modify package.json dependencies or scripts without understanding the impact and user approval.**
 
 ## Transparency & Honesty
 
-21. ❌ **Do not present mock, stub, or placeholder behavior as production-complete without clearly saying so.**
-22. ❌ **Do not claim something works without verification.**
-23. ✅ **Always clearly state when test scripts, lint scripts, or verification commands are missing or incomplete.**
-24. ✅ **Always report when requested verification cannot run and explain why.**
+23. ❌ **Do not present mock, stub, or placeholder behavior as production-complete without clearly saying so.**
+24. ❌ **Do not claim something works without verification.**
+25. ✅ **Always clearly state when test scripts, lint scripts, or verification commands are missing or incomplete.**
+26. ✅ **Always report when requested verification cannot run and explain why.**
 
 ## Conflict Resolution
 
-25. ✅ **If a non-negotiable rule conflicts with task completion, stop immediately and report the constraint to the user.**
-26. ✅ **Ask for clarification rather than making assumptions about bypassing safety rules.**
-27. ✅ **When in doubt about whether a rule applies, err on the side of caution and ask the user.**
+27. ✅ **If a non-negotiable rule conflicts with task completion, stop immediately and report the constraint to the user.**
+28. ✅ **Ask for clarification rather than making assumptions about bypassing safety rules.**
+29. ✅ **When in doubt about whether a rule applies, err on the side of caution and ask the user.**
 
 ### Source: ~/.config/opencode/knowledge/global/agent-principles.md
 
@@ -138,9 +143,12 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 
 ### Test Before Done
 
+- **Always verify after making changes**: Run tests, linting, type-checking, and build to ensure quality
 - Never claim completion without running tests, build, and type-check
+- Check project-specific verification commands (e.g., test runners, linters, type checkers, build tools)
 - If scripts are missing: state it explicitly, show manual verification instead
 - If tests don't exist: note it, verify build + type-check + manual, suggest adding tests
+- **Before claiming "done"**: Ensure all quality checks pass and app is working
 
 ## Quick Reference
 
@@ -185,6 +193,11 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Error diagnosis and debugging
 - User explicitly requests explanation
 
+### Estimation Format
+
+- When giving effort estimates, default to relative sizing such as `XS`, `S`, `M`, `L`, `XL`
+- Use hours or days only when the user explicitly asks for time-based estimates
+
 ## Repository Sources
 
 ### Source: ./.opencode/AGENTS.repo.md
@@ -204,6 +217,7 @@ This file contains repository-specific rules and preferences.
 - Business code is feature-first under `src/app/features/{user,projects,stories,dashboard}` with layered folders (`application/`, `domain/`, `infrastructure/`, `presentation/`).
 - Cross-feature concerns live under `src/app/shared/` and follow the same layered split; prefer shared modules only for true cross-feature reuse.
 - API routers are centrally wired in `src/app/shared/presentation/router_registry.py` under `/v1/*` prefixes.
+- **Dependency injection** is centralized in `src/app/composition/` - all use cases, repositories, and infrastructure dependencies are exported from `composition/__init__.py`.
 
 ## Build, Test, and Run Commands
 
@@ -213,7 +227,27 @@ This file contains repository-specific rules and preferences.
 - DB-backed integration tests: `make test-integration` (requires PostgreSQL)
 - Marker-based E2E tests: `make test-e2e` (runs `pytest -m e2e`)
 - Coverage: `make coverage` (unit-focused, `--cov-fail-under=80`), `make coverage-all` (includes DB tests), `make coverage-report`
-- Lint/format targets in `Makefile` are placeholders today; do not report lint/format as executed unless explicit tools were run.
+
+## Quality Verification
+
+**After making any code changes, run these commands to verify quality:**
+
+1. **Linting**: `ruff check .` (check for issues) or `ruff check . --fix` (auto-fix)
+2. **Formatting**: `ruff format .` (format code)
+3. **Type Checking**: `mypy src/` (note: currently has known type annotation issues)
+4. **Unit Tests**: `make test-unit` (must pass before claiming work complete)
+5. **Security**: `bandit -r src/app -c pyproject.toml` (check for security issues)
+
+**Verification workflow:**
+```bash
+# Quick verification (before committing)
+ruff check . --fix && ruff format . && make test-unit
+
+# Full verification (before claiming "done")
+ruff check . && make test-unit && make coverage
+```
+
+**Note**: Pre-commit hooks will automatically run these checks on commit. Do not bypass with `--no-verify` unless explicitly requested by the user.
 
 ## Data, Security, and Environment Constraints
 
@@ -343,6 +377,78 @@ use_case.execute(
 - Mappers live in feature's `application/mappers/` directory (not `shared/`)
 - Mappers convert between domain entities and application DTOs
 - Keep mappers close to the DTOs they work with
+
+### Validation Patterns
+
+**Use shared validators, not wrapper methods:**
+
+```python
+# ✅ Good - Direct call to shared validators
+class ProjectEntity:
+    def update_details(self, name: str):
+        ProjectValidators.validate_name(name)
+        self._name = name
+
+# ❌ Bad - Unnecessary wrapper methods
+class ProjectEntity:
+    @staticmethod
+    def _validate_name(name: str):
+        ProjectValidators.validate_name(name)  # Just passes through
+
+    def update_details(self, name: str):
+        self._validate_name(name)  # Extra indirection
+```
+
+**Why:** Wrappers add no value, bloat code, and obscure intent. Call validators directly.
+
+**Reference:** See `src/app/features/projects/domain/validators/project_validators.py` for centralized validation.
+
+### Dependency Injection Patterns
+
+**Composition Root:**
+
+All application dependencies are centrally managed in `src/app/composition/`:
+
+```python
+# ✅ Good - Import from composition root
+from src.app.composition import (
+    get_database_session,
+    get_create_project_use_case,
+    get_project_repository,
+)
+
+@router.post("/projects")
+async def create_project(
+    payload: CreateProjectRequest,
+    use_case = Depends(get_create_project_use_case),
+):
+    return await use_case.execute(request=payload, created_by=user_id)
+
+# ❌ Bad - Direct imports from feature dependencies (old pattern, removed)
+from src.app.features.projects.presentation.dependencies import get_create_project_use_case
+```
+
+**Composition Structure:**
+- `composition/__init__.py` - Public API exports all 40+ dependencies
+- `composition/infrastructure.py` - Database session, AI service
+- `composition/repositories.py` - Shared repository factories (User, Story, Client)
+- `composition/features/*.py` - Feature-specific use cases and repositories
+- `composition/core.py` - Cross-cutting services (future)
+- `composition/config.py` - Configuration dependencies (future)
+
+**Factory Pattern:**
+- All factories return interface types, not implementations
+- Repositories return `ABC` interfaces (e.g., `ProjectRepository`)
+- Use cases return concrete use case classes
+- Infrastructure services may use singleton pattern (e.g., AI service)
+
+**Adding New Dependencies:**
+1. Create factory function in appropriate composition module
+2. Return interface type from factory (for repositories)
+3. Export from `composition/__init__.py`
+4. Import from `src.app.composition` in routes
+
+**Reference:** See `src/app/composition/` for complete composition root implementation.
 
 ## Keep It Lean
 
