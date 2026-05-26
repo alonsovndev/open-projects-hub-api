@@ -6,13 +6,15 @@ Following API spec:
 - Default role: viewer
 - Returns AdminLoginResponse (same as login)
 """
-import pytest
+
 from unittest.mock import AsyncMock
 
+import pytest
+
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
+from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
-from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -23,9 +25,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def jwt_handler():
     return JWTHandler(
-        secret_key="test-secret-key-that-is-at-least-32-characters-long",
-        expiration_minutes=60,
-        validate_secret=False
+        secret_key="test-secret-key-that-is-at-least-32-characters-long", expiration_minutes=60, validate_secret=False
     )
 
 
@@ -37,26 +37,22 @@ class TestRegisterUserUseCase:
         """Test that registration creates user with default viewer role."""
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = None
-        
+
         created_entity = UserEntity(
             id=EntityId.generate(),
             email=Email("newuser@example.com"),
             display_name="New User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
         mock_repo.save.return_value = created_entity
-        
+
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
-        
-        payload = UserCreateRequest(
-            display_name="New User",
-            email="newuser@example.com",
-            password="SecurePass123"
-        )
-        
+
+        payload = UserCreateRequest(display_name="New User", email="newuser@example.com", password="SecurePass123")
+
         result = await use_case.execute(payload)
-        
+
         assert isinstance(result, AdminLoginResponse)
         assert result.email == "newuser@example.com"
         assert result.display_name == "New User"
@@ -70,26 +66,22 @@ class TestRegisterUserUseCase:
         """Test that registration returns valid JWT token (auto-login)."""
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = None
-        
+
         created_entity = UserEntity(
             id=EntityId.generate(),
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
         mock_repo.save.return_value = created_entity
-        
+
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
-        
-        payload = UserCreateRequest(
-            display_name="Test User",
-            email="user@example.com",
-            password="Password123"
-        )
-        
+
+        payload = UserCreateRequest(display_name="Test User", email="user@example.com", password="Password123")
+
         result = await use_case.execute(payload)
-        
+
         assert result.token is not None
         assert len(result.token) > 20  # JWT tokens are long
         assert result.user.email == "user@example.com"
@@ -103,23 +95,19 @@ class TestRegisterUserUseCase:
             email=Email("existing@example.com"),
             display_name="Existing User",
             password_hash="hashed",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
-        
+
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = existing_user
-        
+
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
-        
-        payload = UserCreateRequest(
-            display_name="New User",
-            email="existing@example.com",
-            password="SecurePass123"
-        )
-        
+
+        payload = UserCreateRequest(display_name="New User", email="existing@example.com", password="SecurePass123")
+
         with pytest.raises(UserAlreadyExistsException) as exc_info:
             await use_case.execute(payload)
-        
+
         assert "existing@example.com" in str(exc_info.value)
         mock_repo.save.assert_not_called()
 
@@ -128,26 +116,22 @@ class TestRegisterUserUseCase:
         """Test that password is hashed, not stored in plain text."""
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = None
-        
+
         created_entity = UserEntity(
             id=EntityId.generate(),
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="$2b$12$hashed_password",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
         mock_repo.save.return_value = created_entity
-        
+
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
-        
-        payload = UserCreateRequest(
-            display_name="Test User",
-            email="user@example.com",
-            password="PlainPassword123"
-        )
-        
+
+        payload = UserCreateRequest(display_name="Test User", email="user@example.com", password="PlainPassword123")
+
         await use_case.execute(payload)
-        
+
         # Check that save was called with hashed password
         save_call_args = mock_repo.save.call_args[0][0]
         assert save_call_args.password_hash != "PlainPassword123"
@@ -158,24 +142,24 @@ class TestRegisterUserUseCase:
         """Test that email is normalized to lowercase."""
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = None
-        
+
         created_entity = UserEntity(
             id=EntityId.generate(),
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
         mock_repo.save.return_value = created_entity
-        
+
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
-        
+
         payload = UserCreateRequest(
             display_name="Test User",
             email="User@Example.COM",  # Mixed case
-            password="SecurePass123"
+            password="SecurePass123",
         )
-        
+
         result = await use_case.execute(payload)
-        
+
         assert result.email == "user@example.com"

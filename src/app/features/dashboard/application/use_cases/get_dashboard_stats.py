@@ -1,5 +1,5 @@
 """Get dashboard statistics use case."""
-from typing import List
+
 from uuid import UUID
 
 from src.app.features.dashboard.application.dtos.dashboard_dto import (
@@ -14,7 +14,7 @@ from src.app.features.stories.domain.repositories.story_repository import StoryR
 
 class GetDashboardStatsUseCase:
     """Use case for getting dashboard statistics."""
-    
+
     def __init__(
         self,
         dashboard_repository: DashboardRepository,
@@ -23,7 +23,7 @@ class GetDashboardStatsUseCase:
     ):
         """
         Initialize use case.
-        
+
         Args:
             dashboard_repository: Dashboard repository for aggregated stats
             project_repository: Project repository for recent projects
@@ -32,25 +32,25 @@ class GetDashboardStatsUseCase:
         self._dashboard_repo = dashboard_repository
         self._project_repo = project_repository
         self._story_repo = story_repository
-    
+
     async def execute(self, user_id: str) -> DashboardStatsResponse:
         """
         Execute get dashboard stats use case.
-        
+
         Uses a single aggregated query for counts and separate queries
         for recent items lists.
-        
+
         Args:
             user_id: Current user ID
-            
+
         Returns:
             DashboardStatsResponse with statistics
         """
         user_uuid = UUID(user_id)
-        
+
         # Aggregate query optimization: fetch all counts in single database roundtrip
         stats = await self._dashboard_repo.get_aggregated_stats(user_uuid)
-        
+
         recent_projects_raw = await self._project_repo.find_all(limit=5)
         recent_projects = [
             ProjectSummary(
@@ -61,7 +61,7 @@ class GetDashboardStatsUseCase:
             )
             for p, client_name in recent_projects_raw
         ]
-        
+
         recent_stories_raw = await self._story_repo.find_all(limit=5)
         recent_stories = [
             StorySummary(
@@ -73,7 +73,7 @@ class GetDashboardStatsUseCase:
             )
             for s in recent_stories_raw
         ]
-        
+
         return DashboardStatsResponse(
             total_projects=stats["total_projects"],
             active_projects=stats["active_projects"],

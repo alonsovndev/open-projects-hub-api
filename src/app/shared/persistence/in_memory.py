@@ -1,12 +1,13 @@
 """In-memory SQLite connection for tests (no PostgreSQL required)."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from src.app.shared.persistence.db_connection import DbConnection
 from src.app.shared.logging import get_logger
+from src.app.shared.persistence.db_connection import DbConnection
+
 
 log = get_logger(__name__)
 

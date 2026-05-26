@@ -1,8 +1,10 @@
 """
 Tests for UserPreferencesRepositoryImpl.
 """
+
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.user.domain.entities.user_preferences_entity import UserPreferencesEntity
@@ -82,9 +84,7 @@ class TestFindByUserId:
         assert result.language == "en"
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_returns_none_when_not_found(
-        self, repository, mock_session, user_id
-    ):
+    async def test_find_by_user_id_returns_none_when_not_found(self, repository, mock_session, user_id):
         """Test finding preferences returns None when not found."""
         # Mock empty result
         mock_result = MagicMock()
@@ -98,12 +98,11 @@ class TestFindByUserId:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_find_by_user_id_raises_exception_on_database_error(
-        self, repository, mock_session, user_id
-    ):
+    async def test_find_by_user_id_raises_exception_on_database_error(self, repository, mock_session, user_id):
         """Test find_by_user_id raises exception when database error occurs."""
         # Mock exception
         from sqlalchemy.exc import SQLAlchemyError
+
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         # Act & Assert
@@ -115,9 +114,7 @@ class TestSave:
     """Tests for save method."""
 
     @pytest.mark.asyncio
-    async def test_save_creates_new_preferences_when_not_exists(
-        self, repository, mock_session, preferences_entity
-    ):
+    async def test_save_creates_new_preferences_when_not_exists(self, repository, mock_session, preferences_entity):
         """Test save creates new preferences when they don't exist."""
         # Mock: find returns None (not exists)
         mock_find_result = MagicMock()
@@ -154,39 +151,37 @@ class TestSave:
         mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_raises_exception_on_database_error(
-        self, repository, mock_session, preferences_entity
-    ):
+    async def test_save_raises_exception_on_database_error(self, repository, mock_session, preferences_entity):
         """Test save raises exception when database error occurs."""
         # Mock exception during execute
         from sqlalchemy.exc import SQLAlchemyError
+
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         # Act & Assert
         with pytest.raises(SQLAlchemyError, match="Database error"):
             await repository.save(preferences_entity)
-        
+
         # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_raises_exception_on_commit_failure(
-        self, repository, mock_session, preferences_entity
-    ):
+    async def test_save_raises_exception_on_commit_failure(self, repository, mock_session, preferences_entity):
         """Test save raises exception when commit fails."""
         # Mock: find returns None
         from sqlalchemy.exc import SQLAlchemyError
+
         mock_find_result = MagicMock()
         mock_find_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_find_result
-        
+
         # Mock commit failure
         mock_session.commit.side_effect = SQLAlchemyError("Commit failed")
 
         # Act & Assert
         with pytest.raises(SQLAlchemyError, match="Commit failed"):
             await repository.save(preferences_entity)
-        
+
         # Verify rollback was called
         mock_session.rollback.assert_called_once()
 
@@ -195,9 +190,7 @@ class TestDeleteByUserId:
     """Tests for delete_by_user_id method."""
 
     @pytest.mark.asyncio
-    async def test_delete_by_user_id_returns_true_when_deleted(
-        self, repository, mock_session, user_id
-    ):
+    async def test_delete_by_user_id_returns_true_when_deleted(self, repository, mock_session, user_id):
         """Test delete returns True when preferences were deleted."""
         # Mock delete result with rowcount > 0
         mock_result = MagicMock()
@@ -212,9 +205,7 @@ class TestDeleteByUserId:
         mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_delete_by_user_id_returns_false_when_not_found(
-        self, repository, mock_session, user_id
-    ):
+    async def test_delete_by_user_id_returns_false_when_not_found(self, repository, mock_session, user_id):
         """Test delete returns False when no preferences found."""
         # Mock delete result with rowcount = 0
         mock_result = MagicMock()
@@ -229,17 +220,16 @@ class TestDeleteByUserId:
         mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_delete_by_user_id_raises_exception_on_database_error(
-        self, repository, mock_session, user_id
-    ):
+    async def test_delete_by_user_id_raises_exception_on_database_error(self, repository, mock_session, user_id):
         """Test delete raises exception when database error occurs."""
         # Mock exception
         from sqlalchemy.exc import SQLAlchemyError
+
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         # Act & Assert
         with pytest.raises(SQLAlchemyError, match="Database error"):
             await repository.delete_by_user_id(user_id)
-        
+
         # Verify rollback was called
         mock_session.rollback.assert_called_once()

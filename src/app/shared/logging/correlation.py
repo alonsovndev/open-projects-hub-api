@@ -3,9 +3,9 @@
 import logging
 import uuid
 from contextvars import ContextVar
-from typing import Callable
 
-from fastapi import Request, Response
+from fastapi import Request
+
 
 # Thread-safe request-scoped correlation ID storage
 correlation_id: ContextVar[str] = ContextVar("correlation_id", default="")

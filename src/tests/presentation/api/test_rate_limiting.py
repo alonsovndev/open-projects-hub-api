@@ -3,9 +3,11 @@ Integration tests for rate limiting on login endpoint.
 
 Tests the rate limiting functionality added in Phase 1.
 """
-import pytest
+
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
@@ -19,12 +21,13 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 def reset_rate_limiter():
     """Reset rate limiter state before each test to prevent pollution."""
     from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
+
     # Clear the rate limiter's storage before each test
-    if hasattr(limiter, '_storage'):
+    if hasattr(limiter, "_storage"):
         limiter._storage.storage.clear()
     yield
     # Clean up after test
-    if hasattr(limiter, '_storage'):
+    if hasattr(limiter, "_storage"):
         limiter._storage.storage.clear()
 
 
@@ -37,14 +40,15 @@ def client():
 def mock_admin_user():
     """Fixture for an admin user entity."""
     password_hash = asyncio.run(
-        __import__('src.app.shared.infrastructure.security.password_handler', fromlist=['PasswordHandler']).PasswordHandler.hash_password("Admin123!")
+        __import__(
+            "src.app.shared.infrastructure.security.password_handler", fromlist=["PasswordHandler"]
+        ).PasswordHandler.hash_password("Admin123!")
     )
-    
+
     return UserEntity(
         id=EntityId.generate(),
         email=Email("admin@example.com"),
         display_name="Admin User",
-        
         password_hash=password_hash,
         role=UserRole.ADMIN,
     )
@@ -70,7 +74,7 @@ class TestLoginRateLimiting:
                     },
                 )
                 responses.append(response)
-            
+
             # All should succeed
             assert all(r.status_code == 200 for r in responses)
             assert all("token" in r.json() for r in responses)
@@ -90,7 +94,7 @@ class TestLoginRateLimiting:
                         "password": "Admin123!",
                     },
                 )
-                
+
                 # First 10 should work or fail with auth error (not rate limit)
                 assert response.status_code in [200, 401]
 
@@ -100,19 +104,19 @@ class TestLoginRateLimiting:
         # Mock database for health check endpoint
         mock_connection = AsyncMock()
         mock_connection.execute = AsyncMock(return_value=None)
-        
+
         # Create a proper async context manager mock
         mock_connection_ctx = AsyncMock()
         mock_connection_ctx.__aenter__ = AsyncMock(return_value=mock_connection)
         mock_connection_ctx.__aexit__ = AsyncMock(return_value=None)
-        
+
         mock_engine = MagicMock()
         mock_engine.connect = MagicMock(return_value=mock_connection_ctx)
-        
+
         mock_db = MagicMock()
         mock_db.engine = mock_engine
         mock_get_db.return_value = mock_db
-        
+
         with patch(
             "src.app.features.user.infrastructure.repositories.user_repository_impl.UserRepositoryImpl.find_by_email",
             new=AsyncMock(return_value=mock_admin_user),
@@ -125,10 +129,10 @@ class TestLoginRateLimiting:
                     "password": "Admin123!",
                 },
             )
-            
+
             # Should still be able to access other endpoints
             health_response = client.get("/health")
-            
+
             assert login_response.status_code == 200
             assert health_response.status_code == 200
 
@@ -149,21 +153,21 @@ class TestLoginRateLimiting:
                     },
                 )
                 responses.append(response)
-            
+
             # All should return 401 (not rate limited yet, but auth failed)
             assert all(r.status_code == 401 for r in responses)
 
     def test_rate_limit_configuration_is_correct(self):
         """Test that rate limit is configured correctly (10/minute for login, 5/minute for register)."""
         from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
-        
+
         # Check that limiter exists and is configured
         assert limiter is not None
         assert limiter._default_limits is not None
         assert len(limiter._default_limits) > 0
-        
+
         # Verify key_func is set (used to identify clients by IP)
         assert limiter._key_func is not None
-        
-        # Note: The specific 10/minute (login) and 5/minute (register) limits 
+
+        # Note: The specific 10/minute (login) and 5/minute (register) limits
         # are applied via decorator on endpoints, verified by integration tests above

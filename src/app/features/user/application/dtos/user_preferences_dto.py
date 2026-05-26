@@ -3,7 +3,7 @@ DTOs for user preferences endpoints.
 
 Handles request/response models for GET and PATCH /user/preferences.
 """
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -12,12 +12,12 @@ from src.app.features.user.domain.value_objects.theme import Theme
 
 class UserPreferencesResponse(BaseModel):
     """Response model for user preferences."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
+
     id: str
     user_id: str
     theme: str
@@ -26,27 +26,27 @@ class UserPreferencesResponse(BaseModel):
 
 class UpdatePreferencesRequest(BaseModel):
     """Request model for updating user preferences (partial update)."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
-    theme: Optional[str] = None
-    language: Optional[str] = None
-    
+
+    theme: str | None = None
+    language: str | None = None
+
     @field_validator("theme")
     @classmethod
-    def validate_theme(cls, theme_value: Optional[str]) -> Optional[str]:
+    def validate_theme(cls, theme_value: str | None) -> str | None:
         """
         Validate theme value against domain enum.
-        
+
         Args:
             theme_value: Theme string
-            
+
         Returns:
             Validated theme
-            
+
         Raises:
             ValueError: If theme is not valid
         """
@@ -55,19 +55,19 @@ class UpdatePreferencesRequest(BaseModel):
             if theme_value not in valid_themes:
                 raise ValueError(f"Invalid theme. Must be one of: {', '.join(valid_themes)}")
         return theme_value
-    
+
     @field_validator("language")
     @classmethod
-    def validate_language(cls, language_value: Optional[str]) -> Optional[str]:
+    def validate_language(cls, language_value: str | None) -> str | None:
         """
         Validate language code (basic validation).
-        
+
         Args:
             language_value: Language code
-            
+
         Returns:
             Validated language code
-            
+
         Raises:
             ValueError: If language code is invalid
         """

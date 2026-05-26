@@ -1,6 +1,7 @@
 """
 UserPreferences entity - represents user preferences and settings.
 """
+
 from dataclasses import dataclass
 
 from src.app.features.user.domain.value_objects.theme import Theme
@@ -11,7 +12,7 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 class UserPreferencesEntity:
     """
     UserPreferences entity - represents user settings.
-    
+
     Attributes:
         id: Unique identifier
         user_id: Reference to user
@@ -28,10 +29,10 @@ class UserPreferencesEntity:
     def create_default(user_id: EntityId) -> "UserPreferencesEntity":
         """
         Factory method to create default preferences for a user.
-        
+
         Args:
             user_id: User entity ID
-            
+
         Returns:
             UserPreferencesEntity with default values
         """

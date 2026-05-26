@@ -1,4 +1,5 @@
 """Unit tests for StoryDraftEntity."""
+
 from datetime import datetime
 from unittest.mock import patch
 

@@ -3,10 +3,12 @@ Tests for AssignStoryUseCase.
 
 Tests story assignment including validation and error handling.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
+import pytest
 
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.use_cases.assign_story import AssignStoryUseCase
@@ -26,7 +28,7 @@ class TestAssignStoryUseCase:
         mock_repo = AsyncMock()
         story_id = uuid4()
         user_id = EntityId.generate()
-        
+
         existing_entity = StoryEntity(
             id=EntityId.from_string(str(story_id)),
             title="Story",
@@ -42,15 +44,15 @@ class TestAssignStoryUseCase:
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=str(user_id.value),
         )
-        
+
         # Assert
         assert isinstance(result, StoryResponse)
         assert result.assigned_to == str(user_id.value)
@@ -66,7 +68,7 @@ class TestAssignStoryUseCase:
         story_id = uuid4()
         old_user = EntityId.generate()
         new_user = EntityId.generate()
-        
+
         existing_entity = StoryEntity(
             id=EntityId.from_string(str(story_id)),
             title="Story",
@@ -82,15 +84,15 @@ class TestAssignStoryUseCase:
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=str(new_user.value),
         )
-        
+
         # Assert
         assert result.assigned_to == str(new_user.value)
         assert existing_entity.assigned_to == new_user
@@ -101,15 +103,15 @@ class TestAssignStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute
         result = await use_case.execute(
             story_id=str(uuid4()),
             user_id=str(uuid4()),
         )
-        
+
         # Assert
         assert result is None
         mock_repo.find_by_id.assert_called_once()
@@ -121,7 +123,7 @@ class TestAssignStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         story_id = uuid4()
-        
+
         existing_entity = StoryEntity(
             id=EntityId.from_string(str(story_id)),
             title="Story",
@@ -137,9 +139,9 @@ class TestAssignStoryUseCase:
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = None
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute & Assert
         with pytest.raises(ValueError, match="Failed to assign story"):
             await use_case.execute(
@@ -154,7 +156,7 @@ class TestAssignStoryUseCase:
         mock_repo = AsyncMock()
         story_id = uuid4()
         user_id = uuid4()
-        
+
         existing_entity = StoryEntity(
             id=EntityId.from_string(str(story_id)),
             title="Story",
@@ -170,15 +172,15 @@ class TestAssignStoryUseCase:
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=str(user_id),
         )
-        
+
         # Assert
         assert existing_entity.assigned_to.value == user_id
 
@@ -188,7 +190,7 @@ class TestAssignStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         story_id = uuid4()
-        
+
         existing_entity = StoryEntity(
             id=EntityId.from_string(str(story_id)),
             title="Story",
@@ -203,9 +205,9 @@ class TestAssignStoryUseCase:
             updated_at=datetime.now(),
         )
         mock_repo.find_by_id.return_value = existing_entity
-        
+
         use_case = AssignStoryUseCase(mock_repo)
-        
+
         # Execute & Assert
         with pytest.raises(ValueError):
             await use_case.execute(

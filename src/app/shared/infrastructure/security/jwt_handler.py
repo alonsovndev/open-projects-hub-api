@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 
 from src.app.shared.logging import get_logger
+
 
 log = get_logger(__name__)
 
 
 class JWTSecretError(Exception):
     """Raised when JWT secret key is invalid or insecure."""
-    pass
 
 
 class JWTHandler:
@@ -18,7 +18,7 @@ class JWTHandler:
     Handles JWT token creation, validation, and decoding.
     Uses HS256 algorithm with symmetric key.
     """
-    
+
     # Common weak/default secrets to reject
     WEAK_SECRETS = {
         "secret",
@@ -38,8 +38,8 @@ class JWTHandler:
         expiration_minutes: int = 1440,
         refresh_expiration_minutes: int = 10080,  # 7 days
         validate_secret: bool = True,
-        audience: Optional[str] = None,
-        issuer: Optional[str] = None,
+        audience: str | None = None,
+        issuer: str | None = None,
     ):
         """
         Args:
@@ -50,13 +50,13 @@ class JWTHandler:
             validate_secret: Whether to validate secret strength (default: True, disable for tests)
             audience: Expected audience claim (default: None, auto-set to "open-projects-hub-api")
             issuer: Expected issuer claim (default: None, auto-set to "open-projects-hub-api")
-        
+
         Raises:
             JWTSecretError: If secret key is weak or invalid
         """
         if validate_secret:
             self._validate_secret_key(secret_key)
-        
+
         self.secret_key = secret_key
         self.algorithm = algorithm
         self.expiration_minutes = expiration_minutes
@@ -68,33 +68,32 @@ class JWTHandler:
     def _validate_secret_key(cls, secret_key: str) -> None:
         """
         Validates JWT secret key strength.
-        
+
         Requirements:
         - At least 32 characters
         - Not a known weak/default secret
-        
+
         Args:
             secret_key: Secret key to validate
-            
+
         Raises:
             JWTSecretError: If secret is weak or invalid
         """
         if not secret_key or not isinstance(secret_key, str):
             raise JWTSecretError("JWT secret key must be a non-empty string")
-        
+
         if len(secret_key) < 32:
             raise JWTSecretError(
-                f"JWT secret key is too short ({len(secret_key)} chars). "
-                "Minimum 32 characters required for security."
+                f"JWT secret key is too short ({len(secret_key)} chars). Minimum 32 characters required for security."
             )
-        
+
         # Prevent common weak secrets that are easily guessable
         if secret_key.lower() in cls.WEAK_SECRETS:
             raise JWTSecretError(
                 f"JWT secret key '{secret_key}' is a known weak/default value. "
                 "Please use a strong, randomly generated secret."
             )
-        
+
         log.info("JWT secret key validation passed")
 
     def create_access_token(
@@ -102,7 +101,7 @@ class JWTHandler:
         user_id: str,
         email: str,
         role: str,
-        additional_claims: Optional[Dict[str, Any]] = None,
+        additional_claims: dict[str, Any] | None = None,
     ) -> str:
         """
         Creates a JWT access token with user claims.
@@ -116,10 +115,10 @@ class JWTHandler:
         Returns:
             Encoded JWT token string
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         expires_at = now + timedelta(minutes=self.expiration_minutes)
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "sub": user_id,
             "email": email,
             "role": role,
@@ -154,10 +153,10 @@ class JWTHandler:
         Returns:
             Encoded JWT refresh token string
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         expires_at = now + timedelta(minutes=self.refresh_expiration_minutes)
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "sub": user_id,
             "email": email,
             "role": role,
@@ -173,7 +172,7 @@ class JWTHandler:
 
         return token
 
-    def decode_access_token(self, token: str) -> Dict[str, Any]:
+    def decode_access_token(self, token: str) -> dict[str, Any]:
         """
         Decodes and validates a JWT token with audience and issuer verification.
 
@@ -215,7 +214,7 @@ class JWTHandler:
             log.warning(f"JWT token has invalid issuer (expected: {self.issuer})")
             raise
         except jwt.InvalidTokenError as e:
-            log.warning(f"Invalid JWT token: {str(e)}")
+            log.warning(f"Invalid JWT token: {e!s}")
             raise
 
     def verify_token(self, token: str) -> bool:
@@ -234,7 +233,7 @@ class JWTHandler:
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return False
 
-    def decode_refresh_token(self, token: str) -> Dict[str, Any]:
+    def decode_refresh_token(self, token: str) -> dict[str, Any]:
         """
         Decodes and validates a refresh token with type verification.
 
@@ -263,17 +262,16 @@ class JWTHandler:
                     "verify_iss": True,
                 },
             )
-            
+
             # Verify this is a refresh token
             if payload.get("type") != "refresh":
                 log.warning("Attempted to use non-refresh token for refresh operation")
                 raise jwt.InvalidTokenError("Token is not a refresh token")
-            
+
             return payload
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired refresh token")
             raise
         except jwt.InvalidTokenError as e:
-            log.warning(f"Invalid refresh token: {str(e)}")
+            log.warning(f"Invalid refresh token: {e!s}")
             raise
-

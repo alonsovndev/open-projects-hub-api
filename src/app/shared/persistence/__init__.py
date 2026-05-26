@@ -1,7 +1,8 @@
 """Persistence layer: database engine, session, and base model."""
 
 from src.app.shared.persistence.base_model import Base, BaseModel
-from src.app.shared.persistence.engine_factory import get_engine, close_engine
+from src.app.shared.persistence.engine_factory import close_engine, get_engine
+
 
 # Session is imported lazily to avoid circular imports
 # with model modules that depend on Base.
@@ -10,6 +11,6 @@ from src.app.shared.persistence.engine_factory import get_engine, close_engine
 __all__ = [
     "Base",
     "BaseModel",
-    "get_engine",
     "close_engine",
+    "get_engine",
 ]

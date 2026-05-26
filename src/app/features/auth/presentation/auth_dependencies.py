@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Any, Dict
+from typing import Any
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -8,8 +8,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app.config.app_config import AppConfig
 from src.app.features.auth.domain.exceptions.auth_exceptions import UnauthorizedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
-from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
+
 
 security = HTTPBearer()
 
@@ -38,7 +39,7 @@ def get_jwt_handler() -> JWTHandler:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     jwt_handler: JWTHandler = Depends(get_jwt_handler),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Dependency to extract and validate JWT token from Authorization header.
 
@@ -71,8 +72,8 @@ async def get_current_user(
 
 
 async def require_admin(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-) -> Dict[str, Any]:
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Dependency to verify user has ADMIN role.
 
@@ -95,19 +96,20 @@ async def require_admin(
 def create_story_owner_or_admin_dependency(story_id: str):
     """
     Factory function to create a story owner/admin check dependency.
-    
+
     Args:
         story_id: Story UUID as string
-        
+
     Returns:
         Dependency function that validates authorization
     """
+
     async def require_story_owner_or_admin_impl(
-        current_user: Dict[str, Any] = Depends(get_current_user),
-    ) -> Dict[str, Any]:
+        current_user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
         """
         Verify user is story owner or admin.
-        
+
         Raises:
             HTTPException: 403 if user is not authorized
             HTTPException: 404 if story not found
@@ -118,42 +120,36 @@ def create_story_owner_or_admin_dependency(story_id: str):
         user_role = current_user.get("role")
         if user_role == UserRole.ADMIN.value:
             return current_user
-        
+
         # Regular user - check ownership
         try:
             # Parse story ID
             story_entity_id = EntityId.from_string(story_id)
-            
+
             # Get database session and repository
             from src.app.composition import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
-            
+
             async for session in get_database_session():
                 story_repo = StoryRepositoryImpl(session)
                 story = await story_repo.find_by_id(story_entity_id)
-                
+
                 if not story:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Story not found"
-                    )
-                
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+
                 # Check if current user is the creator
                 user_id = current_user.get("sub")
                 if story.created_by.value != user_id:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Not authorized to modify this story. Only the creator or an admin can modify stories."
+                        detail="Not authorized to modify this story. Only the creator or an admin can modify stories.",
                     )
-                
+
                 return current_user
-                
+
         except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid story ID format"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format")
         except HTTPException:
             raise
-    
+
     return require_story_owner_or_admin_impl

@@ -1,6 +1,6 @@
 """User repository interface."""
+
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
@@ -11,7 +11,7 @@ class UserRepository(ABC):
     """Repository interface for User aggregate."""
 
     @abstractmethod
-    async def find_by_id(self, entity_id: EntityId) -> Optional[UserEntity]:
+    async def find_by_id(self, entity_id: EntityId) -> UserEntity | None:
         """
         Find a user by their unique identifier.
 
@@ -21,10 +21,9 @@ class UserRepository(ABC):
         Returns:
             Optional[UserEntity]: The user entity if found, None otherwise.
         """
-        pass
 
     @abstractmethod
-    async def find_by_email(self, email: Email) -> Optional[UserEntity]:
+    async def find_by_email(self, email: Email) -> UserEntity | None:
         """
         Find a user by their email address.
 
@@ -34,10 +33,9 @@ class UserRepository(ABC):
         Returns:
             Optional[UserEntity]: The user entity if found, None otherwise.
         """
-        pass
 
     @abstractmethod
-    async def find_by_name(self, record: str) -> Optional[UserEntity]:
+    async def find_by_name(self, record: str) -> UserEntity | None:
         """
         Find a user by their name.
 
@@ -47,10 +45,9 @@ class UserRepository(ABC):
         Returns:
             Optional[UserEntity]: The user entity if found, None otherwise.
         """
-        pass
 
     @abstractmethod
-    async def save(self, user: UserEntity) -> Optional[UserEntity]:
+    async def save(self, user: UserEntity) -> UserEntity | None:
         """
         Save a user entity (create or update).
 
@@ -60,10 +57,9 @@ class UserRepository(ABC):
         Returns:
             Optional[UserEntity]: The saved user if successful, None if duplicate email exists.
         """
-        pass
 
     @abstractmethod
-    async def find_all(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[UserEntity]:
+    async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
         """
         Find all users with optional pagination.
 
@@ -74,7 +70,6 @@ class UserRepository(ABC):
         Returns:
             List[UserEntity]: A list of user entities.
         """
-        pass
 
     @abstractmethod
     async def exists(self, entity_id: EntityId) -> bool:
@@ -87,10 +82,9 @@ class UserRepository(ABC):
         Returns:
             bool: True if the user exists, False otherwise.
         """
-        pass
 
     @abstractmethod
-    async def update(self, user: UserEntity) -> Optional[UserEntity]:
+    async def update(self, user: UserEntity) -> UserEntity | None:
         """
         Update an existing user entity.
 
@@ -100,7 +94,6 @@ class UserRepository(ABC):
         Returns:
             Optional[UserEntity]: The updated user if successful, None if not found.
         """
-        pass
 
     @abstractmethod
     async def delete(self, entity_id: EntityId) -> bool:
@@ -113,4 +106,3 @@ class UserRepository(ABC):
         Returns:
             bool: True if the user was deleted, False if not found.
         """
-        pass

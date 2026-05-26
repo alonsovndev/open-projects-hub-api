@@ -4,6 +4,7 @@ Test to verify database connection singleton pattern.
 This test ensures that the database connection manager is created only once
 and reused across multiple requests, preventing connection pool exhaustion.
 """
+
 import pytest
 
 from src.app.shared.persistence.engine_factory import get_engine
@@ -44,24 +45,30 @@ async def test_multiple_sessions_share_same_engine():
     sessions_info = []
 
     async for session1 in get_database_session():
-        sessions_info.append({
-            "session_id": id(session1),
-            "engine_id": id(session1.bind),
-        })
+        sessions_info.append(
+            {
+                "session_id": id(session1),
+                "engine_id": id(session1.bind),
+            }
+        )
         break
 
     async for session2 in get_database_session():
-        sessions_info.append({
-            "session_id": id(session2),
-            "engine_id": id(session2.bind),
-        })
+        sessions_info.append(
+            {
+                "session_id": id(session2),
+                "engine_id": id(session2.bind),
+            }
+        )
         break
 
     async for session3 in get_database_session():
-        sessions_info.append({
-            "session_id": id(session3),
-            "engine_id": id(session3.bind),
-        })
+        sessions_info.append(
+            {
+                "session_id": id(session3),
+                "engine_id": id(session3.bind),
+            }
+        )
         break
 
     # Sessions should be different objects (each request gets its own)

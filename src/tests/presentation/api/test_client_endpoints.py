@@ -1,16 +1,17 @@
 """Integration tests for client endpoints."""
+
 from datetime import datetime
-from uuid import UUID, uuid4
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
-from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, PaginatedClientsResponse
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.mark.integration

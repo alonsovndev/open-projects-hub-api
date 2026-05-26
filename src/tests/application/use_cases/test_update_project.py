@@ -3,18 +3,19 @@ Tests for UpdateProjectUseCase.
 
 Tests project update including validation and error handling.
 """
-import pytest
+
 from datetime import date, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse, UpdateProjectRequest
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 

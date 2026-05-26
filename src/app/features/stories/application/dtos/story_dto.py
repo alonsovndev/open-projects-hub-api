@@ -1,49 +1,47 @@
 """Story DTOs for request and response."""
-from datetime import date, datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
 from src.app.features.stories.domain.validators.story_validators import StoryValidators
-from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
+from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 
 
 class CreateStoryRequest(BaseModel):
     """DTO for creating a story."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
+
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     project_id: str
-    priority: Optional[str] = "medium"
-    points: Optional[int] = None
-    
+    priority: str | None = "medium"
+    points: int | None = None
+
     @field_validator("title")
     @classmethod
     def validate_title(cls, v: str) -> str:
         """Validate story title."""
         StoryValidators.validate_title(v)
         return v
-    
+
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
+    def validate_priority(cls, v: str | None) -> str | None:
         """Validate priority if provided."""
         if v is not None:
             valid_priorities = [p.value for p in StoryPriority]
             if v not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return v
-    
+
     @field_validator("points")
     @classmethod
-    def validate_points(cls, v: Optional[int]) -> Optional[int]:
+    def validate_points(cls, v: int | None) -> int | None:
         """Validate story points if provided."""
         if v is not None:
             StoryValidators.validate_points(v)
@@ -52,49 +50,49 @@ class CreateStoryRequest(BaseModel):
 
 class UpdateStoryRequest(BaseModel):
     """DTO for updating a story."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    points: Optional[int] = None
-    
+
+    title: str | None = None
+    description: str | None = None
+    status: str | None = None
+    priority: str | None = None
+    points: int | None = None
+
     @field_validator("title")
     @classmethod
-    def validate_title(cls, v: Optional[str]) -> Optional[str]:
+    def validate_title(cls, v: str | None) -> str | None:
         """Validate story title if provided."""
         if v is not None:
             StoryValidators.validate_title(v)
         return v
-    
+
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+    def validate_status(cls, v: str | None) -> str | None:
         """Validate status if provided."""
         if v is not None:
             valid_statuses = [s.value for s in StoryStatus]
             if v not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         return v
-    
+
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
+    def validate_priority(cls, v: str | None) -> str | None:
         """Validate priority if provided."""
         if v is not None:
             valid_priorities = [p.value for p in StoryPriority]
             if v not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return v
-    
+
     @field_validator("points")
     @classmethod
-    def validate_points(cls, v: Optional[int]) -> Optional[int]:
+    def validate_points(cls, v: int | None) -> int | None:
         """Validate story points if provided."""
         if v is not None:
             StoryValidators.validate_points(v)
@@ -103,31 +101,31 @@ class UpdateStoryRequest(BaseModel):
 
 class AssignStoryRequest(BaseModel):
     """DTO for assigning a story to a user."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
+
     user_id: str
 
 
 class StoryResponse(BaseModel):
     """DTO for story response."""
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
-    
+
     id: str
     title: str
-    description: Optional[str]
+    description: str | None
     project_id: str
     created_by: str
-    assigned_to: Optional[str]
+    assigned_to: str | None
     status: str
     priority: str
-    points: Optional[int]
+    points: int | None
     created_at: str
     updated_at: str

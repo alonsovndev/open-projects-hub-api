@@ -3,25 +3,23 @@ Shared mapper for ProjectEntity to ProjectResponse.
 
 Centralizes DTO mapping logic to reduce duplication across use cases.
 """
-from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
+from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 
 
 def to_project_response(
-    entity: ProjectEntity, 
-    client_name: str,
-    stories_count: int = 0, 
-    completed_stories: int = 0
+    entity: ProjectEntity, client_name: str, stories_count: int = 0, completed_stories: int = 0
 ) -> ProjectResponse:
     """
     Convert ProjectEntity to ProjectResponse DTO.
-    
+
     Args:
         entity: ProjectEntity domain object
         client_name: Name of the client (from joined query)
         stories_count: Total number of stories (optional)
         completed_stories: Number of completed stories (optional)
-        
+
     Returns:
         ProjectResponse DTO with serialized entity data
     """

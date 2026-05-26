@@ -2,7 +2,6 @@
 
 import logging
 import os
-
 from logging.handlers import RotatingFileHandler
 
 from src.app.shared.logging.formatters import JsonFormatter, TextFormatter

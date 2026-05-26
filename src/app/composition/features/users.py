@@ -25,7 +25,7 @@ Domain Separation:
 
 Usage:
     from src.app.composition import get_get_user_profile_use_case
-    
+
     @router.get("/profile")
     async def get_profile(
         use_case: GetUserProfileUseCase = Depends(get_get_user_profile_use_case),
@@ -55,13 +55,14 @@ async def get_user_preferences_repository(
 ) -> UserPreferencesRepository:
     """
     User preferences repository factory (feature-specific).
-    
+
     Only used by users feature for managing UI preferences.
     Separated from UserRepository for domain separation.
     """
     from src.app.features.user.infrastructure.repositories.user_preferences_repository_impl import (
         UserPreferencesRepositoryImpl,
     )
+
     return UserPreferencesRepositoryImpl(session)
 
 

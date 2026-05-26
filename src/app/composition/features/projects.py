@@ -5,7 +5,7 @@ All dependency wiring for project management use cases.
 
 Dependencies:
 - Infrastructure: Database session
-- Repositories: 
+- Repositories:
   - ProjectRepository (feature-specific, defined here)
   - ClientRepository (shared, cross-feature dependency)
 
@@ -23,7 +23,7 @@ at the application layer before database constraints.
 
 Usage:
     from src.app.composition import get_create_project_use_case
-    
+
     @router.post("")
     async def create_project(
         use_case: CreateProjectUseCase = Depends(get_create_project_use_case),
@@ -51,6 +51,7 @@ async def get_project_repository(
 ) -> ProjectRepository:
     """Project repository factory (feature-specific)."""
     from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
+
     return ProjectRepositoryImpl(session)
 
 
@@ -61,7 +62,7 @@ async def get_create_project_use_case(
 ) -> CreateProjectUseCase:
     """
     CreateProjectUseCase factory.
-    
+
     Cross-feature dependency: Depends on ClientRepository to validate client exists.
     """
     return CreateProjectUseCase(project_repository, client_repository)
@@ -87,7 +88,7 @@ async def get_update_project_use_case(
 ) -> UpdateProjectUseCase:
     """
     UpdateProjectUseCase factory.
-    
+
     Cross-feature dependency: Depends on ClientRepository to validate client exists.
     """
     return UpdateProjectUseCase(project_repository, client_repository)

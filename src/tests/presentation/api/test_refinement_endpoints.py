@@ -1,31 +1,22 @@
 """Integration tests for refinement endpoints."""
+
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
-from src.app.features.refinement.application.dtos.refinement_dto import (
-    ApproveDraftsBulkResponse,
-    GeneratedStoryResponse,
-    GenerateStoriesResponse,
-)
+from src.app.features.refinement.application.dtos.refinement_dto import GeneratedStoryResponse, GenerateStoriesResponse
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
-from src.app.features.stories.domain.entities.story_entity import StoryEntity
-from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
-from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.mark.integration
-
-
 @pytest.fixture
 def client():
     """Create test client."""

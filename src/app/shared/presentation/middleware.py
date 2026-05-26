@@ -3,8 +3,9 @@ HTTP middleware components for FastAPI application.
 
 Provides security headers, API versioning, and CORS configuration.
 """
+
 import os
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +19,7 @@ ENV = os.getenv("APP_ENV", "local")
 async def add_security_headers(request: Request, call_next: Callable) -> Response:
     """
     Add security headers to all responses.
-    
+
     Headers added:
     - Strict-Transport-Security: Enforce HTTPS (HSTS) - production only
     - X-Content-Type-Options: Prevent MIME type sniffing
@@ -29,26 +30,26 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     - X-XSS-Protection: Enable XSS filter (legacy browsers)
     - Referrer-Policy: Control referrer information
     - Permissions-Policy: Control browser features
-    
+
     Args:
         request: The incoming HTTP request
         call_next: The next middleware or route handler
-        
+
     Returns:
         Response with security headers added
     """
     response = await call_next(request)
-    
+
     # HSTS: Force HTTPS for 1 year (only in production)
     if ENV in ("prod", "production"):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    
+
     # Prevent MIME type sniffing
     response.headers["X-Content-Type-Options"] = "nosniff"
-    
+
     # Prevent clickjacking
     response.headers["X-Frame-Options"] = "DENY"
-    
+
     # Content Security Policy - More permissive in local/dev, strict in production
     # In local/dev: Allow Swagger UI resources on /docs endpoint
     # In production: Strict CSP on all endpoints (no documentation endpoints exposed)
@@ -70,27 +71,27 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     else:
         # Production: strict CSP on all endpoints (docs should be disabled in production)
         response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
-    
+
     # XSS Protection (legacy browsers)
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    
+
     # Referrer Policy (don't leak referrer info)
     response.headers["Referrer-Policy"] = "no-referrer"
-    
+
     # Permissions Policy (disable unnecessary browser features)
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
+
     return response
 
 
 async def add_api_version_header(request: Request, call_next: Callable) -> Response:
     """
     Add API version to response headers.
-    
+
     Args:
         request: The incoming HTTP request
         call_next: The next middleware or route handler
-        
+
     Returns:
         Response with X-API-Version header added
     """
@@ -102,56 +103,50 @@ async def add_api_version_header(request: Request, call_next: Callable) -> Respo
 def get_allowed_cors_origins() -> list[str]:
     """
     Get allowed CORS origins from configuration with validation.
-    
+
     Validates that wildcard origins are not used with credentials enabled,
     as this is a security misconfiguration.
-    
+
     Raises:
         ValueError: If wildcard origin is used with credentials enabled
-    
+
     Returns:
         List of allowed origin strings
     """
     config = AppConfig.instance()
     origins = config.get_config("cors.origins", [])
     allow_credentials = config.get_config("cors.allow_credentials", False)
-    
+
     # Validate: cannot use wildcard with credentials
     if allow_credentials and ("*" in origins or any("*" in origin for origin in origins)):
         raise ValueError(
             "CORS misconfiguration: Cannot use wildcard origins ('*') with "
             "allow_credentials=True. Specify exact origins or disable credentials."
         )
-    
+
     return origins
 
 
 def configure_cors(app) -> None:
     """
     Configure CORS middleware from application configuration.
-    
+
     Reads CORS settings from config and adds CORSMiddleware to the application.
     Validates that credentials are not used with wildcard origins.
-    
+
     Args:
         app: FastAPI application instance
-        
+
     Raises:
         ValueError: If CORS configuration is invalid
     """
     config = AppConfig.instance()
-    
+
     cors_origins = get_allowed_cors_origins()
     cors_allow_credentials = config.get_config("cors.allow_credentials", False)
-    cors_allow_methods = config.get_config(
-        "cors.allow_methods", 
-        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    )
-    cors_allow_headers = config.get_config(
-        "cors.allow_headers", 
-        ["Authorization", "Content-Type", "Accept"]
-    )
-    
+    cors_allow_methods = config.get_config("cors.allow_methods", ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+    cors_allow_headers = config.get_config("cors.allow_headers", ["Authorization", "Content-Type", "Accept"])
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
@@ -164,25 +159,23 @@ def configure_cors(app) -> None:
 def register_middleware(app) -> None:
     """
     Register all middleware with the FastAPI application.
-    
+
     Middleware is applied in reverse order of registration (last registered = first executed).
     Order matters for proper request/response processing.
-    
+
     Args:
         app: FastAPI application instance
     """
-    from src.app.shared.infrastructure.middleware.request_logging_middleware import (
-        request_logging_middleware
-    )
-    
+    from src.app.shared.infrastructure.middleware.request_logging_middleware import request_logging_middleware
+
     # Configure CORS (applied last, executed first)
     configure_cors(app)
-    
+
     # Request logging middleware (with correlation IDs)
     app.middleware("http")(request_logging_middleware)
-    
+
     # Security headers middleware
     app.middleware("http")(add_security_headers)
-    
+
     # API version header
     app.middleware("http")(add_api_version_header)

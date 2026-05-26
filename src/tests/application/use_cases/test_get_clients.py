@@ -1,7 +1,9 @@
 """Tests for GetClientsUseCase."""
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
+
+import pytest
 
 from src.app.features.clients.application.dtos.client_dto import PaginatedClientsResponse
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase

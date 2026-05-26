@@ -4,7 +4,6 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 
 
 class TestPasswordHandler:
-
     @pytest.mark.asyncio
     async def test_hash_password_returns_non_empty_hash(self):
         """Test that hashing returns a non-empty string."""
@@ -58,4 +57,3 @@ class TestPasswordHandler:
 
         result = await PasswordHandler.verify_password("mypassword123", hashed)
         assert result is False
-

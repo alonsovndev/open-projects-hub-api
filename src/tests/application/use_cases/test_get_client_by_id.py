@@ -1,8 +1,10 @@
 """Tests for GetClientByIdUseCase."""
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
+import pytest
 
 from src.app.features.clients.application.dtos.client_dto import ClientResponse
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase

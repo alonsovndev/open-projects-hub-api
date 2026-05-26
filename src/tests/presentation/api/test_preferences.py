@@ -3,8 +3,10 @@ Integration tests for user preferences endpoints.
 
 Tests GET /v1/users/me/preferences and PATCH /v1/users/me/preferences.
 """
-import pytest
+
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
@@ -47,17 +49,14 @@ class TestGetUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.DARK,
-            language="en"
+            language="en",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.get_user_preferences.GetUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=mock_preferences)
+            new=AsyncMock(return_value=mock_preferences),
         ):
-            response = client.get(
-                "/v1/users/me/preferences",
-                headers={"Authorization": f"Bearer {viewer_token}"}
-            )
+            response = client.get("/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -74,17 +73,14 @@ class TestGetUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.AUTO,
-            language="en"
+            language="en",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.get_user_preferences.GetUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=mock_default)
+            new=AsyncMock(return_value=mock_default),
         ):
-            response = client.get(
-                "/v1/users/me/preferences",
-                headers={"Authorization": f"Bearer {viewer_token}"}
-            )
+            response = client.get("/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -108,17 +104,15 @@ class TestUpdateUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.LIGHT,
-            language="en"
+            language="en",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.update_user_preferences.UpdateUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=updated_preferences)
+            new=AsyncMock(return_value=updated_preferences),
         ):
             response = client.patch(
-                "/v1/users/me/preferences",
-                headers={"Authorization": f"Bearer {viewer_token}"},
-                json={"theme": "light"}
+                "/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"}, json={"theme": "light"}
             )
 
         assert response.status_code == 200
@@ -133,17 +127,15 @@ class TestUpdateUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.AUTO,
-            language="es"
+            language="es",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.update_user_preferences.UpdateUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=updated_preferences)
+            new=AsyncMock(return_value=updated_preferences),
         ):
             response = client.patch(
-                "/v1/users/me/preferences",
-                headers={"Authorization": f"Bearer {viewer_token}"},
-                json={"language": "es"}
+                "/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"}, json={"language": "es"}
             )
 
         assert response.status_code == 200
@@ -158,17 +150,17 @@ class TestUpdateUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.DARK,
-            language="fr"
+            language="fr",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.update_user_preferences.UpdateUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=updated_preferences)
+            new=AsyncMock(return_value=updated_preferences),
         ):
             response = client.patch(
                 "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
-                json={"theme": "dark", "language": "fr"}
+                json={"theme": "dark", "language": "fr"},
             )
 
         assert response.status_code == 200
@@ -180,19 +172,14 @@ class TestUpdateUserPreferencesEndpoint:
     def test_update_preferences_invalid_theme(self, client, viewer_token):
         """Test that invalid theme returns 400."""
         response = client.patch(
-            "/v1/users/me/preferences",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-            json={"theme": "invalid"}
+            "/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"}, json={"theme": "invalid"}
         )
 
         assert response.status_code == 422  # Pydantic validation error
 
     def test_update_preferences_unauthorized_without_token(self, client):
         """Test that PATCH /preferences requires authentication."""
-        response = client.patch(
-            "/v1/users/me/preferences",
-            json={"theme": "dark"}
-        )
+        response = client.patch("/v1/users/me/preferences", json={"theme": "dark"})
 
         assert response.status_code == 403
 
@@ -202,17 +189,17 @@ class TestUpdateUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.LIGHT,
-            language="en"
+            language="en",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.update_user_preferences.UpdateUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=updated_preferences)
+            new=AsyncMock(return_value=updated_preferences),
         ):
             response = client.patch(
                 "/v1/users/me/preferences",
                 headers={"Authorization": f"Bearer {viewer_token}"},
-                json={"theme": "light"}  # camelCase works same as snake_case
+                json={"theme": "light"},  # camelCase works same as snake_case
             )
 
         assert response.status_code == 200
@@ -224,17 +211,15 @@ class TestUpdateUserPreferencesEndpoint:
             id=EntityId.generate(),
             user_id=EntityId.from_string("12345678-90ab-cdef-1234-567890abcdef"),
             theme=Theme.AUTO,
-            language="en"
+            language="en",
         )
-        
+
         with patch(
             "src.app.features.user.application.use_cases.update_user_preferences.UpdateUserPreferencesUseCase.execute",
-            new=AsyncMock(return_value=existing_preferences)
+            new=AsyncMock(return_value=existing_preferences),
         ):
             response = client.patch(
-                "/v1/users/me/preferences",
-                headers={"Authorization": f"Bearer {viewer_token}"},
-                json={}
+                "/v1/users/me/preferences", headers={"Authorization": f"Bearer {viewer_token}"}, json={}
             )
 
         assert response.status_code == 200

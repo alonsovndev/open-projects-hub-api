@@ -40,7 +40,6 @@ def user_token(app_jwt_handler):
 
 
 class TestAuthDependencies:
-
     def test_get_current_user_without_token_returns_403(self, client):
         """Test accessing auth-required route without Authorization header returns 403.
 

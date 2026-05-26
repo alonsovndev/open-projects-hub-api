@@ -4,9 +4,11 @@ Tests for FastAPI RequestValidationError handler.
 Verifies that Pydantic validation errors return consistent error envelopes
 matching the format used by domain validation errors.
 """
+
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
+
 
 client = TestClient(fastApiApp)
 
@@ -22,12 +24,12 @@ class TestValidationErrorHandler:
                 "display_name": "John Doe",
                 "email": "john@example.com",
                 # Missing required 'password' field
-            }
+            },
         )
-        
+
         assert response.status_code == 422
         data = response.json()
-        
+
         # Verify standard error envelope
         assert "error" in data
         assert "message" in data
@@ -39,16 +41,12 @@ class TestValidationErrorHandler:
         """Test that invalid email format returns 422 with error/message envelope."""
         response = client.post(
             "/v1/auth/register",
-            json={
-                "display_name": "John Doe",
-                "email": "not-a-valid-email",
-                "password": "SecurePass123"
-            }
+            json={"display_name": "John Doe", "email": "not-a-valid-email", "password": "SecurePass123"},
         )
-        
+
         assert response.status_code == 422
         data = response.json()
-        
+
         # Verify standard error envelope
         assert "error" in data
         assert "message" in data
@@ -62,13 +60,13 @@ class TestValidationErrorHandler:
             json={
                 "display_name": 12345,  # Should be string
                 "email": "john@example.com",
-                "password": "SecurePass123"
-            }
+                "password": "SecurePass123",
+            },
         )
-        
+
         assert response.status_code == 422
         data = response.json()
-        
+
         # Verify standard error envelope
         assert "error" in data
         assert "message" in data
@@ -81,13 +79,13 @@ class TestValidationErrorHandler:
             json={
                 "display_name": "John Doe",
                 "email": "john@example.com",
-                "password": "Short1"  # Too short (< 8 chars)
-            }
+                "password": "Short1",  # Too short (< 8 chars)
+            },
         )
-        
+
         assert response.status_code == 422
         data = response.json()
-        
+
         # Verify standard error envelope
         assert "error" in data
         assert "message" in data
@@ -102,10 +100,10 @@ class TestValidationErrorHandler:
             json={
                 "display_name": "John Doe",
                 "email": "duplicate@example.com",  # Assuming this triggers domain error
-                "password": "SecurePass123"
-            }
+                "password": "SecurePass123",
+            },
         )
-        
+
         # Pydantic validation error (from request parsing)
         pydantic_error_response = client.post(
             "/v1/auth/register",
@@ -113,18 +111,18 @@ class TestValidationErrorHandler:
                 "display_name": "John Doe",
                 "email": "john@example.com",
                 # Missing password
-            }
+            },
         )
-        
+
         # Both should have same envelope structure
         if domain_error_response.status_code in (400, 422):
             domain_data = domain_error_response.json()
             pydantic_data = pydantic_error_response.json()
-            
+
             # Both should have exactly these keys
             assert set(domain_data.keys()) == {"error", "message"}
             assert set(pydantic_data.keys()) == {"error", "message"}
-            
+
             # Both should have string values
             assert isinstance(domain_data["error"], str)
             assert isinstance(domain_data["message"], str)

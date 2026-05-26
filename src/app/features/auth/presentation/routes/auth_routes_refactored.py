@@ -1,24 +1,21 @@
-from fastapi import APIRouter, Depends, status, Request
 import jwt
+from fastapi import APIRouter, Depends, Request, status
 
+from src.app.composition import get_login_use_case, get_refresh_token_use_case, get_register_use_case
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
-from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.application.use_cases.refresh_token import (
-    RefreshTokenUseCase,
     RefreshTokenRequest,
     RefreshTokenResponse,
+    RefreshTokenUseCase,
 )
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
+from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
-from src.app.composition import (
-    get_login_use_case,
-    get_register_use_case,
-    get_refresh_token_use_case,
-)
+from src.app.features.user.application.dtos.user_dto import UserCreateRequest
+from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
+
 
 router = APIRouter()
 
@@ -32,7 +29,7 @@ async def login(
 ) -> AdminLoginResponse:
     """
     Authenticate user and return JWT token with user details.
-    
+
     Rate limited to 5 attempts per 15 minutes per IP address to prevent brute force attacks.
 
     Args:
@@ -64,7 +61,7 @@ async def register(
 ) -> AdminLoginResponse:
     """
     Register new user and return JWT token (auto-login).
-    
+
     Public endpoint - no authentication required.
     New users default to 'viewer' role.
 
@@ -99,10 +96,10 @@ async def refresh_token(
 ) -> RefreshTokenResponse:
     """
     Refresh access token using refresh token.
-    
+
     Implements token rotation: returns new access token AND new refresh token.
     The old refresh token becomes invalid after use.
-    
+
     Rate limited to 10 attempts per 15 minutes per IP address.
 
     Args:

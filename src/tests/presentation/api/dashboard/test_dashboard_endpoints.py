@@ -1,20 +1,21 @@
 """Integration tests for dashboard endpoints."""
+
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
-from src.app.features.dashboard.application.dtos.dashboard_dto import DashboardStatsResponse
-from src.app.features.dashboard.application.dtos.dashboard_dto import ProjectSummary, StorySummary
+from src.app.features.dashboard.application.dtos.dashboard_dto import (
+    DashboardStatsResponse,
+    ProjectSummary,
+    StorySummary,
+)
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.mark.integration
-
-
 @pytest.fixture
 def client():
     """Create test client."""
@@ -70,7 +71,7 @@ def mock_dashboard_stats():
 
 class TestGetDashboardStatsEndpoint:
     """Test GET /v1/dashboard/stats endpoint."""
-    
+
     def test_get_dashboard_stats_success(self, client: TestClient, user_token: str, mock_dashboard_stats):
         """Test getting dashboard stats returns stats data."""
         with patch(
@@ -81,7 +82,7 @@ class TestGetDashboardStatsEndpoint:
                 "/v1/dashboard/stats",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["totalProjects"] == 5
@@ -91,13 +92,13 @@ class TestGetDashboardStatsEndpoint:
         assert data["completedStories"] == 18
         assert len(data["recentProjects"]) == 1
         assert len(data["recentStories"]) == 1
-    
+
     def test_get_dashboard_stats_unauthorized_without_token(self, client: TestClient):
         """Test getting dashboard stats without token returns 403."""
         response = client.get("/v1/dashboard/stats")
-        
+
         assert response.status_code == 403
-    
+
     def test_get_dashboard_stats_with_empty_stats(self, client: TestClient, user_token: str):
         """Test getting dashboard stats with no data."""
         empty_stats = DashboardStatsResponse(
@@ -117,7 +118,7 @@ class TestGetDashboardStatsEndpoint:
                 "/v1/dashboard/stats",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["totalProjects"] == 0
@@ -127,16 +128,16 @@ class TestGetDashboardStatsEndpoint:
         assert data["completedStories"] == 0
         assert data["recentProjects"] == []
         assert data["recentStories"] == []
-    
+
     def test_get_dashboard_stats_invalid_token(self, client: TestClient):
         """Test getting dashboard stats with invalid token returns 401."""
         response = client.get(
             "/v1/dashboard/stats",
             headers={"Authorization": "Bearer invalid.token.here"},
         )
-        
+
         assert response.status_code == 401
-    
+
     def test_get_dashboard_stats_with_multiple_projects(self, client: TestClient, user_token: str):
         """Test getting dashboard stats with multiple projects."""
         multi_stats = DashboardStatsResponse(
@@ -173,7 +174,7 @@ class TestGetDashboardStatsEndpoint:
                 "/v1/dashboard/stats",
                 headers={"Authorization": f"Bearer {user_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["totalProjects"] == 10

@@ -26,7 +26,7 @@ is marked as processed.
 
 Usage:
     from src.app.composition import get_generate_stories_use_case
-    
+
     @router.post("/generate")
     async def generate_stories(
         use_case: GenerateStoriesUseCase = Depends(get_generate_stories_use_case),
@@ -41,7 +41,9 @@ from src.app.composition.infrastructure import get_ai_service, get_database_sess
 from src.app.composition.repositories import get_story_repository
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
-from src.app.features.refinement.application.use_cases.generate_stories_from_notes import GenerateStoriesFromNotesUseCase
+from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
+    GenerateStoriesFromNotesUseCase,
+)
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
@@ -56,6 +58,7 @@ async def get_draft_repository(
     from src.app.features.refinement.infrastructure.repositories.story_draft_repository_impl import (
         StoryDraftRepositoryImpl,
     )
+
     return StoryDraftRepositoryImpl(session)
 
 
@@ -66,7 +69,7 @@ async def get_generate_stories_use_case(
 ) -> GenerateStoriesFromNotesUseCase:
     """
     GenerateStoriesFromNotesUseCase factory.
-    
+
     Depends on AI service singleton for story generation.
     """
     return GenerateStoriesFromNotesUseCase(repository, ai_service)
@@ -85,7 +88,7 @@ async def get_approve_draft_use_case(
 ) -> ApproveDraftUseCase:
     """
     ApproveDraftUseCase factory.
-    
+
     Depends on both draft and story repositories to convert drafts to stories.
     """
     return ApproveDraftUseCase(draft_repository, story_repository)
@@ -97,7 +100,7 @@ async def get_approve_drafts_bulk_use_case(
 ) -> ApproveDraftsBulkUseCase:
     """
     ApproveDraftsBulkUseCase factory.
-    
+
     Bulk operation for approving multiple drafts at once.
     """
     return ApproveDraftsBulkUseCase(draft_repository, story_repository)

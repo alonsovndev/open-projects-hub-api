@@ -1,5 +1,4 @@
 """Mock AI service for development/testing when no API key is configured."""
-from typing import List, Optional
 
 from src.app.features.refinement.infrastructure.ai.ai_service import (
     AIService,
@@ -13,15 +12,15 @@ from src.app.features.refinement.infrastructure.ai.ai_service import (
 class MockAIService(AIService):
     """
     Mock AI service that returns sensible refinements without calling an API.
-    
+
     Used during development or when no AI provider is configured.
     """
-    
+
     async def refine_story(
         self,
         title: str,
-        description: Optional[str] = None,
-        acceptance_criteria: Optional[List[str]] = None,
+        description: str | None = None,
+        acceptance_criteria: list[str] | None = None,
     ) -> RefinementResult:
         """Return mock refinement results."""
         # Generate a refined title
@@ -32,23 +31,22 @@ class MockAIService(AIService):
             refined_title = f"Reporting - {title}"
         elif "search" in title.lower():
             refined_title = f"Search & Discovery - {title}"
-        
+
         # Generate a refined description
         refined_description = description
         if not description:
             refined_description = (
-                f"As a registered user, I want to {title.lower()} "
-                f"so that I can accomplish my goals efficiently."
+                f"As a registered user, I want to {title.lower()} so that I can accomplish my goals efficiently."
             )
-        
+
         # Generate refined criteria
         refined_criteria = acceptance_criteria or []
         if not refined_criteria:
             refined_criteria = [
-                f"Given I am on the relevant page\nWhen I perform the action\nThen the expected outcome occurs",
-                f"Given the system is in a valid state\nWhen I submit the request\nThen I receive a confirmation",
+                "Given I am on the relevant page\nWhen I perform the action\nThen the expected outcome occurs",
+                "Given the system is in a valid state\nWhen I submit the request\nThen I receive a confirmation",
             ]
-        
+
         suggestions = [
             RefinementSuggestion(
                 suggestion_type="title",
@@ -69,18 +67,18 @@ class MockAIService(AIService):
                 confidence=0.90,
             ),
         ]
-        
+
         return RefinementResult(
             refined_title=refined_title,
             refined_description=refined_description,
             refined_criteria=refined_criteria,
             suggestions=suggestions,
         )
-    
+
     async def is_available(self) -> bool:
         """Mock service is always available."""
         return True
-    
+
     async def generate_stories_from_notes(
         self,
         raw_notes: str,
@@ -116,7 +114,7 @@ class MockAIService(AIService):
                 confidence=0.85,
             ),
         ]
-        
+
         return BulkGenerationResult(
             stories=stories,
             raw_notes=raw_notes,

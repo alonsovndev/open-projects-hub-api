@@ -3,9 +3,11 @@ Tests for ApproveDraftsBulkUseCase.
 
 Tests bulk draft approval and story conversion.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
+
+import pytest
 
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
@@ -57,7 +59,7 @@ class TestApproveDraftsBulkUseCase:
         def find_side_effect(draft_id):
             if draft_id == draft_id_1.value:
                 return draft_1
-            elif draft_id == draft_id_2.value:
+            if draft_id == draft_id_2.value:
                 return draft_2
             return None
 
@@ -226,7 +228,7 @@ class TestApproveDraftsBulkUseCase:
         def find_side_effect(draft_id):
             if draft_id == draft_id_1.value:
                 return draft_1
-            elif draft_id == draft_id_2.value:
+            if draft_id == draft_id_2.value:
                 return draft_2
             return None
 

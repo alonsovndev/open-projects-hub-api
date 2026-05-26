@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -8,7 +7,6 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 class UserEntity(BaseEntity):
-
     def __init__(
         self,
         id: EntityId,
@@ -16,8 +14,8 @@ class UserEntity(BaseEntity):
         display_name: str,
         password_hash: str,
         role: UserRole = UserRole.VIEWER,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
     ):
         self.email = email
         self.display_name = display_name

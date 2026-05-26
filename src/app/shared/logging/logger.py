@@ -6,6 +6,7 @@ from src.app.shared.logging.config import LoggingConfig
 from src.app.shared.logging.correlation import CorrelationIdFilter
 from src.app.shared.logging.handlers import create_console_handler, create_file_handler
 
+
 _LOGGING_INITIALIZED = False
 
 

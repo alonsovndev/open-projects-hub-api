@@ -1,27 +1,28 @@
 """Client API routes."""
+
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.composition import (
     get_create_client_use_case,
-    get_get_clients_use_case,
-    get_get_client_by_id_use_case,
-    get_update_client_use_case,
     get_delete_client_use_case,
+    get_get_client_by_id_use_case,
+    get_get_clients_use_case,
+    get_update_client_use_case,
+)
+from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.features.clients.application.dtos.client_dto import (
+    ClientResponse,
+    CreateClientRequest,
+    PaginatedClientsResponse,
+    UpdateClientRequest,
 )
 from src.app.features.clients.application.use_cases.create_client import CreateClientUseCase
 from src.app.features.clients.application.use_cases.delete_client import DeleteClientUseCase
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
-from src.app.features.clients.application.dtos.client_dto import (
-    CreateClientRequest,
-    UpdateClientRequest,
-    ClientResponse,
-    PaginatedClientsResponse,
-)
 
 
 router = APIRouter()
@@ -45,7 +46,7 @@ async def create_client(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create client: {str(e)}",
+            detail=f"Failed to create client: {e!s}",
         )
 
 
@@ -65,7 +66,7 @@ async def get_clients(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve clients: {str(e)}",
+            detail=f"Failed to retrieve clients: {e!s}",
         )
 
 
@@ -86,7 +87,7 @@ async def get_client_by_id(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve client: {str(e)}",
+            detail=f"Failed to retrieve client: {e!s}",
         )
 
 
@@ -108,7 +109,7 @@ async def update_client(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update client: {str(e)}",
+            detail=f"Failed to update client: {e!s}",
         )
 
 
@@ -135,5 +136,5 @@ async def delete_client(
             )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete client: {str(e)}",
+            detail=f"Failed to delete client: {e!s}",
         )

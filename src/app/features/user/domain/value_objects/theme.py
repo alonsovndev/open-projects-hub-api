@@ -1,6 +1,7 @@
 """
 Theme value object for user preferences.
 """
+
 from enum import Enum
 
 

@@ -15,7 +15,7 @@ Use Cases:
 
 Usage:
     from src.app.composition import get_login_use_case
-    
+
     @router.post("/login")
     async def login(
         use_case: LoginUseCase = Depends(get_login_use_case),

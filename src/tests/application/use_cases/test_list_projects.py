@@ -3,15 +3,17 @@ Tests for ListProjectsUseCase.
 
 Tests project listing with pagination and filtering.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
+
+import pytest
 
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
@@ -161,11 +163,7 @@ class TestListProjectsUseCase:
         assert result.page == 3
         assert result.per_page == 50
         mock_repo.count.assert_called_once_with(status="completed")
-        mock_repo.find_all.assert_called_once_with(
-            limit=50,
-            offset=100,
-            status="completed"
-        )
+        mock_repo.find_all.assert_called_once_with(limit=50, offset=100, status="completed")
 
     @pytest.mark.asyncio
     async def test_execute_maps_all_entity_fields(self):

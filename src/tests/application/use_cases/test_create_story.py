@@ -3,14 +3,15 @@ Tests for CreateStoryUseCase.
 
 Tests story creation including validation and error handling.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
-from src.app.features.stories.application.dtos.story_dto import StoryResponse, CreateStoryRequest
+from src.app.features.stories.application.dtos.story_dto import CreateStoryRequest, StoryResponse
 from src.app.features.stories.application.use_cases.create_story import CreateStoryUseCase
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -136,9 +137,11 @@ class TestCreateStoryUseCase:
         """Test that all valid priorities are accepted."""
         mock_repo = AsyncMock()
 
-        for priority_str, priority_enum in [("low", StoryPriority.LOW),
-                                              ("medium", StoryPriority.MEDIUM),
-                                              ("high", StoryPriority.HIGH)]:
+        for priority_str, priority_enum in [
+            ("low", StoryPriority.LOW),
+            ("medium", StoryPriority.MEDIUM),
+            ("high", StoryPriority.HIGH),
+        ]:
             created_entity = StoryEntity(
                 id=EntityId.generate(),
                 title="Story",

@@ -6,6 +6,7 @@ class UserDoesNotExistException(Exception):
         self.message = f"User with ID {self.user_id} does not exist."
         super().__init__(self.message)
 
+
 class UserAlreadyExistsException(Exception):
     """Exception raised when a user already exists (duplicate)."""
 
@@ -13,6 +14,7 @@ class UserAlreadyExistsException(Exception):
         self.email = email
         self.message = f"User with email {self.email} already exists."
         super().__init__(self.message)
+
 
 # Alias for consistency
 UserNotFoundException = UserDoesNotExistException

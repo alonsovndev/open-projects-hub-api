@@ -1,4 +1,5 @@
 """Mapper between StoryDraftModel and StoryDraftEntity."""
+
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
@@ -7,15 +8,15 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 class StoryDraftMapper:
     """Maps between StoryDraftModel and StoryDraftEntity."""
-    
+
     @staticmethod
     def to_entity(model: StoryDraftModel) -> StoryDraftEntity:
         """
         Convert StoryDraftModel to StoryDraftEntity.
-        
+
         Args:
             model: SQLAlchemy StoryDraftModel instance
-            
+
         Returns:
             StoryDraftEntity domain object
         """
@@ -33,7 +34,7 @@ class StoryDraftMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
-    
+
     @staticmethod
     def to_model(
         entity: StoryDraftEntity,
@@ -41,11 +42,11 @@ class StoryDraftMapper:
     ) -> StoryDraftModel:
         """
         Convert StoryDraftEntity to StoryDraftModel.
-        
+
         Args:
             entity: StoryDraftEntity domain object
             existing_model: Optional existing model to update
-            
+
         Returns:
             SQLAlchemy StoryDraftModel instance
         """
@@ -59,7 +60,7 @@ class StoryDraftMapper:
             existing_model.refined_criteria = entity.refined_criteria
             existing_model.updated_at = entity.updated_at
             return existing_model
-        
+
         return StoryDraftModel(
             id=entity.id.value,
             title=entity.title,

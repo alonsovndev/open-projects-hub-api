@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
@@ -30,7 +31,6 @@ def mock_admin_user():
         id=EntityId.generate(),
         email=Email("admin@example.com"),
         display_name="Admin User",
-        
         password_hash=password_hash,
         role=UserRole.ADMIN,
     )
@@ -45,14 +45,12 @@ def mock_regular_user():
         id=EntityId.generate(),
         email=Email("user@example.com"),
         display_name="Regular User",
-        
         password_hash=password_hash,
         role=UserRole.VIEWER,
     )
 
 
 class TestLoginEndpoint:
-
     def test_login_success_returns_frontend_shape(self, client, mock_admin_user):
         """Test successful admin login returns correct response shape."""
         with patch(
@@ -170,6 +168,7 @@ class TestLoginEndpoint:
     def test_login_token_is_valid_jwt(self, client, mock_admin_user):
         """Test that the returned token is a valid JWT."""
         import jwt as pyjwt
+
         from src.app.config.app_config import AppConfig
 
         with patch(

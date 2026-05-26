@@ -22,7 +22,7 @@ feature's composition file.
 
 Usage:
     from src.app.composition import get_user_repository, get_story_repository
-    
+
     async def my_use_case_factory(
         user_repo: UserRepository = Depends(get_user_repository),
     ):
@@ -43,22 +43,23 @@ async def get_user_repository(
 ) -> UserRepository:
     """
     User repository factory (shared across multiple features).
-    
-    Used by: 
+
+    Used by:
     - auth: Login/register operations, user validation
     - user: Profile management, preferences, password changes
     - dashboard: User statistics and activity queries
-    
+
     The UserRepository is one of the most frequently used repositories in the
     system, as user context is required for most authenticated operations.
-    
+
     Args:
         session: Request-scoped database session from infrastructure layer
-        
+
     Returns:
         UserRepository: User repository interface implementation
     """
     from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
+
     return UserRepositoryImpl(session)
 
 
@@ -67,23 +68,24 @@ async def get_story_repository(
 ) -> StoryRepository:
     """
     Story repository factory (shared across multiple features).
-    
+
     Used by:
     - stories: CRUD operations for user stories
     - refinement: Draft approval (converts drafts to stories)
     - dashboard: Story statistics and metrics
-    
+
     This is the primary data access layer for user story entities. The repository
     is shared because both manual story creation (stories feature) and AI-generated
     story approval (refinement feature) operate on the same Story domain entity.
-    
+
     Args:
         session: Request-scoped database session from infrastructure layer
-        
+
     Returns:
         StoryRepository: Story repository interface implementation
     """
     from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
+
     return StoryRepositoryImpl(session)
 
 
@@ -92,25 +94,26 @@ async def get_client_repository(
 ) -> ClientRepository:
     """
     Client repository factory (shared across multiple features).
-    
+
     Used by:
     - clients: CRUD operations for client organizations
     - projects: Client validation on project create/update
-    
+
     Cross-Feature Dependency:
     This is the only cross-feature repository dependency in the system.
     Projects feature depends on ClientRepository to enforce referential integrity:
     when creating/updating a project, the system validates that the client_id
     refers to an existing client before persisting the project.
-    
+
     This dependency is intentional and represents a legitimate business rule:
     "A project must belong to a valid client organization."
-    
+
     Args:
         session: Request-scoped database session from infrastructure layer
-        
+
     Returns:
         ClientRepository: Client repository interface implementation
     """
     from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
+
     return ClientRepositoryImpl(session)

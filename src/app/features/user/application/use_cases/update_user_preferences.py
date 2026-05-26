@@ -1,7 +1,6 @@
 """
 UpdateUserPreferencesUseCase - partial update of user preferences.
 """
-from typing import Optional
 
 from src.app.features.user.domain.entities.user_preferences_entity import UserPreferencesEntity
 from src.app.features.user.domain.repositories.user_preferences_repository import UserPreferencesRepository
@@ -9,13 +8,14 @@ from src.app.features.user.domain.value_objects.theme import Theme
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger
 
+
 log = get_logger(__name__)
 
 
 class UpdateUserPreferencesUseCase:
     """
     Use case for updating user preferences.
-    
+
     Supports partial updates - only provided fields are updated.
     """
 
@@ -25,20 +25,20 @@ class UpdateUserPreferencesUseCase:
     async def execute(
         self,
         user_id: EntityId,
-        theme: Optional[Theme] = None,
-        language: Optional[str] = None,
-    ) -> Optional[UserPreferencesEntity]:
+        theme: Theme | None = None,
+        language: str | None = None,
+    ) -> UserPreferencesEntity | None:
         """
         Update user preferences (partial update).
-        
+
         Args:
             user_id: User entity ID
             theme: Optional theme preference
             language: Optional language preference
-            
+
         Returns:
             Updated UserPreferencesEntity, or None if update failed
-            
+
         Raises:
             ValueError: If user has no preferences (should call GET first to create defaults)
         """

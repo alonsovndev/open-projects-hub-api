@@ -1,13 +1,13 @@
+import asyncio
 import os
 import sys
-import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
 
 # Add the project's root directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -15,11 +15,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.app.config.app_config import AppConfig
 from src.app.shared.persistence.base_model import Base
 
+
 # DO NOT REMOVE
 # from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 # from src.app.features.stories.infrastructure.models.story_model import StoryModel
 
-#end DO NOT REMOVE
+# end DO NOT REMOVE
 
 
 # this is the Alembic Config object, which provides
@@ -62,7 +63,7 @@ def run_migrations_offline() -> None:
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle":  "named"},
+        dialect_opts={"paramstyle": "named"},
     )
 
     with context.begin_transaction():
@@ -71,10 +72,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """Configure context and run migrations."""
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata
-    )
+    context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
         context.run_migrations()

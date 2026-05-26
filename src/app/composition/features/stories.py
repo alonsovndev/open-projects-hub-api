@@ -25,7 +25,7 @@ Once created, stories are managed through this feature's CRUD operations.
 
 Usage:
     from src.app.composition import get_create_story_use_case
-    
+
     @router.post("")
     async def create_story(
         use_case: CreateStoryUseCase = Depends(get_create_story_use_case),

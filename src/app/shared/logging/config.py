@@ -1,7 +1,6 @@
 """Logging configuration dataclasses and loader."""
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from src.app.config.app_config import AppConfig
 
@@ -11,9 +10,9 @@ class OutputConfig:
     """Configuration for a single logging output."""
 
     type: str  # "console" or "file"
-    path: Optional[str] = None
-    max_bytes: Optional[int] = None
-    backup_count: Optional[int] = None
+    path: str | None = None
+    max_bytes: int | None = None
+    backup_count: int | None = None
 
 
 @dataclass
@@ -22,7 +21,7 @@ class LoggingConfig:
 
     level: str = "INFO"
     format: str = "text"  # "text" or "json"
-    outputs: List[OutputConfig] = field(default_factory=list)
+    outputs: list[OutputConfig] = field(default_factory=list)
 
 
 def load_logging_config() -> LoggingConfig:

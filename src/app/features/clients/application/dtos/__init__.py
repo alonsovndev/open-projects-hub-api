@@ -1,14 +1,11 @@
 """Client DTOs exports."""
-from .client_dto import (
-    CreateClientRequest,
-    UpdateClientRequest,
-    ClientResponse,
-    PaginatedClientsResponse,
-)
+
+from .client_dto import ClientResponse, CreateClientRequest, PaginatedClientsResponse, UpdateClientRequest
+
 
 __all__ = [
-    "CreateClientRequest",
-    "UpdateClientRequest",
     "ClientResponse",
+    "CreateClientRequest",
     "PaginatedClientsResponse",
+    "UpdateClientRequest",
 ]

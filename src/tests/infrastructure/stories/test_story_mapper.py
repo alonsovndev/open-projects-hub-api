@@ -1,8 +1,7 @@
 """Unit tests for StoryMapper."""
-from datetime import date, datetime
-from unittest.mock import MagicMock
 
-import pytest
+from datetime import datetime
+from unittest.mock import MagicMock
 
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -14,7 +13,7 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 class TestStoryMapperToEntity:
     """Test StoryMapper.to_entity method."""
-    
+
     def test_to_entity_with_all_fields(self):
         """Test converting model with all fields to entity."""
         model_id = "550e8400-e29b-41d4-a716-446655440100"
@@ -22,7 +21,7 @@ class TestStoryMapperToEntity:
         created_by = "550e8400-e29b-41d4-a716-446655440102"
         assigned_to = "550e8400-e29b-41d4-a716-446655440103"
         now = datetime.now()
-        
+
         model = MagicMock(spec=StoryModel)
         model.id = model_id
         model.title = "Test Story"
@@ -35,9 +34,9 @@ class TestStoryMapperToEntity:
         model.points = 5
         model.created_at = now
         model.updated_at = now
-        
+
         entity = StoryMapper.to_entity(model)
-        
+
         assert str(entity.id.value) == model_id
         assert entity.title == "Test Story"
         assert entity.description == "Test description"
@@ -49,14 +48,14 @@ class TestStoryMapperToEntity:
         assert entity.points == 5
         assert entity.created_at == now
         assert entity.updated_at == now
-    
+
     def test_to_entity_with_null_optional_fields(self):
         """Test converting model with null optional fields to entity."""
         model_id = "550e8400-e29b-41d4-a716-446655440100"
         project_id = "550e8400-e29b-41d4-a716-446655440101"
         created_by = "550e8400-e29b-41d4-a716-446655440102"
         now = datetime.now()
-        
+
         model = MagicMock(spec=StoryModel)
         model.id = model_id
         model.title = "Test Story"
@@ -69,9 +68,9 @@ class TestStoryMapperToEntity:
         model.points = None
         model.created_at = now
         model.updated_at = now
-        
+
         entity = StoryMapper.to_entity(model)
-        
+
         assert entity.description is None
         assert entity.assigned_to is None
         assert entity.points is None
@@ -81,13 +80,13 @@ class TestStoryMapperToEntity:
 
 class TestStoryMapperToModel:
     """Test StoryMapper.to_model method."""
-    
+
     def test_to_model_creates_new_model(self):
         """Test creating new model from entity."""
         project_id = EntityId.generate()
         created_by = EntityId.generate()
         now = datetime.now()
-        
+
         entity = StoryEntity(
             id=EntityId.generate(),
             title="Test Story",
@@ -101,9 +100,9 @@ class TestStoryMapperToModel:
             created_at=now,
             updated_at=now,
         )
-        
+
         model = StoryMapper.to_model(entity)
-        
+
         assert model.id == entity.id.value
         assert model.title == "Test Story"
         assert model.description == "Test description"
@@ -113,14 +112,14 @@ class TestStoryMapperToModel:
         assert model.status == "todo"
         assert model.priority == "medium"
         assert model.points == 3
-    
+
     def test_to_model_updates_existing_model(self):
         """Test updating existing model from entity."""
         project_id = EntityId.generate()
         created_by = EntityId.generate()
         new_project_id = EntityId.generate()
         now = datetime.now()
-        
+
         entity = StoryEntity(
             id=EntityId.generate(),
             title="Updated Title",
@@ -134,7 +133,7 @@ class TestStoryMapperToModel:
             created_at=now,
             updated_at=now,
         )
-        
+
         # Create mock existing model
         existing_model = MagicMock(spec=StoryModel)
         existing_model.id = entity.id.value
@@ -148,9 +147,9 @@ class TestStoryMapperToModel:
         existing_model.points = 1
         existing_model.created_at = now
         existing_model.updated_at = now
-        
+
         updated_model = StoryMapper.to_model(entity, existing_model)
-        
+
         assert updated_model == existing_model
         assert existing_model.title == "Updated Title"
         assert existing_model.description == "Updated description"

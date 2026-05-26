@@ -1,4 +1,5 @@
 """Story status value object."""
+
 from enum import Enum
 
 

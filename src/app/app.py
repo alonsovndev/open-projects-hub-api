@@ -1,6 +1,7 @@
 """
 FastAPI application bootstrap and configuration.
 """
+
 import os
 from contextlib import asynccontextmanager
 
@@ -8,11 +9,11 @@ from fastapi import FastAPI
 
 from src.app.config.app_config import AppConfig
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
-from src.app.shared.logging import setup_logging, load_logging_config, CorrelationIdMiddleware
-from src.app.shared.persistence.engine_factory import get_engine, close_engine
+from src.app.shared.logging import CorrelationIdMiddleware, load_logging_config, setup_logging
+from src.app.shared.persistence.engine_factory import close_engine, get_engine
 from src.app.shared.presentation.exception_handlers import register_exception_handlers
-from src.app.shared.presentation.middleware import register_middleware
 from src.app.shared.presentation.health_checks import register_health_endpoints
+from src.app.shared.presentation.middleware import register_middleware
 from src.app.shared.presentation.router_registry import register_routers
 
 

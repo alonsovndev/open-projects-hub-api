@@ -1,4 +1,5 @@
 """Mapper between Client entity and Client model."""
+
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.value_objects.email import Email
 from src.app.features.clients.domain.value_objects.phone_number import PhoneNumber
@@ -8,7 +9,7 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 class ClientMapper:
     """Maps between ClientEntity and ClientModel."""
-    
+
     @staticmethod
     def to_entity(model: ClientModel) -> ClientEntity:
         """Convert ClientModel to ClientEntity."""
@@ -23,7 +24,7 @@ class ClientMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
-    
+
     @staticmethod
     def to_model(entity: ClientEntity) -> ClientModel:
         """Convert ClientEntity to ClientModel."""

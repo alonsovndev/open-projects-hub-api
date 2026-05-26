@@ -1,24 +1,23 @@
 """Mapper between ProjectModel (infrastructure) and ProjectEntity (domain)."""
-from typing import Optional
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 class ProjectMapper:
     """Maps between ProjectModel and ProjectEntity."""
-    
+
     @staticmethod
     def to_entity(model: ProjectModel) -> ProjectEntity:
         """
         Convert ProjectModel to ProjectEntity.
-        
+
         Args:
             model: SQLAlchemy ProjectModel instance
-            
+
         Returns:
             ProjectEntity domain object
         """
@@ -36,16 +35,16 @@ class ProjectMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
-    
+
     @staticmethod
-    def to_model(entity: ProjectEntity, existing_model: Optional[ProjectModel] = None) -> ProjectModel:
+    def to_model(entity: ProjectEntity, existing_model: ProjectModel | None = None) -> ProjectModel:
         """
         Convert ProjectEntity to ProjectModel.
-        
+
         Args:
             entity: ProjectEntity domain object
             existing_model: Optional existing model to update
-            
+
         Returns:
             SQLAlchemy ProjectModel instance
         """
@@ -61,7 +60,7 @@ class ProjectMapper:
             existing_model.end_date = entity.end_date
             existing_model.updated_at = entity.updated_at
             return existing_model
-        
+
         # Create new model
         return ProjectModel(
             id=entity.id.value,

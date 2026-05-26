@@ -3,11 +3,12 @@ Tests for UpdateStoryDraftUseCase.
 
 Tests draft update including validation and error handling.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
 from src.app.features.refinement.application.dtos.refinement_dto import UpdateStoryDraftRequest

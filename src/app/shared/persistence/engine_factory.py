@@ -8,6 +8,7 @@ from src.app.shared.persistence.db_connection import DbConnection
 from src.app.shared.persistence.in_memory import InMemoryDbConnection
 from src.app.shared.persistence.postgres import PostgresDbConnection
 
+
 log = get_logger(__name__)
 
 

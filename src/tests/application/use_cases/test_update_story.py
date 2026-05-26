@@ -3,11 +3,12 @@ Tests for UpdateStoryUseCase.
 
 Tests story update including validation and error handling.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
 from src.app.features.stories.application.dtos.story_dto import StoryResponse, UpdateStoryRequest
@@ -135,9 +136,11 @@ class TestUpdateStoryUseCase:
     @pytest.mark.asyncio
     async def test_execute_accepts_valid_statuses(self):
         """Test that all valid statuses are accepted."""
-        for status_str, status_enum in [("todo", StoryStatus.TODO),
-                                         ("in_progress", StoryStatus.IN_PROGRESS),
-                                         ("done", StoryStatus.DONE)]:
+        for status_str, status_enum in [
+            ("todo", StoryStatus.TODO),
+            ("in_progress", StoryStatus.IN_PROGRESS),
+            ("done", StoryStatus.DONE),
+        ]:
             mock_repo = AsyncMock()
             story_id = uuid4()
 

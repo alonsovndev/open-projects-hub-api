@@ -1,7 +1,6 @@
 """
 Mapper between UserPreferencesModel (infrastructure) and UserPreferencesEntity (domain).
 """
-from uuid import UUID
 
 from src.app.features.user.domain.entities.user_preferences_entity import UserPreferencesEntity
 from src.app.features.user.domain.value_objects.theme import Theme
@@ -12,10 +11,10 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 def to_entity(model: UserPreferencesModel) -> UserPreferencesEntity:
     """
     Convert UserPreferencesModel to UserPreferencesEntity.
-    
+
     Args:
         model: SQLAlchemy model instance
-        
+
     Returns:
         UserPreferencesEntity domain entity
     """
@@ -30,10 +29,10 @@ def to_entity(model: UserPreferencesModel) -> UserPreferencesEntity:
 def to_model(entity: UserPreferencesEntity) -> UserPreferencesModel:
     """
     Convert UserPreferencesEntity to UserPreferencesModel.
-    
+
     Args:
         entity: Domain entity
-        
+
     Returns:
         SQLAlchemy model instance
     """
@@ -48,11 +47,11 @@ def to_model(entity: UserPreferencesEntity) -> UserPreferencesModel:
 def update_model_from_entity(model: UserPreferencesModel, entity: UserPreferencesEntity) -> UserPreferencesModel:
     """
     Update existing model with entity data.
-    
+
     Args:
         model: Existing SQLAlchemy model
         entity: Domain entity with updated data
-        
+
     Returns:
         Updated model instance
     """

@@ -5,8 +5,7 @@ This module shows how to write unit, integration, and E2E tests for FastAPI appl
 """
 
 import pytest
-from httpx import AsyncClient
-from unittest.mock import AsyncMock, MagicMock
+
 
 # Assuming these imports exist in your project
 # from src.app.app import fastApiApp
@@ -32,7 +31,6 @@ def test_user_entity_creation():
     # assert user.username == "testuser"
     # assert user.email == "test@example.com"
     # assert user.is_active is True
-    pass
 
 
 @pytest.mark.unit
@@ -45,7 +43,6 @@ def test_user_entity_validation():
     #         username="testuser",
     #         email="invalid-email",
     #     )
-    pass
 
 
 @pytest.mark.unit
@@ -65,7 +62,6 @@ async def test_get_user_use_case():
     # # Assert
     # assert result.username == "testuser"
     # mock_repo.get_by_id.assert_called_once_with(1)
-    pass
 
 
 # ==================== INTEGRATION TESTS ====================
@@ -83,7 +79,6 @@ async def test_get_user_endpoint_success():
     # data = response.json()
     # assert "username" in data
     # assert "email" in data
-    pass
 
 
 @pytest.mark.integration
@@ -94,7 +89,6 @@ async def test_get_user_endpoint_not_found():
     #
     # assert response.status_code == 404
     # assert response.json()["detail"] == "User not found"
-    pass
 
 
 @pytest.mark.integration
@@ -110,7 +104,6 @@ async def test_create_user_endpoint_validation():
     #     )
     #
     # assert response.status_code == 422  # Validation error
-    pass
 
 
 # ==================== E2E TESTS ====================
@@ -155,7 +148,6 @@ async def test_user_lifecycle_e2e():
     #     # Verify deletion
     #     verify_response = await client.get(f"/api/v1/users/{user_id}")
     #     assert verify_response.status_code == 404
-    pass
 
 
 # ==================== AUTH TESTS ====================
@@ -172,7 +164,6 @@ async def test_protected_endpoint_requires_auth():
     #
     # assert response.status_code == 401
     # assert response.json()["detail"] == "Not authenticated"
-    pass
 
 
 @pytest.mark.auth
@@ -194,7 +185,6 @@ async def test_protected_endpoint_with_valid_token():
     #     )
     #
     # assert response.status_code == 200
-    pass
 
 
 # ==================== FIXTURES ====================
@@ -206,7 +196,6 @@ async def test_client():
     """Create an async test client for the FastAPI app."""
     # async with AsyncClient(app=fastApiApp, base_url="http://test") as client:
     #     yield client
-    pass
 
 
 @pytest.fixture
@@ -218,7 +207,6 @@ def mock_user():
     #     email="test@example.com",
     #     is_active=True,
     # )
-    pass
 
 
 @pytest.fixture
@@ -230,7 +218,6 @@ def mock_user_repository():
     # repository.update = AsyncMock()
     # repository.delete = AsyncMock()
     # return repository
-    pass
 
 
 # ==================== PARAMETRIZED TESTS ====================
@@ -256,7 +243,6 @@ def test_user_validation_parametrized(username, email, expected_valid):
     # else:
     #     with pytest.raises(ValueError):
     #         UserEntity(id=1, username=username, email=email)
-    pass
 
 
 # ==================== ASYNC CONTEXT MANAGERS ====================
@@ -268,7 +254,6 @@ async def test_database_transaction_rollback():
     # async with get_db_session() as session:
     #     # This would test transaction rollback
     #     pass
-    pass
 
 
 # ==================== SLOW TESTS ====================
@@ -290,4 +275,3 @@ async def test_bulk_user_creation():
     #             },
     #         )
     #         assert response.status_code == 201
-    pass

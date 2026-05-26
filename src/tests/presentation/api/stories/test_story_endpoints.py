@@ -1,7 +1,7 @@
 """Integration tests for story endpoints."""
-from datetime import date, datetime
+
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,16 +9,10 @@ from fastapi.testclient import TestClient
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
-from src.app.features.stories.domain.entities.story_entity import StoryEntity
-from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
-from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.mark.integration
-
-
 @pytest.fixture
 def client():
     """Create test client."""
@@ -73,7 +67,7 @@ def mock_story_response():
 
 class TestCreateStoryEndpoint:
     """Test POST /v1/stories endpoint."""
-    
+
     def test_create_story_success(self, client: TestClient, admin_token: str, mock_story_response):
         """Test creating story with valid data returns 201."""
         with patch(
@@ -91,38 +85,33 @@ class TestCreateStoryEndpoint:
                 },
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["title"] == "Test Story"
         assert data["description"] == "Test description"
         assert data["status"] == "todo"
         assert "id" in data
-    
+
     def test_create_story_unauthorized_without_token(self, client: TestClient):
         """Test creating story without token returns 403."""
         response = client.post(
             "/v1/stories",
             json={"title": "Test Story", "project_id": "550e8400-e29b-41d4-a716-446655440001"},
         )
-        
+
         assert response.status_code == 403
 
 
 class TestListStoriesEndpoint:
     """Test GET /v1/stories endpoint."""
-    
+
     def test_list_stories_returns_array(self, client: TestClient, admin_token: str, mock_story_response):
         """Test listing stories returns paginated response."""
         from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-        
-        paginated_response = PaginatedResponse(
-            total=1,
-            page=1,
-            per_page=20,
-            items=[mock_story_response]
-        )
-        
+
+        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_story_response])
+
         with patch(
             "src.app.features.stories.application.use_cases.list_stories.ListStoriesUseCase.execute",
             new=AsyncMock(return_value=paginated_response),
@@ -131,7 +120,7 @@ class TestListStoriesEndpoint:
                 "/v1/stories",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
@@ -140,18 +129,13 @@ class TestListStoriesEndpoint:
         assert "per_page" in data
         assert "items" in data
         assert isinstance(data["items"], list)
-    
+
     def test_list_stories_with_filters(self, client: TestClient, admin_token: str, mock_story_response):
         """Test listing stories with status filter."""
         from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-        
-        paginated_response = PaginatedResponse(
-            total=1,
-            page=1,
-            per_page=20,
-            items=[mock_story_response]
-        )
-        
+
+        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_story_response])
+
         with patch(
             "src.app.features.stories.application.use_cases.list_stories.ListStoriesUseCase.execute",
             new=AsyncMock(return_value=paginated_response),
@@ -160,22 +144,22 @@ class TestListStoriesEndpoint:
                 "/v1/stories?status=todo&priority=high",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
         assert "items" in data
-    
+
     def test_list_stories_unauthorized_without_token(self, client: TestClient):
         """Test listing stories without token returns 403."""
         response = client.get("/v1/stories")
-        
+
         assert response.status_code == 403
 
 
 class TestGetStoryByIdEndpoint:
     """Test GET /v1/stories/{story_id} endpoint."""
-    
+
     def test_get_story_by_id_success(self, client: TestClient, admin_token: str, mock_story_response):
         """Test getting story by ID returns story data."""
         with patch(
@@ -186,12 +170,12 @@ class TestGetStoryByIdEndpoint:
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440100",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "550e8400-e29b-41d4-a716-446655440100"
         assert data["title"] == "Test Story"
-    
+
     def test_get_story_by_id_not_found(self, client: TestClient, admin_token: str):
         """Test getting non-existent story returns 404."""
         with patch(
@@ -202,13 +186,13 @@ class TestGetStoryByIdEndpoint:
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 404
 
 
 class TestUpdateStoryEndpoint:
     """Test PATCH /v1/stories/{story_id} endpoint."""
-    
+
     def test_update_story_title(self, client: TestClient, admin_token: str, mock_story_response):
         """Test updating story title."""
         updated_response = StoryResponse(
@@ -233,11 +217,11 @@ class TestUpdateStoryEndpoint:
                 json={"title": "Updated Title"},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["title"] == "Updated Title"
-    
+
     def test_update_story_not_found(self, client: TestClient, admin_token: str):
         """Test updating non-existent story returns 404."""
         with patch(
@@ -249,13 +233,13 @@ class TestUpdateStoryEndpoint:
                 json={"title": "Updated"},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 404
 
 
 class TestDeleteStoryEndpoint:
     """Test DELETE /v1/stories/{story_id} endpoint."""
-    
+
     def test_delete_story_success(self, client: TestClient, admin_token: str):
         """Test deleting story returns 204."""
         with patch(
@@ -266,9 +250,9 @@ class TestDeleteStoryEndpoint:
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440100",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 204
-    
+
     def test_delete_story_not_found(self, client: TestClient, admin_token: str):
         """Test deleting non-existent story returns 404."""
         with patch(
@@ -279,24 +263,19 @@ class TestDeleteStoryEndpoint:
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 404
 
 
 class TestGetStoriesByProjectEndpoint:
     """Test GET /v1/stories/by-project/{project_id} endpoint."""
-    
+
     def test_get_stories_by_project_success(self, client: TestClient, admin_token: str, mock_story_response):
         """Test getting stories by project returns paginated response."""
         from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-        
-        paginated_response = PaginatedResponse(
-            total=1,
-            page=1,
-            per_page=20,
-            items=[mock_story_response]
-        )
-        
+
+        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_story_response])
+
         with patch(
             "src.app.features.stories.application.use_cases.get_stories_by_project.GetStoriesByProjectUseCase.execute",
             new=AsyncMock(return_value=paginated_response),
@@ -305,7 +284,7 @@ class TestGetStoriesByProjectEndpoint:
                 "/v1/stories/by-project/550e8400-e29b-41d4-a716-446655440001",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
@@ -316,7 +295,7 @@ class TestGetStoriesByProjectEndpoint:
 
 class TestAssignStoryEndpoint:
     """Test POST /v1/stories/{story_id}/assign endpoint."""
-    
+
     def test_assign_story_success(self, client: TestClient, admin_token: str, mock_story_response):
         """Test assigning story to user."""
         assigned_response = StoryResponse(
@@ -341,11 +320,11 @@ class TestAssignStoryEndpoint:
                 json={"user_id": "550e8400-e29b-41d4-a716-446655440003"},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["assignedTo"] == "550e8400-e29b-41d4-a716-446655440003"
-    
+
     def test_assign_story_not_found(self, client: TestClient, admin_token: str):
         """Test assigning non-existent story returns 404."""
         with patch(
@@ -357,5 +336,5 @@ class TestAssignStoryEndpoint:
                 json={"user_id": "550e8400-e29b-41d4-a716-446655440003"},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 404

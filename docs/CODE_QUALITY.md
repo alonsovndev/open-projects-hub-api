@@ -449,7 +449,7 @@ Bandit checks for:
 
 ## Pre-commit - Git Hooks
 
-[Pre-commit](https://pre-commit.com/) runs code quality checks before each commit, preventing bad code from entering the repository.
+[Pre-commit](https://pre-commit.com/) runs code quality checks before each commit, **ensuring that only high-quality, compliant code enters the repository.** It prevents common issues like linting errors, formatting inconsistencies, and invalid commit messages.
 
 ### Configuration
 

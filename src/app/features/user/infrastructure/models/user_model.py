@@ -10,9 +10,9 @@ class UserModel(BaseModel):
     Inherits common fields from BaseModel.
     """
 
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     email = Column(String(255), unique=True, nullable=False, index=True)
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(PgEnum('admin', 'viewer', name='userrole', create_type=False), nullable=False, default='viewer')
+    role = Column(PgEnum("admin", "viewer", name="userrole", create_type=False), nullable=False, default="viewer")

@@ -5,8 +5,6 @@ Following API spec requirements:
 - User should have displayName field (not computed from first_name/last_name)
 - Role should be 'admin' or 'viewer' (not ADMIN/USER)
 """
-import pytest
-from datetime import datetime
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
@@ -24,9 +22,9 @@ class TestUserEntityDisplayName:
             email=Email("user@example.com"),
             display_name="John Doe",
             password_hash="hashed_password",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
-        
+
         assert entity.display_name == "John Doe"
 
     def test_user_entity_display_name_is_stored(self):
@@ -36,15 +34,15 @@ class TestUserEntityDisplayName:
             email=Email("user@example.com"),
             display_name="Jane Smith",
             password_hash="hashed",
-            role=UserRole.ADMIN
+            role=UserRole.ADMIN,
         )
-        
+
         # Should return stored value
         assert entity.display_name == "Jane Smith"
 
     def test_user_role_viewer_exists(self):
         """Test that UserRole.VIEWER enum exists."""
-        assert hasattr(UserRole, 'VIEWER')
+        assert hasattr(UserRole, "VIEWER")
         assert UserRole.VIEWER.value == "viewer"
 
     def test_user_role_admin_value(self):
@@ -58,9 +56,9 @@ class TestUserEntityDisplayName:
             email=Email("admin@example.com"),
             display_name="Admin User",
             password_hash="hashed",
-            role=UserRole.ADMIN
+            role=UserRole.ADMIN,
         )
-        
+
         assert entity.is_admin() is True
 
     def test_user_is_admin_with_viewer_role(self):
@@ -70,7 +68,7 @@ class TestUserEntityDisplayName:
             email=Email("viewer@example.com"),
             display_name="Viewer User",
             password_hash="hashed",
-            role=UserRole.VIEWER
+            role=UserRole.VIEWER,
         )
-        
+
         assert entity.is_admin() is False

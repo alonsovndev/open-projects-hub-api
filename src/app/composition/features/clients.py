@@ -21,7 +21,7 @@ dependency in the system.
 
 Usage:
     from src.app.composition import get_create_client_use_case
-    
+
     @router.post("")
     async def create_client(
         use_case: CreateClientUseCase = Depends(get_create_client_use_case),

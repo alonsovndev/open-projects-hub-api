@@ -1,6 +1,7 @@
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
@@ -34,7 +35,6 @@ def mock_register_response():
 
 
 class TestRegisterEndpoint:
-
     def test_register_success_returns_201_with_token(self, client, mock_register_response):
         """Test successful registration returns 201 with JWT token and user data."""
         with patch(
@@ -73,8 +73,6 @@ class TestRegisterEndpoint:
 
     def test_register_token_is_valid_jwt(self, client, mock_register_response):
         """Test that the returned token is a valid JWT with correct claims."""
-        import jwt as pyjwt
-        from src.app.config.app_config import AppConfig
 
         with patch(
             "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",

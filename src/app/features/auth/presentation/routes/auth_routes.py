@@ -1,24 +1,21 @@
-from fastapi import APIRouter, Depends, status, Request
 import jwt
+from fastapi import APIRouter, Depends, Request, status
 
+from src.app.composition import get_login_use_case, get_refresh_token_use_case, get_register_use_case
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.application.use_cases.refresh_token import (
-    RefreshTokenUseCase,
     RefreshTokenRequest,
     RefreshTokenResponse,
+    RefreshTokenUseCase,
 )
+from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
-from src.app.composition import (
-    get_login_use_case,
-    get_register_use_case,
-    get_refresh_token_use_case,
-)
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
+
 
 router = APIRouter()
 
@@ -32,7 +29,7 @@ async def login(
 ) -> AdminLoginResponse:
     """
     Authenticate user and return JWT token with user details.
-    
+
     Rate limited to 10 attempts per minute per IP address to prevent brute force attacks.
 
     Args:
@@ -66,11 +63,11 @@ async def register(
 ) -> AdminLoginResponse:
     """
     Register new user and return JWT token (auto-login).
-    
+
     Rate limited to 5 attempts per minute per IP address to prevent abuse.
-    
+
     Public endpoint - no authentication required.
-    New users default to 'viewer' role. To create admin users, 
+    New users default to 'viewer' role. To create admin users,
     use POST /v1/users (requires existing admin authentication).
 
     Args:
@@ -105,12 +102,12 @@ async def refresh_token(
 ) -> RefreshTokenResponse:
     """
     Refresh access token using refresh token.
-    
+
     Implements single-use refresh token rotation:
     - Returns new access token (15min TTL) AND new refresh token (7 days)
     - Old refresh token is immediately revoked and cannot be reused
     - Prevents token replay attacks
-    
+
     Rate limited to 10 attempts per 15 minutes per IP address.
 
     Args:

@@ -1,7 +1,9 @@
 """Tests for DeleteClientUseCase."""
-import pytest
+
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
+import pytest
 
 from src.app.features.clients.application.use_cases.delete_client import DeleteClientUseCase
 from src.app.shared.domain.value_objects.entity_id import EntityId

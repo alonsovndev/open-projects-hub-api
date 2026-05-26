@@ -17,7 +17,7 @@ aggregate calculations. No write operations.
 
 Usage:
     from src.app.composition import get_dashboard_stats_use_case
-    
+
     @router.get("/stats")
     async def get_stats(
         use_case: GetDashboardStatsUseCase = Depends(get_dashboard_stats_use_case),
@@ -49,12 +49,13 @@ async def get_project_repository(
 ) -> ProjectRepository:
     """
     Project repository factory (feature-specific for dashboard).
-    
+
     Note: Projects feature has its own project repository factory.
     This is duplicated here because dashboard queries projects differently
     (read-only aggregate queries vs full CRUD).
     """
     from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
+
     return ProjectRepositoryImpl(session)
 
 
@@ -66,7 +67,7 @@ async def get_dashboard_stats_use_case(
 ) -> GetDashboardStatsUseCase:
     """
     GetDashboardStatsUseCase factory.
-    
+
     Depends on multiple repositories for aggregated dashboard data.
     """
     return GetDashboardStatsUseCase(dashboard_repo, project_repo, story_repo)

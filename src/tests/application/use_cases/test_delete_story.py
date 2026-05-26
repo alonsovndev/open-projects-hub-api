@@ -3,9 +3,11 @@ Tests for DeleteStoryUseCase.
 
 Tests story deletion including error handling.
 """
-import pytest
+
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
+
+import pytest
 
 from src.app.features.stories.application.use_cases.delete_story import DeleteStoryUseCase
 
@@ -19,13 +21,13 @@ class TestDeleteStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         mock_repo.delete.return_value = True
-        
+
         use_case = DeleteStoryUseCase(mock_repo)
         story_id = uuid4()
-        
+
         # Execute
         result = await use_case.execute(str(story_id))
-        
+
         # Assert
         assert result is True
         mock_repo.delete.assert_called_once_with(story_id)
@@ -36,13 +38,13 @@ class TestDeleteStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         mock_repo.delete.return_value = False
-        
+
         use_case = DeleteStoryUseCase(mock_repo)
         story_id = uuid4()
-        
+
         # Execute
         result = await use_case.execute(str(story_id))
-        
+
         # Assert
         assert result is False
         mock_repo.delete.assert_called_once()
@@ -53,13 +55,13 @@ class TestDeleteStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         mock_repo.delete.return_value = True
-        
+
         use_case = DeleteStoryUseCase(mock_repo)
         story_id = uuid4()
-        
+
         # Execute
         await use_case.execute(str(story_id))
-        
+
         # Assert - verify correct UUID was passed to delete
         called_with = mock_repo.delete.call_args[0][0]
         assert called_with == story_id
@@ -71,9 +73,9 @@ class TestDeleteStoryUseCase:
         # Setup
         mock_repo = AsyncMock()
         use_case = DeleteStoryUseCase(mock_repo)
-        
+
         # Execute & Assert
         with pytest.raises(ValueError):
             await use_case.execute("not-a-valid-uuid")
-        
+
         mock_repo.delete.assert_not_called()

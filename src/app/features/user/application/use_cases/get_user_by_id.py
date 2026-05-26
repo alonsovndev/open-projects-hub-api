@@ -4,11 +4,11 @@ from src.app.features.user.domain.repositories.user_repository import UserReposi
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger
 
+
 log = get_logger(__name__)
 
 
 class GetUserByIdUseCase:
-
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
 

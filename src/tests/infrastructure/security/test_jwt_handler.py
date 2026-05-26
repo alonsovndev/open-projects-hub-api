@@ -1,13 +1,12 @@
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 class TestJWTHandler:
-
     @pytest.fixture
     def jwt_handler(self):
         return JWTHandler(
@@ -55,7 +54,7 @@ class TestJWTHandler:
 
     def test_decode_expired_token_raises_error(self, jwt_handler):
         """Test that expired token raises error."""
-        past_time = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+        past_time = datetime.now(tz=UTC) - timedelta(hours=2)
         exp_time = past_time + timedelta(hours=1)
 
         payload = {
@@ -96,7 +95,7 @@ class TestJWTHandler:
 
     def test_verify_token_returns_false_for_expired(self, jwt_handler):
         """Test that expired token fails verification."""
-        past_time = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+        past_time = datetime.now(tz=UTC) - timedelta(hours=2)
         exp_time = past_time + timedelta(hours=1)
 
         payload = {
@@ -138,7 +137,7 @@ class TestJWTHandler:
             email="test@example.com",
             role="USER",
         )
-        
+
         # Create a handler with different audience
         other_handler = JWTHandler(
             secret_key="test-secret-key-that-is-at-least-32-characters-long",
@@ -147,7 +146,7 @@ class TestJWTHandler:
             validate_secret=False,
             audience="different-audience",
         )
-        
+
         with pytest.raises(jwt.InvalidAudienceError):
             other_handler.decode_access_token(token)
 
@@ -158,7 +157,7 @@ class TestJWTHandler:
             email="test@example.com",
             role="USER",
         )
-        
+
         # Create a handler with different issuer
         other_handler = JWTHandler(
             secret_key="test-secret-key-that-is-at-least-32-characters-long",
@@ -167,7 +166,7 @@ class TestJWTHandler:
             validate_secret=False,
             issuer="different-issuer",
         )
-        
+
         with pytest.raises(jwt.InvalidIssuerError):
             other_handler.decode_access_token(token)
 
@@ -178,14 +177,14 @@ class TestJWTHandler:
             "sub": "123",
             "email": "test@example.com",
             "role": "USER",
-            "iat": datetime.now(tz=timezone.utc),
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "iat": datetime.now(tz=UTC),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
             "iss": "open-projects-hub-api",
             # Missing "aud" claim
         }
-        
+
         token = jwt.encode(payload, jwt_handler.secret_key, algorithm="HS256")
-        
+
         with pytest.raises(jwt.InvalidTokenError):
             jwt_handler.decode_access_token(token)
 
@@ -199,14 +198,14 @@ class TestJWTHandler:
             audience="custom-audience",
             issuer="custom-issuer",
         )
-        
+
         token = handler.create_access_token(
             user_id="123",
             email="test@example.com",
             role="USER",
         )
-        
+
         payload = handler.decode_access_token(token)
-        
+
         assert payload["aud"] == "custom-audience"
         assert payload["iss"] == "custom-issuer"

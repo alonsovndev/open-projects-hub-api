@@ -1,18 +1,19 @@
 """Integration tests for project endpoints."""
+
 from datetime import date, datetime
-from uuid import UUID, uuid4
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
 from src.app.config.app_config import AppConfig
-from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 @pytest.mark.integration
@@ -94,7 +95,7 @@ def mock_project_response(mock_project_entity):
 
 class TestCreateProjectEndpoint:
     """Test POST /v1/projects endpoint."""
-    
+
     def test_create_project_success(self, client: TestClient, admin_token: str, mock_project_response):
         """Test creating project with valid data returns 201."""
         with patch(
@@ -113,23 +114,23 @@ class TestCreateProjectEndpoint:
                 },
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Test Project"
         assert data["description"] == "Test description"
         assert data["status"] == "active"
         assert "id" in data
-    
+
     def test_create_project_unauthorized_without_token(self, client: TestClient):
         """Test creating project without token returns 403."""
         response = client.post(
             "/v1/projects",
             json={"name": "Test Project"},
         )
-        
+
         assert response.status_code == 403
-    
+
     def test_create_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test creating project as viewer returns 403."""
         response = client.post(
@@ -137,24 +138,19 @@ class TestCreateProjectEndpoint:
             json={"name": "Test Project"},
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
-        
+
         assert response.status_code == 403
 
 
 class TestListProjectsEndpoint:
     """Test GET /v1/projects endpoint."""
-    
+
     def test_list_projects_returns_array(self, client: TestClient, admin_token: str, mock_project_response):
         """Test listing projects returns paginated response."""
         from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-        
-        paginated_response = PaginatedResponse(
-            total=1,
-            page=1,
-            per_page=20,
-            items=[mock_project_response]
-        )
-        
+
+        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_project_response])
+
         with patch(
             "src.app.features.projects.application.use_cases.list_projects.ListProjectsUseCase.execute",
             new=AsyncMock(return_value=paginated_response),
@@ -163,7 +159,7 @@ class TestListProjectsEndpoint:
                 "/v1/projects",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
@@ -175,17 +171,17 @@ class TestListProjectsEndpoint:
         assert data["total"] == 1
         assert data["page"] == 1
         assert data["per_page"] == 20
-    
+
     def test_list_projects_unauthorized_without_token(self, client: TestClient):
         """Test listing projects without token returns 403."""
         response = client.get("/v1/projects")
-        
+
         assert response.status_code == 403
 
 
 class TestGetProjectByIdEndpoint:
     """Test GET /v1/projects/{project_id} endpoint."""
-    
+
     def test_get_project_by_id_success(self, client: TestClient, admin_token: str, mock_project_response):
         """Test getting project by ID returns project data."""
         with patch(
@@ -196,12 +192,12 @@ class TestGetProjectByIdEndpoint:
                 "/v1/projects/550e8400-e29b-41d4-a716-446655440100",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == str(mock_project_response.id)
         assert data["name"] == "Test Project"
-    
+
     def test_get_project_by_id_not_found(self, client: TestClient, admin_token: str):
         """Test getting non-existent project returns 404."""
         with patch(
@@ -212,13 +208,13 @@ class TestGetProjectByIdEndpoint:
                 "/v1/projects/550e8400-e29b-41d4-a716-446655440999",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 404
 
 
 class TestUpdateProjectEndpoint:
     """Test PATCH /v1/projects/{project_id} endpoint."""
-    
+
     def test_update_project_name(self, client: TestClient, admin_token: str, mock_project_response):
         """Test updating project name."""
         updated_response = ProjectResponse(
@@ -245,11 +241,11 @@ class TestUpdateProjectEndpoint:
                 json={"name": "Updated Name"},
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Updated Name"
-    
+
     def test_update_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test updating project as viewer returns 403."""
         response = client.patch(
@@ -257,13 +253,13 @@ class TestUpdateProjectEndpoint:
             json={"name": "Updated"},
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
-        
+
         assert response.status_code == 403
 
 
 class TestDeleteProjectEndpoint:
     """Test DELETE /v1/projects/{project_id} endpoint."""
-    
+
     def test_delete_project_success(self, client: TestClient, admin_token: str):
         """Test deleting project returns 204."""
         with patch(
@@ -274,14 +270,14 @@ class TestDeleteProjectEndpoint:
                 "/v1/projects/550e8400-e29b-41d4-a716-446655440100",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
-        
+
         assert response.status_code == 204
-    
+
     def test_delete_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test deleting project as viewer returns 403."""
         response = client.delete(
             "/v1/projects/550e8400-e29b-41d4-a716-446655440001",
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
-        
+
         assert response.status_code == 403

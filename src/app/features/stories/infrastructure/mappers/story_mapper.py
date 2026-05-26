@@ -1,6 +1,4 @@
 """Mapper for StoryEntity and StoryModel."""
-from datetime import date, datetime
-from typing import Optional
 
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -11,15 +9,15 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 class StoryMapper:
     """Maps between StoryEntity and StoryModel."""
-    
+
     @staticmethod
     def to_entity(model: StoryModel) -> StoryEntity:
         """
         Convert StoryModel to StoryEntity.
-        
+
         Args:
             model: StoryModel instance
-            
+
         Returns:
             StoryEntity instance
         """
@@ -36,19 +34,19 @@ class StoryMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
-    
+
     @staticmethod
     def to_model(
         entity: StoryEntity,
-        existing_model: Optional[StoryModel] = None,
+        existing_model: StoryModel | None = None,
     ) -> StoryModel:
         """
         Convert StoryEntity to StoryModel.
-        
+
         Args:
             entity: StoryEntity instance
             existing_model: Existing model to update (optional)
-            
+
         Returns:
             StoryModel instance
         """
@@ -63,7 +61,7 @@ class StoryMapper:
             existing_model.points = entity.points
             existing_model.updated_at = entity.updated_at
             return existing_model
-        
+
         return StoryModel(
             id=entity.id.value,
             title=entity.title,

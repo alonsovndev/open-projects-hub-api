@@ -1,14 +1,13 @@
 """
 Tests for RefreshTokenUseCase.
 """
-import pytest
-import jwt as pyjwt
-from unittest.mock import AsyncMock, MagicMock
 
-from src.app.features.auth.application.use_cases.refresh_token import (
-    RefreshTokenUseCase,
-    RefreshTokenRequest,
-)
+from unittest.mock import AsyncMock
+
+import jwt as pyjwt
+import pytest
+
+from src.app.features.auth.application.use_cases.refresh_token import RefreshTokenRequest, RefreshTokenUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity, UserRole
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -59,9 +58,7 @@ class TestRefreshTokenUseCase:
     """Test suite for RefreshTokenUseCase."""
 
     @pytest.mark.asyncio
-    async def test_refresh_token_returns_new_tokens(
-        self, jwt_handler, user_entity, mock_user_repository
-    ):
+    async def test_refresh_token_returns_new_tokens(self, jwt_handler, user_entity, mock_user_repository):
         """Test that refresh token returns new access and refresh tokens."""
         # Create refresh token
         refresh_token = jwt_handler.create_refresh_token(
@@ -98,9 +95,7 @@ class TestRefreshTokenUseCase:
         assert refresh_payload["type"] == "refresh"
 
     @pytest.mark.asyncio
-    async def test_refresh_token_raises_error_for_expired_token(
-        self, user_entity, mock_user_repository
-    ):
+    async def test_refresh_token_raises_error_for_expired_token(self, user_entity, mock_user_repository):
         """Test that expired refresh token raises ExpiredSignatureError."""
         # Create JWT handler with very short expiration
         short_jwt_handler = JWTHandler(
@@ -127,9 +122,7 @@ class TestRefreshTokenUseCase:
             await use_case.execute(request)
 
     @pytest.mark.asyncio
-    async def test_refresh_token_raises_error_for_invalid_token(
-        self, jwt_handler, mock_user_repository
-    ):
+    async def test_refresh_token_raises_error_for_invalid_token(self, jwt_handler, mock_user_repository):
         """Test that invalid refresh token raises InvalidTokenError."""
         use_case = RefreshTokenUseCase(mock_user_repository, jwt_handler)
 
@@ -138,9 +131,7 @@ class TestRefreshTokenUseCase:
             await use_case.execute(request)
 
     @pytest.mark.asyncio
-    async def test_refresh_token_raises_error_when_user_not_found(
-        self, jwt_handler, user_entity, mock_user_repository
-    ):
+    async def test_refresh_token_raises_error_when_user_not_found(self, jwt_handler, user_entity, mock_user_repository):
         """Test that refresh token raises error when user not found."""
         # Create valid refresh token
         refresh_token = jwt_handler.create_refresh_token(
@@ -161,9 +152,7 @@ class TestRefreshTokenUseCase:
             await use_case.execute(request)
 
     @pytest.mark.asyncio
-    async def test_refresh_token_raises_error_for_access_token(
-        self, jwt_handler, user_entity, mock_user_repository
-    ):
+    async def test_refresh_token_raises_error_for_access_token(self, jwt_handler, user_entity, mock_user_repository):
         """Test that using access token instead of refresh token raises error."""
         # Create access token (not refresh token)
         access_token = jwt_handler.create_access_token(
@@ -181,9 +170,7 @@ class TestRefreshTokenUseCase:
             await use_case.execute(request)
 
     @pytest.mark.asyncio
-    async def test_refresh_token_cannot_be_reused(
-        self, jwt_handler, user_entity, mock_user_repository
-    ):
+    async def test_refresh_token_cannot_be_reused(self, jwt_handler, user_entity, mock_user_repository):
         """Test that refresh token cannot be reused after one use (single-use token)."""
         # Create refresh token
         refresh_token = jwt_handler.create_refresh_token(

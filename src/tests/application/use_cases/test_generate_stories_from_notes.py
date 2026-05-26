@@ -3,15 +3,18 @@ Tests for GenerateStoriesFromNotesUseCase.
 
 Tests story generation from raw notes including AI service mocking.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
 from src.app.features.refinement.application.dtos.refinement_dto import GenerateStoriesRequest
-from src.app.features.refinement.application.use_cases.generate_stories_from_notes import GenerateStoriesFromNotesUseCase
+from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
+    GenerateStoriesFromNotesUseCase,
+)
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
 from src.app.features.refinement.infrastructure.ai.ai_service import (

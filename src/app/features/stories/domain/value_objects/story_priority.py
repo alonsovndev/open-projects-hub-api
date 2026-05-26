@@ -1,4 +1,5 @@
 """Story priority value object."""
+
 from enum import Enum
 
 

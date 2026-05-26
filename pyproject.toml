@@ -2,7 +2,7 @@
 name = "open-projects-hub-api"
 version = "1.0.0"
 description = "FastAPI backend for Open Projects Hub"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 # ==================== Ruff Configuration ====================
 [tool.ruff]
 # Line length
-line-length = 100
+line-length = 120
 target-version = "py311"
 
 # Source directories

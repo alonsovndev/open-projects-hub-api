@@ -1,11 +1,12 @@
+from unittest.mock import AsyncMock
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock
 
 from src.app.features.auth.application.dtos.auth_dto import LoginRequest
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
+from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -18,7 +19,7 @@ def jwt_handler():
     return JWTHandler(
         secret_key="test-secret-key-that-is-at-least-32-characters-long",
         expiration_minutes=60,
-        validate_secret=False  # Disable validation for tests
+        validate_secret=False,  # Disable validation for tests
     )
 
 
@@ -35,7 +36,6 @@ async def mock_admin_user():
 
 
 class TestLoginUserUseCase:
-
     @pytest.mark.asyncio
     async def test_execute_returns_response_with_token(self, jwt_handler, mock_admin_user):
         """Test that successful login returns AdminLoginResponse with a token."""
@@ -67,9 +67,7 @@ class TestLoginUserUseCase:
             await use_case.execute(payload)
 
     @pytest.mark.asyncio
-    async def test_execute_raises_invalid_credentials_for_wrong_password(
-        self, jwt_handler, mock_admin_user
-    ):
+    async def test_execute_raises_invalid_credentials_for_wrong_password(self, jwt_handler, mock_admin_user):
         """Test that wrong password raises InvalidCredentialsError."""
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = mock_admin_user

@@ -3,17 +3,18 @@ Shared mapper for StoryEntity to StoryResponse.
 
 Centralizes DTO mapping logic to reduce duplication across use cases.
 """
-from src.app.features.stories.domain.entities.story_entity import StoryEntity
+
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
+from src.app.features.stories.domain.entities.story_entity import StoryEntity
 
 
 def to_story_response(entity: StoryEntity) -> StoryResponse:
     """
     Convert StoryEntity to StoryResponse DTO.
-    
+
     Args:
         entity: StoryEntity domain object
-        
+
     Returns:
         StoryResponse DTO with serialized entity data
     """

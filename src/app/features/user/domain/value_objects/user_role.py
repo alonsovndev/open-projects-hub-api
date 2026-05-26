@@ -5,7 +5,7 @@ class UserRole(str, Enum):
     """
     Enumeration of user roles in the system.
     Inherits from str to ensure JSON serialization compatibility.
-    
+
     Values are lowercase to match API contract requirements.
     """
 

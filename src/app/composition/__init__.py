@@ -6,7 +6,7 @@ All dependency wiring (repository creation, use case initialization) happens her
 
 Usage in routes:
     from src.app.composition import get_create_project_use_case, get_list_projects_use_case
-    
+
     @router.post("")
     async def create_project(
         use_case: CreateProjectUseCase = Depends(get_create_project_use_case),
@@ -22,7 +22,7 @@ Architecture:
 
 Testing:
     Override dependencies in tests via FastAPI dependency_overrides:
-    
+
     app.dependency_overrides[get_project_repository] = lambda: MockProjectRepo()
 
 Design Pattern:
@@ -34,28 +34,10 @@ Design Pattern:
 # ============================================================================
 # Infrastructure (Level 1)
 # ============================================================================
-from src.app.composition.infrastructure import (
-    get_ai_service,
-    get_database_session,
-)
-
-# ============================================================================
-# Repositories - Shared (Level 2)
-# ============================================================================
-from src.app.composition.repositories import (
-    get_client_repository,
-    get_story_repository,
-    get_user_repository,
-)
-
 # ============================================================================
 # Feature: Auth
 # ============================================================================
-from src.app.composition.features.auth import (
-    get_login_use_case,
-    get_refresh_token_use_case,
-    get_register_use_case,
-)
+from src.app.composition.features.auth import get_login_use_case, get_refresh_token_use_case, get_register_use_case
 
 # ============================================================================
 # Feature: Clients
@@ -71,9 +53,7 @@ from src.app.composition.features.clients import (
 # ============================================================================
 # Feature: Dashboard
 # ============================================================================
-from src.app.composition.features.dashboard import (
-    get_dashboard_stats_use_case,
-)
+from src.app.composition.features.dashboard import get_dashboard_stats_use_case
 
 # ============================================================================
 # Feature: Projects
@@ -124,6 +104,13 @@ from src.app.composition.features.users import (
     get_update_user_profile_use_case,
     get_user_preferences_repository,
 )
+from src.app.composition.infrastructure import get_ai_service, get_database_session
+
+# ============================================================================
+# Repositories - Shared (Level 2)
+# ============================================================================
+from src.app.composition.repositories import get_client_repository, get_story_repository, get_user_repository
+
 
 # ============================================================================
 # Public API Exports

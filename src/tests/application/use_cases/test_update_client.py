@@ -1,10 +1,12 @@
 """Tests for UpdateClientUseCase."""
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from src.app.features.clients.application.dtos.client_dto import UpdateClientRequest, ClientResponse
+import pytest
+
+from src.app.features.clients.application.dtos.client_dto import ClientResponse, UpdateClientRequest
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.value_objects.email import Email

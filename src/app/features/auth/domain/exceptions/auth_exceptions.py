@@ -1,8 +1,6 @@
 class AuthenticationError(Exception):
     """Base exception for authentication errors."""
 
-    pass
-
 
 class InvalidCredentialsError(AuthenticationError):
     """Raised when login credentials are invalid."""
@@ -32,10 +30,7 @@ class AccountLockedError(AuthenticationError):
     """Raised when account is temporarily locked due to failed login attempts."""
 
     def __init__(
-        self,
-        message: str = "Account temporarily locked",
-        remaining_seconds: int = 0,
-        failed_attempts: int = 0
+        self, message: str = "Account temporarily locked", remaining_seconds: int = 0, failed_attempts: int = 0
     ):
         self.message = message
         self.remaining_seconds = remaining_seconds
