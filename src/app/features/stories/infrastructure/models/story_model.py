@@ -1,13 +1,11 @@
 """SQLAlchemy model for stories table."""
-from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Column, String, Text, Integer, DateTime, ForeignKey, Enum as SQLEnum, func, Index
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 
 class StoryModel(Base):

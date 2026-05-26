@@ -27,7 +27,7 @@ from src.app.features.stories.presentation.dependencies import (
     get_list_stories_use_case,
     get_update_story_use_case,
 )
-from src.app.features.user.presentation.auth_dependencies import get_current_user
+from src.app.features.auth.presentation.auth_dependencies import get_current_user
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -224,7 +224,7 @@ async def update_story(
         user_role = current_user.get("role")
         if user_role != UserRole.ADMIN.value:
             # Not admin - check if user is story owner
-            from src.app.shared.presentation.dependencies import get_database_session
+            from src.app.shared.persistence.db_session import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
             
             try:
@@ -297,7 +297,7 @@ async def delete_story(
         user_role = current_user.get("role")
         if user_role != UserRole.ADMIN.value:
             # Not admin - check if user is story owner
-            from src.app.shared.presentation.dependencies import get_database_session
+            from src.app.shared.persistence.db_session import get_database_session
             from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
             
             try:

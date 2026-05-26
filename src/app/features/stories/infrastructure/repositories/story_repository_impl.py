@@ -10,7 +10,9 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.infrastructure.mappers.story_mapper import StoryMapper
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class StoryRepositoryImpl(StoryRepository):

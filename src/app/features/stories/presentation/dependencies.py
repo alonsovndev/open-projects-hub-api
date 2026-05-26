@@ -11,7 +11,7 @@ from src.app.features.stories.application.use_cases.list_stories import ListStor
 from src.app.features.stories.application.use_cases.update_story import UpdateStoryUseCase
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
-from src.app.shared.presentation.dependencies import get_database_session
+from src.app.shared.persistence.db_session import get_database_session
 
 
 async def get_story_repository(
