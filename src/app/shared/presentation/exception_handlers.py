@@ -16,8 +16,10 @@ from src.app.shared.domain.exceptions.domain_exceptions import (
     ValidationError,
     ConflictError,
 )
-from src.app.features.user.domain.exceptions.auth_exceptions import AccountLockedError
-from src.app.shared.utils.log_util import log
+from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 ENV = os.getenv("APP_ENV", "local")

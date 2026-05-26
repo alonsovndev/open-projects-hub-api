@@ -3,10 +3,10 @@ Router registration for FastAPI application.
 
 Centralizes API route registration with versioning and tagging.
 """
-from src.app.features.dashboard.presentation.routes.dashboard_routes import router as dashboard_router
-from src.app.features.projects.presentation.routes.project_routes import router as project_router
-from src.app.features.stories.presentation.routes.story_routes import router as story_router
-from src.app.features.user.presentation.routes.auth_routes import router as auth_router
+from src.app.features.dashboard.presentation.dashboard_routes import router as dashboard_router
+from src.app.features.projects.presentation.project_routes import router as project_router
+from src.app.features.stories.presentation.story_routes import router as story_router
+from src.app.features.auth.presentation.routes.auth_routes import router as auth_router
 from src.app.features.user.presentation.routes.user_routes import router as user_router
 from src.app.features.clients.presentation.client_routes import router as client_router
 from src.app.features.refinement.presentation.routes import router as refinement_router

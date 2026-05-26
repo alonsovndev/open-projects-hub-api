@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional
 
 import jwt
 
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class JWTSecretError(Exception):

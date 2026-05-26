@@ -8,8 +8,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from src.app.config.app_config import AppConfig
-from src.app.shared.presentation.dependencies import get_db_connection
-from src.app.shared.utils.log_util import log
+from src.app.shared.persistence.engine_factory import get_engine
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 config = AppConfig.instance()
@@ -41,7 +43,7 @@ async def get_health_check():
     
     try:
         # Attempt database connectivity check with async engine
-        db = get_db_connection()
+        db = get_engine()
         async with db.engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
             health_status["database"] = "connected"
@@ -118,7 +120,7 @@ async def get_readiness_check():
     
     try:
         # Check database connectivity
-        db = get_db_connection()
+        db = get_engine()
         async with db.engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
             readiness_status["checks"]["database"] = "connected"

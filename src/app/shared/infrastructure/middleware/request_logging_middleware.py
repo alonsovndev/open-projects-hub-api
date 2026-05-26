@@ -8,7 +8,9 @@ import uuid
 from typing import Callable
 
 from fastapi import Request, Response
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 async def request_logging_middleware(request: Request, call_next: Callable) -> Response:

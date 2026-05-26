@@ -10,7 +10,9 @@ Provides:
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
 from fastapi import HTTPException, status
 
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 T = TypeVar("T")

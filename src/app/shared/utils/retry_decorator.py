@@ -1,5 +1,9 @@
+import logging
+
 import backoff
-from src.app.shared.utils.log_util import log
+
+log = logging.getLogger(__name__)
+
 
 def retry_on_exception(max_tries=3):
     """
@@ -12,9 +16,9 @@ def retry_on_exception(max_tries=3):
         callable: A decorator function wrapping the retry logic.
     """
     return backoff.on_exception(
-        backoff.expo,  # Exponential backoff
-        Exception,  # Retry on any exception
-        max_tries=max_tries,  # Maximum number of attempts
+        backoff.expo,
+        Exception,
+        max_tries=max_tries,
         on_backoff=lambda details: log.warning(f"Retrying due to: {details['exception']}"),
-        on_giveup=lambda details: log.error(f"Giving up after {details['tries']} attempts.")
+        on_giveup=lambda details: log.error(f"Giving up after {details['tries']} attempts."),
     )
