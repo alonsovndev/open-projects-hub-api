@@ -128,35 +128,50 @@ class ProjectEntity:
 
 ### Dependency Injection Patterns
 
-**Return interfaces, not implementations:**
+**Composition Root:**
+
+All application dependencies are centrally managed in `src/app/composition/`:
 
 ```python
-# ✅ Good - Return abstract interface
-from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+# ✅ Good - Import from composition root
+from src.app.composition import (
+    get_database_session,
+    get_create_project_use_case,
+    get_project_repository,
+)
 
-async def get_project_repository(
-    session: AsyncSession = Depends(get_database_session),
-) -> ProjectRepository:  # Interface type
-    return ProjectRepositoryImpl(session)
+@router.post("/projects")
+async def create_project(
+    payload: CreateProjectRequest,
+    use_case = Depends(get_create_project_use_case),
+):
+    return await use_case.execute(request=payload, created_by=user_id)
 
-# ❌ Bad - Return concrete class
-async def get_project_repository(
-    session: AsyncSession = Depends(get_database_session),
-) -> ProjectRepositoryImpl:  # Concrete type
-    return ProjectRepositoryImpl(session)
+# ❌ Bad - Direct imports from feature dependencies (old pattern, removed)
+from src.app.features.projects.presentation.dependencies import get_create_project_use_case
 ```
 
-**Why:**
-- Follows Dependency Inversion Principle (SOLID)
-- Easier to mock interfaces in tests
-- Type hints document contracts, not implementations
-- Enables future swapping of implementations
+**Composition Structure:**
+- `composition/__init__.py` - Public API exports all 40+ dependencies
+- `composition/infrastructure.py` - Database session, AI service
+- `composition/repositories.py` - Shared repository factories (User, Story, Client)
+- `composition/features/*.py` - Feature-specific use cases and repositories
+- `composition/core.py` - Cross-cutting services (future)
+- `composition/config.py` - Configuration dependencies (future)
 
-**Apply to all dependency functions:**
-- Repository factory functions → return repository interfaces
-- Use case factory functions → accept repository interfaces as parameters
+**Factory Pattern:**
+- All factories return interface types, not implementations
+- Repositories return `ABC` interfaces (e.g., `ProjectRepository`)
+- Use cases return concrete use case classes
+- Infrastructure services may use singleton pattern (e.g., AI service)
 
-**Reference:** See `src/app/features/projects/presentation/dependencies.py` for correct pattern.
+**Adding New Dependencies:**
+1. Create factory function in appropriate composition module
+2. Return interface type from factory (for repositories)
+3. Export from `composition/__init__.py`
+4. Import from `src.app.composition` in routes
+
+**Reference:** See `src/app/composition/` for complete composition root implementation.
 
 ## Keep It Lean
 

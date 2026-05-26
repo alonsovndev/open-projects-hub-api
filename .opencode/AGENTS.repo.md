@@ -13,6 +13,7 @@ This file contains repository-specific rules and preferences.
 - Business code is feature-first under `src/app/features/{user,projects,stories,dashboard}` with layered folders (`application/`, `domain/`, `infrastructure/`, `presentation/`).
 - Cross-feature concerns live under `src/app/shared/` and follow the same layered split; prefer shared modules only for true cross-feature reuse.
 - API routers are centrally wired in `src/app/shared/presentation/router_registry.py` under `/v1/*` prefixes.
+- **Dependency injection** is centralized in `src/app/composition/` - all use cases, repositories, and infrastructure dependencies are exported from `composition/__init__.py`.
 
 ## Build, Test, and Run Commands
 
