@@ -13,7 +13,9 @@ from src.app.features.refinement.infrastructure.ai.ai_service import (
     RefinementResult,
     RefinementSuggestion,
 )
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class GeminiService(AIService):
@@ -68,8 +70,6 @@ Return ONLY a valid JSON object with this exact structure:
     {
       "type": "title|description|criteria",
       "content": "string",
-      "reasoning": "string",
-      "confidence": 0.0-1.0
     }
   ]
 }"""

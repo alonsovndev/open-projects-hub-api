@@ -1,12 +1,10 @@
 """Story draft SQLAlchemy model."""
-from datetime import datetime
-from typing import Optional, List
 
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey, func, Index, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 
 class StoryDraftModel(Base):

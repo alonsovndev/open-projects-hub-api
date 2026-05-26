@@ -23,7 +23,7 @@ from src.app.features.refinement.presentation.dependencies import (
     get_generate_stories_use_case,
     get_update_draft_use_case,
 )
-from src.app.features.user.presentation.auth_dependencies import require_admin
+from src.app.features.auth.presentation.auth_dependencies import require_admin
 from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 router = APIRouter(prefix="/refinement")

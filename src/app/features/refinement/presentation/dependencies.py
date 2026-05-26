@@ -14,7 +14,7 @@ from src.app.features.refinement.infrastructure.repositories.story_draft_reposit
 )
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
-from src.app.shared.presentation.dependencies import get_database_session
+from src.app.shared.persistence.db_session import get_database_session
 
 
 async def get_ai_service() -> AIService:

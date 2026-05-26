@@ -10,7 +10,9 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.mappers.story_draft_mapper import StoryDraftMapper
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class StoryDraftRepositoryImpl(StoryDraftRepository):
