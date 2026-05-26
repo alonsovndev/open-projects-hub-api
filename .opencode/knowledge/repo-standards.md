@@ -101,6 +101,63 @@ use_case.execute(
 - Mappers convert between domain entities and application DTOs
 - Keep mappers close to the DTOs they work with
 
+### Validation Patterns
+
+**Use shared validators, not wrapper methods:**
+
+```python
+# ✅ Good - Direct call to shared validators
+class ProjectEntity:
+    def update_details(self, name: str):
+        ProjectValidators.validate_name(name)
+        self._name = name
+
+# ❌ Bad - Unnecessary wrapper methods
+class ProjectEntity:
+    @staticmethod
+    def _validate_name(name: str):
+        ProjectValidators.validate_name(name)  # Just passes through
+    
+    def update_details(self, name: str):
+        self._validate_name(name)  # Extra indirection
+```
+
+**Why:** Wrappers add no value, bloat code, and obscure intent. Call validators directly.
+
+**Reference:** See `src/app/features/projects/domain/validators/project_validators.py` for centralized validation.
+
+### Dependency Injection Patterns
+
+**Return interfaces, not implementations:**
+
+```python
+# ✅ Good - Return abstract interface
+from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+
+async def get_project_repository(
+    session: AsyncSession = Depends(get_database_session),
+) -> ProjectRepository:  # Interface type
+    return ProjectRepositoryImpl(session)
+
+# ❌ Bad - Return concrete class
+async def get_project_repository(
+    session: AsyncSession = Depends(get_database_session),
+) -> ProjectRepositoryImpl:  # Concrete type
+    return ProjectRepositoryImpl(session)
+```
+
+**Why:**
+- Follows Dependency Inversion Principle (SOLID)
+- Easier to mock interfaces in tests
+- Type hints document contracts, not implementations
+- Enables future swapping of implementations
+
+**Apply to all dependency functions:**
+- Repository factory functions → return repository interfaces
+- Use case factory functions → accept repository interfaces as parameters
+
+**Reference:** See `src/app/features/projects/presentation/dependencies.py` for correct pattern.
+
 ## Keep It Lean
 
 - Document only what differs from global standards.
