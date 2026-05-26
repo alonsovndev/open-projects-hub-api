@@ -9,7 +9,7 @@ from src.app.features.clients.application.use_cases.get_clients import GetClient
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
-from src.app.shared.presentation.dependencies import get_database_session
+from src.app.shared.persistence.db_session import get_database_session
 
 
 # Repository factory

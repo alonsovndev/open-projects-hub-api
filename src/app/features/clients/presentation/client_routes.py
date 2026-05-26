@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
-from src.app.features.user.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.clients.presentation.dependencies import (
     get_create_client_use_case,
     get_get_clients_use_case,
@@ -24,7 +24,7 @@ from src.app.features.clients.application.dtos.client_dto import (
 )
 
 
-router = APIRouter(prefix="/clients", tags=["clients"])
+router = APIRouter()
 
 
 @router.post(

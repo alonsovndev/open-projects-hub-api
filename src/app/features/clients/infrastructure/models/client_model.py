@@ -1,12 +1,10 @@
 """Client SQLAlchemy model."""
-from datetime import datetime
-from uuid import UUID
 
 from sqlalchemy import Column, String, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.sql import func
 
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 
 class ClientModel(Base):
