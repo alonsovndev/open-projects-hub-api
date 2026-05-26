@@ -13,13 +13,11 @@ from alembic import context
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.app.config.app_config import AppConfig
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 # DO NOT REMOVE
-from src.app.features.user.infrastructure.models.user_model import UserModel
 # from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 # from src.app.features.stories.infrastructure.models.story_model import StoryModel
-from src.app.features.user.infrastructure.models.user_preferences_model import UserPreferencesModel
 
 #end DO NOT REMOVE
 
