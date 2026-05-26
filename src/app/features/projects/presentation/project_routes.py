@@ -23,7 +23,7 @@ from src.app.features.projects.presentation.dependencies import (
     get_project_by_id_use_case,
     get_update_project_use_case,
 )
-from src.app.features.user.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 router = APIRouter()

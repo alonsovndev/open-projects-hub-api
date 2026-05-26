@@ -1,6 +1,4 @@
 """SQLAlchemy model for projects table."""
-from datetime import date, datetime
-from typing import Optional
 
 from sqlalchemy import Column, String, Text, Date, DateTime, ForeignKey, Enum as SQLEnum, func, Index
 from sqlalchemy.dialects.postgresql import UUID
@@ -8,7 +6,7 @@ from sqlalchemy.orm import relationship
 
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 
 class ProjectModel(Base):

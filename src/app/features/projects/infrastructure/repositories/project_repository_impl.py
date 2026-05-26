@@ -14,7 +14,9 @@ from src.app.features.clients.infrastructure.models.client_model import ClientMo
 # Cross-feature query for performance optimization (see ADR-001)
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class ProjectRepositoryImpl(ProjectRepository):
