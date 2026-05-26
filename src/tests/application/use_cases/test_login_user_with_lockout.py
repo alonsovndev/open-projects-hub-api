@@ -11,9 +11,9 @@ import pytest
 from unittest.mock import AsyncMock
 from freezegun import freeze_time
 
-from src.app.features.user.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.user.application.dtos.auth_dto import LoginRequest
-from src.app.features.user.domain.exceptions.auth_exceptions import (
+from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
+from src.app.features.auth.application.dtos.auth_dto import LoginRequest
+from src.app.features.auth.domain.exceptions.auth_exceptions import (
     InvalidCredentialsError,
     AccountLockedError
 )

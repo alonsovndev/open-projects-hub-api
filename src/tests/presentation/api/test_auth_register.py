@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from src.app.app import fastApiApp
-from src.app.features.user.application.dtos.auth_dto import AdminLoginResponse, UserDetail
+from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 
 
@@ -38,7 +38,7 @@ class TestRegisterEndpoint:
     def test_register_success_returns_201_with_token(self, client, mock_register_response):
         """Test successful registration returns 201 with JWT token and user data."""
         with patch(
-            "src.app.features.user.application.use_cases.register_user.RegisterUserUseCase.execute",
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
             new=AsyncMock(return_value=mock_register_response),
         ):
             response = client.post(
@@ -77,7 +77,7 @@ class TestRegisterEndpoint:
         from src.app.config.app_config import AppConfig
 
         with patch(
-            "src.app.features.user.application.use_cases.register_user.RegisterUserUseCase.execute",
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
             new=AsyncMock(return_value=mock_register_response),
         ):
             response = client.post(
@@ -98,7 +98,7 @@ class TestRegisterEndpoint:
     def test_register_with_duplicate_email_returns_409(self, client):
         """Test registration with existing email returns 409 Conflict."""
         with patch(
-            "src.app.features.user.application.use_cases.register_user.RegisterUserUseCase.execute",
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
             new=AsyncMock(side_effect=UserAlreadyExistsException("Email already registered")),
         ):
             response = client.post(
@@ -193,7 +193,7 @@ class TestRegisterEndpoint:
     def test_register_defaults_to_viewer_role(self, client, mock_register_response):
         """Test that registration defaults to viewer role."""
         with patch(
-            "src.app.features.user.application.use_cases.register_user.RegisterUserUseCase.execute",
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
             new=AsyncMock(return_value=mock_register_response),
         ):
             response = client.post(

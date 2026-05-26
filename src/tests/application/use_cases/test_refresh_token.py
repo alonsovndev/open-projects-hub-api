@@ -5,7 +5,7 @@ import pytest
 import jwt as pyjwt
 from unittest.mock import AsyncMock, MagicMock
 
-from src.app.features.user.application.use_cases.refresh_token import (
+from src.app.features.auth.application.use_cases.refresh_token import (
     RefreshTokenUseCase,
     RefreshTokenRequest,
 )

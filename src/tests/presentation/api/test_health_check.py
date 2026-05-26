@@ -17,8 +17,8 @@ def client():
 class TestHealthCheck:
     """Test combined health check endpoint (legacy)."""
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
-    def test_health_check_returns_healthy_when_database_connected(self, mock_get_db, client):
+    @patch("src.app.shared.presentation.health_checks.get_engine")
+    def test_health_check_returns_healthy_when_database_connected(self, mock_get_engine, client):
         """Verify health check returns 200 when database is connected."""
         # Mock successful database connection with proper async context manager
         mock_connection = AsyncMock()
@@ -34,7 +34,7 @@ class TestHealthCheck:
         
         mock_db = MagicMock()
         mock_db.engine = mock_engine
-        mock_get_db.return_value = mock_db
+        mock_get_engine.return_value = mock_db
         
         response = client.get("/health")
         
@@ -46,8 +46,8 @@ class TestHealthCheck:
         assert "service" in data
         assert "version" in data
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
-    def test_health_check_returns_unhealthy_when_database_disconnected(self, mock_get_db, client):
+    @patch("src.app.shared.presentation.health_checks.get_engine")
+    def test_health_check_returns_unhealthy_when_database_disconnected(self, mock_get_engine, client):
         """Verify health check returns 503 when database is unreachable."""
         # Mock database connection failure with async context manager
         mock_connection = AsyncMock()
@@ -63,7 +63,7 @@ class TestHealthCheck:
         
         mock_db = MagicMock()
         mock_db.engine = mock_engine
-        mock_get_db.return_value = mock_db
+        mock_get_engine.return_value = mock_db
         
         response = client.get("/health")
         
@@ -107,8 +107,8 @@ class TestLivenessProbe:
 class TestReadinessProbe:
     """Test Kubernetes readiness probe endpoint."""
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
-    def test_readiness_returns_200_when_database_connected(self, mock_get_db, client):
+    @patch("src.app.shared.presentation.health_checks.get_engine")
+    def test_readiness_returns_200_when_database_connected(self, mock_get_engine, client):
         """Verify readiness probe returns 200 when database is connected."""
         # Mock successful database connection with proper async context manager
         mock_connection = AsyncMock()
@@ -124,7 +124,7 @@ class TestReadinessProbe:
         
         mock_db = MagicMock()
         mock_db.engine = mock_engine
-        mock_get_db.return_value = mock_db
+        mock_get_engine.return_value = mock_db
         
         response = client.get("/health/ready")
         
@@ -136,8 +136,8 @@ class TestReadinessProbe:
         assert "service" in data
         assert "version" in data
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
-    def test_readiness_returns_503_when_database_disconnected(self, mock_get_db, client):
+    @patch("src.app.shared.presentation.health_checks.get_engine")
+    def test_readiness_returns_503_when_database_disconnected(self, mock_get_engine, client):
         """Verify readiness probe returns 503 when database is unreachable."""
         # Mock database connection failure with proper async context manager
         mock_connection = AsyncMock()
@@ -153,7 +153,7 @@ class TestReadinessProbe:
         
         mock_db = MagicMock()
         mock_db.engine = mock_engine
-        mock_get_db.return_value = mock_db
+        mock_get_engine.return_value = mock_db
         
         response = client.get("/health/ready")
         
@@ -166,8 +166,8 @@ class TestReadinessProbe:
         assert "service" in data
         assert "version" in data
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
-    def test_readiness_checks_structure(self, mock_get_db, client):
+    @patch("src.app.shared.presentation.health_checks.get_engine")
+    def test_readiness_checks_structure(self, mock_get_engine, client):
         """Verify readiness probe returns proper checks structure."""
         # Mock successful database connection with proper async context manager
         mock_connection = AsyncMock()
@@ -183,7 +183,7 @@ class TestReadinessProbe:
         
         mock_db = MagicMock()
         mock_db.engine = mock_engine
-        mock_get_db.return_value = mock_db
+        mock_get_engine.return_value = mock_db
         
         response = client.get("/health/ready")
         

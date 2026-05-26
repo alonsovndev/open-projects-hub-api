@@ -9,10 +9,10 @@ Following API spec:
 import pytest
 from unittest.mock import AsyncMock
 
-from src.app.features.user.application.dtos.auth_dto import AdminLoginResponse
+from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
-from src.app.features.user.application.use_cases.register_user import RegisterUserUseCase
+from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole

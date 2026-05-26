@@ -94,7 +94,7 @@ class TestLoginRateLimiting:
                 # First 10 should work or fail with auth error (not rate limit)
                 assert response.status_code in [200, 401]
 
-    @patch("src.app.shared.presentation.health_checks.get_db_connection")
+    @patch("src.app.shared.presentation.health_checks.get_engine")
     def test_login_rate_limit_is_per_endpoint(self, mock_get_db, client, mock_admin_user):
         """Test that rate limit is specific to login endpoint."""
         # Mock database for health check endpoint
