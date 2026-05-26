@@ -1,8 +1,7 @@
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
-from src.app.features.user.domain.value_objects.user_role import UserRole
-from src.app.shared.infrastructure.models.base_model import BaseModel
+from src.app.shared.persistence.base_model import BaseModel
 
 
 class UserModel(BaseModel):

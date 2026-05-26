@@ -3,7 +3,9 @@ from src.app.features.user.application.dtos.user_dto_mapper import map_create_re
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class CreateUserUseCase:

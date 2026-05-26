@@ -24,7 +24,7 @@ from src.app.features.user.application.use_cases.get_user_profile import GetUser
 from src.app.features.user.application.use_cases.update_user_preferences import UpdateUserPreferencesUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.domain.value_objects.theme import Theme
-from src.app.features.user.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.user.presentation.dependencies import (
     get_change_password_use_case,
     get_create_user_use_case,

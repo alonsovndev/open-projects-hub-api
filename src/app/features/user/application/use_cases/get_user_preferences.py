@@ -4,7 +4,9 @@ GetUserPreferencesUseCase - retrieve user preferences with default fallback.
 from src.app.features.user.domain.entities.user_preferences_entity import UserPreferencesEntity
 from src.app.features.user.domain.repositories.user_preferences_repository import UserPreferencesRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class GetUserPreferencesUseCase:

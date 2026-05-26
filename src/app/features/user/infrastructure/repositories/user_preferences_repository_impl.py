@@ -11,7 +11,9 @@ from src.app.features.user.domain.repositories.user_preferences_repository impor
 from src.app.features.user.infrastructure.mappers import user_preferences_mapper
 from src.app.features.user.infrastructure.models.user_preferences_model import UserPreferencesModel
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class UserPreferencesRepositoryImpl(UserPreferencesRepository):

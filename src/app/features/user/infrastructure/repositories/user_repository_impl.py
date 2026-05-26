@@ -10,7 +10,9 @@ from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.infrastructure.models.user_model import UserModel
 from src.app.features.user.infrastructure.mappers.user_model_mapper import map_model_to_entity
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.utils.log_util import log
+from src.app.shared.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class DatabaseConnectionError(Exception):

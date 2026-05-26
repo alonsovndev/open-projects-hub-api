@@ -4,7 +4,7 @@ UserPreferences SQLAlchemy model.
 from sqlalchemy import Column, String, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 
-from src.app.shared.infrastructure.models.base_model import Base
+from src.app.shared.persistence.base_model import Base
 
 
 class UserPreferencesModel(Base):
