@@ -1,12 +1,15 @@
+import logging
 import os
+
 from dotenv import load_dotenv
 from pyaml_env import parse_config
 from threading import Lock
 from typing import Dict, Any, Optional
 
-from src.app.shared.utils.log_util import log
 from src.app.shared.utils.retry_decorator import retry_on_exception
 from src.app.config.paths import Paths
+
+log = logging.getLogger(__name__)
 
 APP_ENV = "APP_ENV"
 DEFAULT_ENVIRONMENT = "dev"
