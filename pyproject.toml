@@ -43,7 +43,7 @@ select = [
     "UP",     # pyupgrade
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
-    "TCH",    # flake8-type-checking
+    "TC",     # flake8-type-checking
     "PTH",    # flake8-use-pathlib
     "RUF",    # Ruff-specific rules
     "N",      # pep8-naming
@@ -65,9 +65,9 @@ ignore = [
     "S104",    # Possible binding to all interfaces
     "ARG001",  # Unused function argument (common in FastAPI route dependencies)
     "ARG002",  # Unused method argument
-    "TCH001",  # Move into type-checking block (conflicts with Pydantic)
-    "TCH002",  # Move into type-checking block (conflicts with FastAPI)
-    "TCH003",  # Move into type-checking block
+    "TC001",   # Move into type-checking block (conflicts with Pydantic)
+    "TC002",   # Move into type-checking block (conflicts with FastAPI)
+    "TC003",   # Move into type-checking block
     "COM812",  # Trailing comma missing (conflicts with formatter)
     "PTH123",  # Path.open() (not critical)
     "RUF012",  # Mutable class attributes (common in SQLAlchemy models)
