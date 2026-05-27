@@ -8,7 +8,7 @@ from src.app.features.user.application.dtos.user_dto import UserResponse
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import get_logger
+from src.app.shared.logging import get_logger, log_business_event, log_error_event, mask_email
 
 
 log = get_logger(__name__)
@@ -42,17 +42,40 @@ class UpdateUserProfileUseCase:
         try:
             # Validate display name
             if not display_name or display_name.strip() == "":
+                log.warning(
+                    "Empty display name validation failed",
+                    extra={
+                        "user_id": user_id,
+                        "event_type": "user.profile.update.validation_failed",
+                    },
+                )
                 raise ValueError("Display name cannot be empty")
 
             if len(display_name) > 255:
+                log.warning(
+                    "Display name exceeds max length",
+                    extra={
+                        "user_id": user_id,
+                        "display_name_length": len(display_name),
+                        "event_type": "user.profile.update.validation_failed",
+                    },
+                )
                 raise ValueError("Display name must not exceed 255 characters")
 
             # Find user
             user_entity = await self.user_repository.find_by_id(EntityId.from_string(user_id))
 
             if user_entity is None:
-                log.warning(f"User not found for profile update: {user_id}")
+                log.warning(
+                    "User not found for profile update",
+                    extra={
+                        "user_id": user_id,
+                        "event_type": "user.profile.update.user_not_found",
+                    },
+                )
                 raise UserNotFoundException(user_id)
+
+            old_display_name = user_entity.display_name
 
             # Update display name (immutable entity pattern: create new instance)
             user_entity.display_name = display_name
@@ -61,7 +84,12 @@ class UpdateUserProfileUseCase:
             updated_entity = await self.user_repository.update(user_entity)
 
             if updated_entity is None:
-                log.error(f"Failed to update user profile: {user_id}")
+                log_error_event(
+                    logger=log,
+                    error_type="user.profile.update.save_failed",
+                    message="Failed to update user profile",
+                    user_id=user_id,
+                )
                 raise ValueError("Failed to update user profile")
 
             response = UserResponse(
@@ -71,11 +99,27 @@ class UpdateUserProfileUseCase:
                 role=updated_entity.role.value,
             )
 
-            log.info(f"User profile updated: {user_id}")
+            log_business_event(
+                logger=log,
+                event_type="user.profile.updated",
+                message="User profile updated successfully",
+                user_id=user_id,
+                additional_data={
+                    "email": mask_email(str(updated_entity.email.value)),
+                    "old_display_name": old_display_name,
+                    "new_display_name": display_name,
+                },
+            )
             return response
 
         except (UserNotFoundException, ValueError):
             raise
         except Exception as e:
-            log.error(f"Unexpected error in UpdateUserProfileUseCase: {e!s}")
+            log_error_event(
+                logger=log,
+                error_type="user.profile.update.unexpected_error",
+                message="Unexpected error during profile update",
+                error=e,
+                user_id=user_id,
+            )
             raise

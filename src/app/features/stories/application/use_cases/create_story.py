@@ -6,6 +6,10 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.logging import get_logger, log_business_event, log_error_event
+
+
+log = get_logger(__name__)
 
 
 class CreateStoryUseCase:
@@ -34,26 +38,74 @@ class CreateStoryUseCase:
         Raises:
             ValueError: If validation fails
         """
-        # Validate priority enum early to provide clear user feedback
-        story_priority = None
-        if request.priority:
-            try:
-                story_priority = StoryPriority(request.priority.lower())
-            except ValueError:
-                raise ValueError(f"Invalid priority '{request.priority}'. Must be: low, medium, high")
+        try:
+            # Validate priority enum early to provide clear user feedback
+            story_priority = None
+            if request.priority:
+                try:
+                    story_priority = StoryPriority(request.priority.lower())
+                except ValueError as e:
+                    log_error_event(
+                        logger=log,
+                        error_type="story.create.invalid_priority",
+                        message="Invalid story priority value",
+                        error=e,
+                        user_id=created_by,
+                        additional_data={
+                            "priority": request.priority,
+                            "project_id": request.project_id,
+                        },
+                    )
+                    raise ValueError(f"Invalid priority '{request.priority}'. Must be: low, medium, high") from e
 
-        entity = StoryEntity.create(
-            title=request.title,
-            project_id=EntityId.from_string(request.project_id),
-            created_by=EntityId.from_string(created_by),
-            description=request.description,
-            priority=story_priority,
-            points=request.points,
-        )
+            entity = StoryEntity.create(
+                title=request.title,
+                project_id=EntityId.from_string(request.project_id),
+                created_by=EntityId.from_string(created_by),
+                description=request.description,
+                priority=story_priority,
+                points=request.points,
+            )
 
-        saved_entity = await self._repository.save(entity)
+            saved_entity = await self._repository.save(entity)
 
-        if not saved_entity:
-            raise ValueError("Failed to create story")
+            if not saved_entity:
+                log_error_event(
+                    logger=log,
+                    error_type="story.create.save_failed",
+                    message="Failed to save story to repository",
+                    user_id=created_by,
+                    additional_data={
+                        "story_title": request.title,
+                        "project_id": request.project_id,
+                    },
+                )
+                raise ValueError("Failed to create story")
 
-        return to_story_response(saved_entity)
+            log_business_event(
+                logger=log,
+                event_type="story.created",
+                message="Story created successfully",
+                entity_id=str(saved_entity.id),
+                user_id=created_by,
+                additional_data={
+                    "story_title": saved_entity.title,
+                    "project_id": str(saved_entity.project_id),
+                    "priority": saved_entity.priority.value if saved_entity.priority else None,
+                    "points": saved_entity.points,
+                },
+            )
+
+            return to_story_response(saved_entity)
+
+        except ValueError:
+            raise
+        except Exception as e:
+            log_error_event(
+                logger=log,
+                error_type="story.create.unexpected_error",
+                message="Unexpected error during story creation",
+                error=e,
+                user_id=created_by,
+            )
+            raise

@@ -5,7 +5,7 @@ from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import get_account_lockout_service
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import get_logger
+from src.app.shared.logging import get_logger, log_business_event, log_error_event, mask_email
 
 
 log = get_logger(__name__)
@@ -45,21 +45,36 @@ class LoginUserUseCase:
         is_locked = await self.lockout_service.is_locked_out(email_lower)
         if is_locked:
             lockout_info = await self.lockout_service.get_lockout_info(email_lower)
+            # Provide safe defaults if lockout_info is None
+            remaining_seconds = lockout_info.get("remaining_seconds", 0) if lockout_info else 0
+            remaining_minutes = lockout_info.get("remaining_minutes", 0) if lockout_info else 0
+            failed_attempts = lockout_info.get("failed_attempts", 0) if lockout_info else 0
+
             log.warning(
-                f"Login attempt for locked account: {email_lower}",
-                extra={"email": email_lower, "remaining_seconds": lockout_info.get("remaining_seconds", 0)},
+                "Login attempt for locked account",
+                extra={
+                    "email": mask_email(email_lower),
+                    "remaining_seconds": remaining_seconds,
+                    "event_type": "auth.login.account_locked",
+                },
             )
             raise AccountLockedError(
-                message=f"Account temporarily locked. Try again in {lockout_info.get('remaining_minutes', 0)} minutes.",
-                remaining_seconds=lockout_info.get("remaining_seconds", 0),
-                failed_attempts=lockout_info.get("failed_attempts", 0),
+                message=f"Account temporarily locked. Try again in {remaining_minutes} minutes.",
+                remaining_seconds=remaining_seconds,
+                failed_attempts=failed_attempts,
             )
 
         try:
             user_entity = await self.user_repository.find_by_email(Email(email_lower))
 
             if not user_entity:
-                log.warning(f"Login attempt with non-existent email: {email_lower}")
+                log.warning(
+                    "Login attempt with non-existent email",
+                    extra={
+                        "email": mask_email(email_lower),
+                        "event_type": "auth.login.user_not_found",
+                    },
+                )
                 # Record attempts for non-existent users to prevent timing-based user enumeration
                 await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
@@ -70,18 +85,18 @@ class LoginUserUseCase:
             )
 
             if not password_valid:
+                failed_attempts = await self.lockout_service.get_failed_attempts(email_lower)
+
                 log.warning(
-                    f"Failed login attempt for user: {user_entity.id}",
-                    extra={"user_id": str(user_entity.id), "email": email_lower},
+                    "Failed login attempt - invalid password",
+                    extra={
+                        "user_id": str(user_entity.id),
+                        "email": mask_email(email_lower),
+                        "failed_attempts": failed_attempts + 1,
+                        "event_type": "auth.login.invalid_credentials",
+                    },
                 )
                 await self.lockout_service.record_failed_attempt(email_lower)
-
-                failed_attempts = await self.lockout_service.get_failed_attempts(email_lower)
-                log.info(
-                    f"Failed login attempts: {failed_attempts}",
-                    extra={"email": email_lower, "failed_attempts": failed_attempts},
-                )
-
                 raise InvalidCredentialsError()
 
             await self.lockout_service.record_successful_login(email_lower)
@@ -100,11 +115,26 @@ class LoginUserUseCase:
 
             response = AdminLoginResponse.from_user_entity(user_entity, token, refresh_token)
 
-            log.info(f"User logged in successfully: {user_entity.id}")
+            log_business_event(
+                logger=log,
+                event_type="auth.login.success",
+                message="User logged in successfully",
+                user_id=str(user_entity.id),
+                additional_data={
+                    "email": mask_email(email_lower),
+                    "role": user_entity.role.value,
+                },
+            )
+
             return response
 
         except (InvalidCredentialsError, AccountLockedError):
             raise
         except Exception as e:
-            log.error(f"Unexpected error in LoginUserUseCase: {e!s}")
+            log_error_event(
+                logger=log,
+                error_type="auth.login.unexpected_error",
+                message="Unexpected error during login",
+                error=e,
+            )
             raise

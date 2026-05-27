@@ -11,6 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
+from src.app.shared.logging import get_logger, log_error_event
+
+
+log = get_logger(__name__)
 
 
 class DashboardRepository:
@@ -42,51 +46,71 @@ class DashboardRepository:
             - assigned_stories: int (if user_id provided, otherwise 0)
             - completed_stories: int
         """
-        # Project counts subquery
-        project_stats = (
-            select(
-                func.count(ProjectModel.id).label("total_projects"),
-                func.sum(case((ProjectModel.status == "active", 1), else_=0)).label("active_projects"),
-            )
-            .select_from(ProjectModel)
-            .subquery()
-        )
-
-        # Story counts subquery
-        story_counts_cols = [
-            func.count(StoryModel.id).label("total_stories"),
-            func.sum(case((StoryModel.status == "done", 1), else_=0)).label("completed_stories"),
-        ]
-
-        if user_id:
-            story_counts_cols.append(
-                func.sum(case((StoryModel.assigned_to == user_id, 1), else_=0)).label("assigned_stories")
+        try:
+            # Project counts subquery
+            project_stats = (
+                select(
+                    func.count(ProjectModel.id).label("total_projects"),
+                    func.sum(case((ProjectModel.status == "active", 1), else_=0)).label("active_projects"),
+                )
+                .select_from(ProjectModel)
+                .subquery()
             )
 
-        story_stats = select(*story_counts_cols).select_from(StoryModel).subquery()
+            # Story counts subquery
+            story_counts_cols = [
+                func.count(StoryModel.id).label("total_stories"),
+                func.sum(case((StoryModel.status == "done", 1), else_=0)).label("completed_stories"),
+            ]
 
-        # Combine both subqueries in a single SELECT
-        stmt = select(
-            project_stats.c.total_projects,
-            project_stats.c.active_projects,
-            story_stats.c.total_stories,
-            story_stats.c.completed_stories,
-        )
+            if user_id:
+                story_counts_cols.append(
+                    func.sum(case((StoryModel.assigned_to == user_id, 1), else_=0)).label("assigned_stories")
+                )
 
-        if user_id:
-            stmt = stmt.add_columns(story_stats.c.assigned_stories)
+            story_stats = select(*story_counts_cols).select_from(StoryModel).subquery()
 
-        stmt = stmt.select_from(project_stats).select_from(story_stats)
+            # Combine both subqueries in a single SELECT
+            stmt = select(
+                project_stats.c.total_projects,
+                project_stats.c.active_projects,
+                story_stats.c.total_stories,
+                story_stats.c.completed_stories,
+            )
 
-        result = await self._session.execute(stmt)
-        row = result.one()
+            if user_id:
+                stmt = stmt.add_columns(story_stats.c.assigned_stories)
 
-        stats = {
-            "total_projects": row.total_projects or 0,
-            "active_projects": row.active_projects or 0,
-            "total_stories": row.total_stories or 0,
-            "completed_stories": row.completed_stories or 0,
-            "assigned_stories": (row.assigned_stories if user_id else 0) or 0,
-        }
+            stmt = stmt.select_from(project_stats).select_from(story_stats)
 
-        return stats
+            result = await self._session.execute(stmt)
+            row = result.one()
+
+            stats = {
+                "total_projects": row.total_projects or 0,
+                "active_projects": row.active_projects or 0,
+                "total_stories": row.total_stories or 0,
+                "completed_stories": row.completed_stories or 0,
+                "assigned_stories": (row.assigned_stories if user_id else 0) or 0,
+            }
+
+            log.debug(
+                "Dashboard aggregated stats query completed",
+                extra={
+                    "user_id": str(user_id) if user_id else None,
+                    "total_projects": stats["total_projects"],
+                    "total_stories": stats["total_stories"],
+                },
+            )
+
+            return stats
+
+        except Exception as e:
+            log_error_event(
+                logger=log,
+                error_type="dashboard.database.aggregation_failed",
+                message="Failed to retrieve aggregated dashboard statistics",
+                error=e,
+                user_id=str(user_id) if user_id else None,
+            )
+            raise

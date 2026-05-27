@@ -2,10 +2,10 @@
 
 import logging
 
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger.json import JsonFormatter as BaseJsonFormatter
 
 
-class JsonFormatter(JsonFormatter):
+class JsonFormatter(BaseJsonFormatter):
     """JSON formatter with standard observability fields."""
 
     def add_fields(self, log_record, record, message_dict):
@@ -24,7 +24,7 @@ class TextFormatter(logging.Formatter):
 
     def __init__(self):
         super().__init__(
-            fmt="%(levelname)s %(asctime)s [%(request_id)s] %(name)s - %(message)s",
+            fmt="%(levelname)s %(asctime)s [%(request_id)s] [user:%(user_id)s] %(name)s - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
-            defaults={"request_id": "N/A"},
+            defaults={"request_id": "N/A", "user_id": "anonymous"},
         )

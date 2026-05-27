@@ -11,7 +11,9 @@ docs/engineering/
 ├── composition-root.md          # Dependency injection and composition root
 ├── ddd-patterns.md              # Domain-Driven Design patterns
 ├── design-principles.md         # SOLID, DRY, YAGNI, KISS
-└── async-patterns.md            # Async/await patterns
+├── async-patterns.md            # Async/await patterns
+├── logging-standards.md         # Structured logging and security standards
+└── logging-implementation.md    # Complete implementation guide (Phase 1 & 2)
 ```
 
 ## 🏗️ Architecture Overview
@@ -54,6 +56,7 @@ The project follows **Clean Architecture** principles combined with **Domain-Dri
 | **Domain-Driven Design** | Ubiquitous language, bounded contexts, rich domain models | [DDD Patterns](./ddd-patterns.md) |
 | **SOLID Principles** | Single Responsibility, Open/Closed, Liskov, Interface Segregation, Dependency Inversion | [Design Principles](./design-principles.md) |
 | **Async/Await** | Non-blocking I/O for high concurrency | [Async Patterns](./async-patterns.md) |
+| **Logging & Security** | Structured logging, PII protection, audit trails | [Logging Standards](./logging-standards.md) |
 
 ## 🎯 Design Principles
 
@@ -139,6 +142,38 @@ class ProjectEntity:
 
 ---
 
+## 📋 Logging & Observability
+
+### Structured Logging
+
+The project implements comprehensive structured logging with:
+- **Correlation tracking** - Every request has a unique `request_id` and `user_id`
+- **Event-based logging** - Searchable event types: `<feature>.<entity>.<action>`
+- **PII protection** - Auto-redaction of sensitive data, email masking
+- **Audit trails** - Complete change history for all business operations
+
+**Quick Example:**
+```python
+from src.app.shared.logging import get_logger, log_business_event, mask_email
+
+log = get_logger(__name__)
+
+log_business_event(
+    logger=log,
+    event_type="story.created",
+    message="Story created successfully",
+    entity_id=str(story_id),
+    user_id=created_by,
+    additional_data={"title": story.title},
+)
+```
+
+**Documentation:**
+- [Logging Standards](./logging-standards.md) - Standards and patterns reference
+- [Logging Implementation](./logging-implementation.md) - Complete implementation guide
+
+---
+
 ## 🔄 Refactoring Guidelines
 
 ### When Refactoring Use Cases
@@ -161,5 +196,3 @@ class ProjectEntity:
 - Mappers live in feature's `application/mappers/` directory (not `shared/`).
 - Mappers convert between domain entities and application DTOs.
 - Keep mappers close to the DTOs they work with.
-
-

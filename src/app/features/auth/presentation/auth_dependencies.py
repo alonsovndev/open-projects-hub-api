@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Any
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.app.config.app_config import AppConfig
@@ -37,13 +37,15 @@ def get_jwt_handler() -> JWTHandler:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     jwt_handler: JWTHandler = Depends(get_jwt_handler),
 ) -> dict[str, Any]:
     """
     Dependency to extract and validate JWT token from Authorization header.
 
-    Returns user claims from token payload.
+    Returns user claims from token payload and sets user_id in request state
+    for logging purposes.
 
     Raises:
         HTTPException: 401 if token is invalid or expired
@@ -55,20 +57,23 @@ async def get_current_user(
         if not payload.get("sub") or not payload.get("email"):
             raise UnauthorizedError("Invalid token payload")
 
+        # Set user_id in request state for logging middleware
+        request.state.user_id = payload.get("sub")
+
         return payload
 
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
     except UnauthorizedError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 async def require_admin(
@@ -132,7 +137,8 @@ def create_story_owner_or_admin_dependency(story_id: str):
 
             async for session in get_database_session():
                 story_repo = StoryRepositoryImpl(session)
-                story = await story_repo.find_by_id(story_entity_id)
+                # Convert EntityId to UUID for repository call
+                story = await story_repo.find_by_id(story_entity_id.value)
 
                 if not story:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
@@ -147,8 +153,11 @@ def create_story_owner_or_admin_dependency(story_id: str):
 
                 return current_user
 
-        except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format")
+            # Should not reach here, but satisfy mypy
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database session error")
+
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from e
         except HTTPException:
             raise
 
