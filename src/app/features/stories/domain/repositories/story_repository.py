@@ -1,8 +1,11 @@
 """Story repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from src.app.features.stories.domain.entities.story_entity import StoryEntity
 
 
 class StoryRepository(ABC):
@@ -120,7 +123,3 @@ class StoryRepository(ABC):
         Returns:
             Number of stories matching filters
         """
-
-
-# Forward reference for type hints
-from src.app.features.stories.domain.entities.story_entity import StoryEntity

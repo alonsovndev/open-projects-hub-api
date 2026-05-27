@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 from pydantic.alias_generators import to_camel
@@ -64,7 +64,7 @@ class AdminLoginResponse(BaseModel):
             AdminLoginResponse instance
         """
         display_name = user_entity.display_name
-        logged_in_at = datetime.now(tz=UTC).isoformat().replace("+00:00", "Z")
+        logged_in_at = datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
         return cls(
             token=token,

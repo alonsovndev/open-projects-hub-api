@@ -245,7 +245,9 @@ async def update_story(
                     if story.created_by.value != user_id:
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Not authorized to modify this story. Only the creator or an admin can modify stories.",
+                            detail=(
+                                "Not authorized to modify this story. Only the creator or an admin can modify stories."
+                            ),
                         )
                     break  # Exit after first iteration
 
@@ -310,7 +312,9 @@ async def delete_story(
                     if story.created_by.value != user_id:
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Not authorized to delete this story. Only the creator or an admin can delete stories.",
+                            detail=(
+                                "Not authorized to delete this story. Only the creator or an admin can delete stories."
+                            ),
                         )
                     break  # Exit after first iteration
 

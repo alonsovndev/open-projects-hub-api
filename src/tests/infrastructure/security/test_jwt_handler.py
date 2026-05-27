@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
@@ -54,7 +54,7 @@ class TestJWTHandler:
 
     def test_decode_expired_token_raises_error(self, jwt_handler):
         """Test that expired token raises error."""
-        past_time = datetime.now(tz=UTC) - timedelta(hours=2)
+        past_time = datetime.now(tz=timezone.utc) - timedelta(hours=2)
         exp_time = past_time + timedelta(hours=1)
 
         payload = {

@@ -8,6 +8,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.app.config.app_config import AppConfig
+
+# Import all models to ensure SQLAlchemy relationships are properly registered
+from src.app.features.clients.infrastructure.models.client_model import ClientModel  # noqa: F401
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel  # noqa: F401
+from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401
+from src.app.features.stories.infrastructure.models.story_model import StoryModel  # noqa: F401
+from src.app.features.user.infrastructure.models.user_model import UserModel  # noqa: F401
+from src.app.features.user.infrastructure.models.user_preferences_model import UserPreferencesModel  # noqa: F401
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.logging import CorrelationIdMiddleware, load_logging_config, setup_logging
 from src.app.shared.persistence.engine_factory import close_engine, get_engine

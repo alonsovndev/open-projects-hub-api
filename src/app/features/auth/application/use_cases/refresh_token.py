@@ -2,6 +2,7 @@
 RefreshTokenUseCase - Refresh access token using refresh token.
 """
 
+import jwt
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -13,7 +14,6 @@ from src.app.shared.logging import get_logger
 
 
 log = get_logger(__name__)
-import jwt
 
 
 class RefreshTokenRequest(BaseModel):

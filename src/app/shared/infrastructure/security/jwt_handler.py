@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
@@ -115,7 +115,7 @@ class JWTHandler:
         Returns:
             Encoded JWT token string
         """
-        now = datetime.now(tz=UTC)
+        now = datetime.now(tz=timezone.utc)
         expires_at = now + timedelta(minutes=self.expiration_minutes)
 
         payload: dict[str, Any] = {
@@ -153,7 +153,7 @@ class JWTHandler:
         Returns:
             Encoded JWT refresh token string
         """
-        now = datetime.now(tz=UTC)
+        now = datetime.now(tz=timezone.utc)
         expires_at = now + timedelta(minutes=self.refresh_expiration_minutes)
 
         payload: dict[str, Any] = {
