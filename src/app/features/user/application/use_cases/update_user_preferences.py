@@ -38,16 +38,13 @@ class UpdateUserPreferencesUseCase:
 
         Returns:
             Updated UserPreferencesEntity, or None if update failed
-
-        Raises:
-            ValueError: If user has no preferences (should call GET first to create defaults)
         """
-        # Find existing preferences
+        # Find existing preferences, creating defaults if none exist
         preferences = await self.preferences_repository.find_by_user_id(user_id)
 
         if not preferences:
-            log.warning(f"No preferences found for user {user_id.value}")
-            raise ValueError(f"User preferences not found for user {user_id.value}")
+            log.info(f"No preferences found for user {user_id.value}, creating defaults")
+            preferences = UserPreferencesEntity.create_default(user_id)
 
         # Apply partial updates
         if theme is not None:
