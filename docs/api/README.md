@@ -16,57 +16,9 @@ Current Version: **v1.1.0**
 
 All endpoints are prefixed with `/v1` except for health check.
 
-## Available Endpoints
+## API Contract
 
-### Health & Status
-- `GET /health` - Health check endpoint (no auth)
-
-### Authentication (`/v1/auth`)
-- `POST /v1/auth/login` - User login (rate limited: 10/min)
-- `POST /v1/auth/register` - Public registration (rate limited: 5/min, defaults to viewer role)
-- `POST /v1/auth/refresh` - Refresh access token (rate limited: 10/15min)
-
-### User Management (`/v1/users`)
-- `GET /v1/users/{user_id}` - Get user by ID (authenticated)
-- `GET /v1/users/me/profile` - Get current user profile (authenticated)
-- `PATCH /v1/users/me/profile` - Update current user profile (authenticated)
-- `POST /v1/users/me/password` - Change password (authenticated)
-- `GET /v1/users/me/preferences` - Get user preferences (authenticated)
-- `PATCH /v1/users/me/preferences` - Update user preferences (authenticated)
-- `POST /v1/users` - Create user (admin only)
-
-### Clients (`/v1/clients`)
-- `POST /v1/clients` - Create client (admin only)
-- `GET /v1/clients` - List clients with pagination (authenticated)
-- `GET /v1/clients/{client_id}` - Get client by ID (authenticated)
-- `PUT /v1/clients/{client_id}` - Update client (admin only)
-- `DELETE /v1/clients/{client_id}` - Delete client (admin only, fails if client has projects)
-
-### Projects (`/v1/projects`)
-- `POST /v1/projects` - Create project (admin only)
-- `GET /v1/projects` - List projects with pagination and optional status filter (authenticated)
-- `GET /v1/projects/{project_id}` - Get project by ID (authenticated)
-- `PATCH /v1/projects/{project_id}` - Update project (admin only)
-- `DELETE /v1/projects/{project_id}` - Delete project (admin only, cascades to stories)
-
-### Stories (`/v1/stories`)
-- `POST /v1/stories` - Create story (authenticated)
-- `GET /v1/stories` - List stories with pagination and filters (authenticated)
-- `GET /v1/stories/by-project/{project_id}` - Get stories by project with pagination (authenticated)
-- `GET /v1/stories/{story_id}` - Get story by ID (authenticated)
-- `PATCH /v1/stories/{story_id}` - Update story (authenticated, owner or admin)
-- `DELETE /v1/stories/{story_id}` - Delete story (authenticated, owner or admin)
-- `POST /v1/stories/{story_id}/assign` - Assign story to user (authenticated)
-
-### AI Refinement (`/v1/refinement`)
-- `PATCH /v1/refinement/drafts/{draft_id}` - Update story draft (admin only)
-- `POST /v1/refinement/generate-stories` - Generate story drafts from notes using AI (admin only)
-- `POST /v1/refinement/drafts/{draft_id}/approve` - Approve draft to story (admin only)
-- `POST /v1/refinement/approve-drafts` - Bulk approve drafts (admin only)
-
-### Dashboard (`/v1/dashboard`)
-- `GET /v1/dashboard/stats` - Get dashboard statistics (authenticated)
-
+For a consolidated list of API endpoints and their details, refer to the [API Contract](./api-contract.md).
 ## JSON Convention
 
 All request and response bodies use **camelCase** for JSON field names. This is enforced via Pydantic's `alias_generator=to_camel` on all DTOs.
