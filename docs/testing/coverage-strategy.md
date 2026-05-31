@@ -239,11 +239,11 @@ def test_create_user_minimum_password_length():
 # If entity has status transitions, test all states
 def test_project_status_transitions():
     project = Project.create("Test Project")
-    
+
     # Active → Completed
     project.complete()
     assert project.status == ProjectStatus.COMPLETED
-    
+
     # Completed → Archived
     project.archive()
     assert project.status == ProjectStatus.ARCHIVED
@@ -433,7 +433,7 @@ def mock_user_repo():
   - Fixed rate limiting test database mock
   - All 375 tests passing
   - Current coverage: 100% (unit tests)
-  
+
 - **2026-05-11:** Initial coverage enforcement (Task 4.4)
   - Added CI workflow with 80% threshold
   - Created `.coveragerc` and `Makefile`

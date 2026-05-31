@@ -82,7 +82,7 @@ class UserEntity:
     role: UserRole
     is_active: bool = True
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     @property
     def fullname(self) -> str:
         return f"{self.first_name} {self.last_name}"
@@ -115,22 +115,22 @@ class UserEntity:
 class CreateUserUseCase:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
-    
+
     async def execute(self, request: CreateUserRequest) -> UserResponse:
         # 1. Check if user exists
         existing = await self.user_repo.find_by_email(request.email)
         if existing:
             raise DuplicateEmailError(...)
-        
+
         # 2. Hash password
         password_hash = await PasswordHandler.hash_password(request.password)
-        
+
         # 3. Create entity
         user = UserEntity(...)
-        
+
         # 4. Save
         created_user = await self.user_repo.save(user)
-        
+
         # 5. Return response
         return UserResponse.from_entity(created_user)
 ```
@@ -164,7 +164,7 @@ class CreateUserUseCase:
 class UserRepositoryImpl(UserRepository):  # Implements domain interface
     def __init__(self, session_factory: async_sessionmaker):
         self.session_factory = session_factory
-    
+
     async def find_by_email(self, email: Email) -> Optional[UserEntity]:
         async with self.session_factory() as session:
             result = await session.execute(
@@ -172,7 +172,7 @@ class UserRepositoryImpl(UserRepository):  # Implements domain interface
             )
             user_model = result.scalar_one_or_none()
             return user_model.to_entity() if user_model else None
-    
+
     async def save(self, user: UserEntity) -> Optional[UserEntity]:
         try:
             async with self.session_factory() as session:
@@ -440,7 +440,7 @@ async def register(payload: CreateUserRequest):
     # ❌ Business logic in presentation layer
     if await user_repo.find_by_email(payload.email):
         raise HTTPException(...)
-    
+
     password_hash = await PasswordHandler.hash_password(payload.password)
     user = UserEntity(...)
     await user_repo.save(user)

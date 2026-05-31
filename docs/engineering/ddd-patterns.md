@@ -36,17 +36,17 @@ class UserEntity:
     role: UserRole                  # Value object
     is_active: bool = True
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     # Domain behavior
     @property
     def fullname(self) -> str:
         """Computed property - domain logic."""
         return f"{self.first_name} {self.last_name}"
-    
+
     def deactivate(self) -> None:
         """Domain method - changes entity state."""
         self.is_active = False
-    
+
     def activate(self) -> None:
         self.is_active = True
 ```
@@ -72,25 +72,25 @@ class Email:
     def __init__(self, value: str):
         self._validate(value)
         self._value = value.lower().strip()
-    
+
     def _validate(self, value: str) -> None:
         if not value or not isinstance(value, str):
             raise ValueError("Email must be a non-empty string")
         if "@" not in value or "." not in value.split("@")[-1]:
             raise ValueError(f"Invalid email format: {value}")
-    
+
     @property
     def value(self) -> str:
         return self._value
-    
+
     def __eq__(self, other) -> bool:
         if isinstance(other, Email):
             return self._value == other._value
         return False
-    
+
     def __hash__(self) -> int:
         return hash(self._value)
-    
+
     def __str__(self) -> str:
         return self._value
 ```
@@ -124,26 +124,26 @@ Repository interfaces define **contracts** for data access, implemented by the i
 class UserRepository(ABC):
     """
     Repository interface for User persistence.
-    
+
     Defines the contract for user data access.
     Implementations live in the infrastructure layer.
     """
-    
+
     @abstractmethod
     async def find_by_id(self, user_id: EntityId) -> Optional[UserEntity]:
         """Find a user by their unique identifier."""
         pass
-    
+
     @abstractmethod
     async def find_by_email(self, email: Email) -> Optional[UserEntity]:
         """Find a user by their email address."""
         pass
-    
+
     @abstractmethod
     async def save(self, user: UserEntity) -> Optional[UserEntity]:
         """
         Create or update a user.
-        
+
         Returns the saved user entity, or None if save failed
         (e.g., duplicate email constraint violation).
         """
@@ -170,11 +170,11 @@ Use Cases represent **application-specific business rules**. They orchestrate en
 class CreateUserUseCase:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
-    
+
     async def execute(self, request: CreateUserRequest) -> UserResponse:
         """
         Execute the create user use case.
-        
+
         Steps:
         1. Check if user with email already exists
         2. Hash password asynchronously
@@ -188,10 +188,10 @@ class CreateUserUseCase:
             raise DuplicateEmailError(
                 f"User with email {request.email} already exists"
             )
-        
+
         # 2. Hash password (async to avoid blocking)
         password_hash = await PasswordHandler.hash_password(request.password)
-        
+
         # 3. Create entity
         user = UserEntity(
             id=EntityId.generate(),
@@ -201,14 +201,14 @@ class CreateUserUseCase:
             password_hash=password_hash,
             role=request.role,
         )
-        
+
         # 4. Save
         created_user = await self.user_repo.save(user)
         if created_user is None:
             raise DuplicateEmailError(
                 f"Failed to create user with email {request.email}"
             )
-        
+
         # 5. Return response
         return UserResponse.from_entity(created_user)
 ```
@@ -321,7 +321,7 @@ class UserDeactivatedEvent:
 class CreateUserUseCase:
     async def execute(self, request: CreateUserRequest) -> UserResponse:
         # ... create user ...
-        
+
         # Publish domain event
         event = UserCreatedEvent(
             user_id=created_user.id,
@@ -329,7 +329,7 @@ class CreateUserUseCase:
             created_at=created_user.created_at,
         )
         await self.event_publisher.publish(event)
-        
+
         return UserResponse.from_entity(created_user)
 ```
 
@@ -414,7 +414,7 @@ class UserEntity:
     email: Email              # Self-validating
     password_hash: str        # Managed by domain
     role: UserRole            # Type-safe enum
-    
+
     @property
     def fullname(self) -> str:
         return f"{self.first_name} {self.last_name}"
@@ -423,7 +423,7 @@ class UserEntity:
 class CreateUserUseCase:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
-    
+
     async def execute(self, request: CreateUserRequest) -> UserResponse:
         # Clear, single responsibility
         ...
@@ -432,7 +432,7 @@ class LoginUserUseCase:
     def __init__(self, user_repo: UserRepository, jwt_handler: JWTHandler):
         self.user_repo = user_repo
         self.jwt_handler = jwt_handler
-    
+
     async def execute(self, request: LoginRequest) -> LoginResponse:
         # Clear, single responsibility
         ...
@@ -469,7 +469,7 @@ class UserEntity:
     id: EntityId
     email: Email              # Self-validating value object
     password_hash: str
-    
+
     @property
     def fullname(self) -> str:
         ...

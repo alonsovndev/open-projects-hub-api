@@ -309,7 +309,7 @@ GET /v1/user/123
 ```
 
 **Cause:** Unexpected server-side error  
-**Solution:** 
+**Solution:**
 - Retry the request
 - Check server logs
 - Contact support if persists
@@ -371,7 +371,7 @@ const response = await fetch('/v1/auth/login', {
 
 if (!response.ok) {
   const error = await response.json();
-  
+
   switch (response.status) {
     case 401:
       // Handle authentication error
@@ -403,11 +403,11 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(url, options);
-      
+
       if (response.ok || response.status < 500) {
         return response;
       }
-      
+
       // Wait before retry (exponential backoff)
       await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
     } catch (error) {
@@ -422,7 +422,7 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 ```javascript
 async function apiCall(url, options = {}) {
   const token = getStoredToken();
-  
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -430,14 +430,14 @@ async function apiCall(url, options = {}) {
       'Authorization': `Bearer ${token}`
     }
   });
-  
+
   if (response.status === 401) {
     // Token expired, redirect to login
     clearStoredToken();
     redirectToLogin();
     return null;
   }
-  
+
   return response;
 }
 ```

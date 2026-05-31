@@ -145,7 +145,7 @@ class PasswordHandler:
             salt
         )
         return hashed.decode("utf-8")
-    
+
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
         result = await asyncio.to_thread(
@@ -217,7 +217,7 @@ def validate_secret_key(cls, secret_key: str) -> None:
     # Check length
     if len(secret_key) < 32:
         raise JWTSecretError("Secret too short (min 32 chars)")
-    
+
     # Check against known weak secrets (case-insensitive)
     if secret_key.lower() in cls.WEAK_SECRETS:
         raise JWTSecretError("Known weak/default secret")

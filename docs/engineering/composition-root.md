@@ -261,7 +261,7 @@ def get_create_project_use_case(
 ) -> CreateProjectUseCase:
     """
     Get create project use case.
-    
+
     Cross-feature dependency:
     - ClientRepository: Validates that client exists before creating project
     """
@@ -299,16 +299,18 @@ For integration tests:
 
 ```python
 from fastapi.testclient import TestClient
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.composition import get_project_repository
 
+
 def get_mock_project_repository():
-    return MockProjectRepository()
+   return MockProjectRepository()
+
 
 # Override dependency
-fastApiApp.dependency_overrides[get_project_repository] = get_mock_project_repository
+fastapi_app.dependency_overrides[get_project_repository] = get_mock_project_repository
 
-client = TestClient(fastApiApp)
+client = TestClient(fastapi_app)
 ```
 
 ## Repository Usage Matrix
@@ -361,7 +363,7 @@ Track which features depend on which repositories:
    ```python
    # ❌ Bad
    from src.app.features.projects.presentation.dependencies import get_use_case
-   
+
    # ✅ Good
    from src.app.composition import get_use_case
    ```
@@ -370,7 +372,7 @@ Track which features depend on which repositories:
    ```python
    # ❌ Bad
    def get_repo() -> ProjectRepositoryImpl:
-   
+
    # ✅ Good
    def get_repo() -> ProjectRepository:
    ```
@@ -384,7 +386,7 @@ Track which features depend on which repositories:
    ```python
    # ❌ Bad - direct instantiation
    repo = ProjectRepositoryImpl(session)
-   
+
    # ✅ Good - use factory
    repo = Depends(get_project_repository)
    ```
@@ -422,4 +424,3 @@ from src.app.composition import (
 
 See the complete implementation in:
 - `src/app/composition/` - Full composition root
-

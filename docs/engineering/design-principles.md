@@ -58,7 +58,7 @@ This document outlines the core software design principles applied throughout th
   class UserRepository(ABC):
       @abstractmethod
       async def find_by_email(self, email: Email) -> Optional[UserEntity]: ...
-  
+
   # But open for extension via new implementations
   class PostgreSQLUserRepository(UserRepository): ...
   class MongoDBUserRepository(UserRepository): ...     # New!
@@ -94,7 +94,7 @@ This document outlines the core software design principles applied throughout th
   # Test with mock
   mock_repo = AsyncMock(spec=UserRepository)
   use_case = CreateUserUseCase(mock_repo)  # Works identically
-  
+
   # Production with real implementation
   real_repo = PostgreSQLUserRepository(session_factory)
   use_case = CreateUserUseCase(real_repo)  # Same interface, same behavior
@@ -114,10 +114,10 @@ This document outlines the core software design principles applied throughout th
   class UserRepository(ABC):
       @abstractmethod
       async def find_by_id(self, user_id: EntityId) -> Optional[UserEntity]: ...
-      
+
       @abstractmethod
       async def find_by_email(self, email: Email) -> Optional[UserEntity]: ...
-      
+
       @abstractmethod
       async def save(self, user: UserEntity) -> Optional[UserEntity]: ...
   ```
@@ -127,7 +127,7 @@ This document outlines the core software design principles applied throughout th
   # ✅ Good: Separate handlers for separate concerns
   class JWTHandler:             # Token operations only
   class PasswordHandler:        # Password operations only
-  
+
   # ❌ Bad: God handler
   class SecurityHandler:        # Does JWT + Password + RBAC + ...
   ```
@@ -146,7 +146,7 @@ This document outlines the core software design principles applied throughout th
   class CreateUserUseCase:
       def __init__(self, user_repo: UserRepository):  # Interface
           self.user_repo = user_repo
-  
+
   # ❌ Bad: Direct dependency on implementation
   class CreateUserUseCase:
       def __init__(self):
@@ -157,7 +157,7 @@ This document outlines the core software design principles applied throughout th
   ```python
   # Domain defines the contract
   class UserRepository(ABC): ...
-  
+
   # Infrastructure fulfills it
   class UserRepositoryImpl(UserRepository): ...
   ```
@@ -217,7 +217,7 @@ This document outlines the core software design principles applied throughout th
   ```python
   # ❌ Before: Unnecessary abstraction
   Presentation → Service → Use Case → Domain
-  
+
   # ✅ After: Direct and clear
   Presentation → Use Case → Domain
   ```
@@ -233,7 +233,7 @@ This document outlines the core software design principles applied throughout th
   # ✅ Current: Simple exceptions
   raise DuplicateEmailError("...")
   raise AuthenticationError("...")
-  
+
   # ❌ Not implementing: Full error hierarchy with error codes, messages, etc.
   # ✅ Will add when: We need i18n, detailed error tracking, etc.
   ```
@@ -301,7 +301,7 @@ This document outlines the core software design principles applied throughout th
           if validate_secret:
               self._validate_secret_key(secret_key)  # Fails fast!
           self.secret_key = secret_key
-  
+
   def _validate_secret_key(cls, secret_key: str) -> None:
       if len(secret_key) < 32:
           raise JWTSecretError("JWT secret key is too short (min 32 chars)")

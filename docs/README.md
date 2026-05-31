@@ -80,5 +80,3 @@ When adding documentation:
 - [SQLAlchemy Async](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
-
-
