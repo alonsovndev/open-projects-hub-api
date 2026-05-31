@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from fastapi.params import Depends
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -10,17 +10,11 @@ from src.app.composition import (
     get_change_password_use_case,
     get_create_user_use_case,
     get_get_user_by_id_use_case,
-    get_get_user_preferences_use_case,
     get_get_user_profile_use_case,
-    get_update_user_preferences_use_case,
     get_update_user_profile_use_case,
 )
 from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.dtos.user_preferences_dto import (
-    UpdatePreferencesRequest,
-    UserPreferencesResponse,
-)
 from src.app.features.user.application.exceptions.user_exception import (
     UserAlreadyExistsException,
     UserDoesNotExistException,
@@ -29,12 +23,8 @@ from src.app.features.user.application.exceptions.user_exception import (
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
-from src.app.features.user.application.use_cases.get_user_preferences import GetUserPreferencesUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
-from src.app.features.user.application.use_cases.update_user_preferences import UpdateUserPreferencesUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
-from src.app.features.user.domain.value_objects.theme import Theme
-from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 
@@ -97,7 +87,7 @@ async def get_user_profile(
         404: User not found
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(
+    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=lambda user_id: use_case.execute(user_id),
         current_user=current_user,
         exception_mappings=USER_EXCEPTION_MAPPINGS,
@@ -130,7 +120,7 @@ async def update_user_profile(
         404: User not found
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(
+    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=lambda user_id: use_case.execute(user_id, payload.display_name),
         current_user=current_user,
         exception_mappings=USER_EXCEPTION_MAPPINGS,
@@ -170,103 +160,7 @@ async def change_password(
         )
         return {"message": "Password changed successfully"}
 
-    return await handler.execute_with_payload_extraction(
-        execute_fn=execute,
-        current_user=current_user,
-        exception_mappings=USER_EXCEPTION_MAPPINGS,
-    )
-
-
-# Preferences endpoints (must come before /{user_id} to avoid path conflicts)
-@router.get("/me/preferences", response_model=UserPreferencesResponse)
-async def get_user_preferences(
-    current_user: dict[str, Any] = Depends(get_current_user),
-    use_case: GetUserPreferencesUseCase = Depends(get_get_user_preferences_use_case),
-) -> UserPreferencesResponse:
-    """
-    Get user preferences.
-
-    Requires authentication. Returns default preferences if none exist (auto-creates).
-
-    Args:
-        current_user: Current authenticated user (from JWT)
-        use_case: Injected GetUserPreferencesUseCase
-
-    Returns:
-        UserPreferencesResponse with preferences data
-
-    Raises:
-        401: Unauthorized (invalid or missing token)
-        500: Internal server error
-    """
-
-    async def execute(user_id: str):
-        preferences_entity = await use_case.execute(EntityId.from_string(user_id))
-
-        return UserPreferencesResponse(
-            id=str(preferences_entity.id.value),
-            user_id=str(preferences_entity.user_id.value),
-            theme=preferences_entity.theme.value,
-            language=preferences_entity.language,
-        )
-
-    return await handler.execute_with_payload_extraction(
-        execute_fn=execute,
-        current_user=current_user,
-        exception_mappings=USER_EXCEPTION_MAPPINGS,
-    )
-
-
-@router.patch("/me/preferences", response_model=UserPreferencesResponse)
-async def update_user_preferences(
-    payload: UpdatePreferencesRequest,
-    current_user: dict[str, Any] = Depends(get_current_user),
-    use_case: UpdateUserPreferencesUseCase = Depends(get_update_user_preferences_use_case),
-) -> UserPreferencesResponse:
-    """
-    Update user preferences.
-
-    Requires authentication. Supports partial updates (only provided fields are updated).
-
-    Args:
-        payload: UpdatePreferencesRequest with optional theme and language
-        current_user: Current authenticated user (from JWT)
-        use_case: Injected UpdateUserPreferencesUseCase
-
-    Returns:
-        UserPreferencesResponse with updated preferences
-
-    Raises:
-        400: Validation failed (invalid theme, etc.)
-        401: Unauthorized (invalid or missing token)
-        404: Preferences not found
-        500: Internal server error
-    """
-
-    async def execute(user_id: str):
-        # Convert theme string to Theme enum if provided
-        theme_enum = None
-        if payload.theme:
-            theme_enum = Theme(payload.theme)
-
-        # Execute update with partial data
-        updated_entity = await use_case.execute(
-            user_id=EntityId.from_string(user_id),
-            theme=theme_enum,
-            language=payload.language,
-        )
-
-        if updated_entity is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preferences not found")
-
-        return UserPreferencesResponse(
-            id=str(updated_entity.id.value),
-            user_id=str(updated_entity.user_id.value),
-            theme=updated_entity.theme.value,
-            language=updated_entity.language,
-        )
-
-    return await handler.execute_with_payload_extraction(
+    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=execute,
         current_user=current_user,
         exception_mappings=USER_EXCEPTION_MAPPINGS,
@@ -294,7 +188,7 @@ async def get_user_by_id(
     async def execute():
         return await get_user_use_case.execute(str(user_id))
 
-    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)
+    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)  # type: ignore[no-any-return]
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -329,4 +223,4 @@ async def create_user(
     async def execute():
         return await create_user_use_case.execute(payload)
 
-    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)
+    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)  # type: ignore[no-any-return]

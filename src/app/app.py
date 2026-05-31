@@ -15,7 +15,6 @@ from src.app.features.projects.infrastructure.models.project_model import Projec
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401
 from src.app.features.stories.infrastructure.models.story_model import StoryModel  # noqa: F401
 from src.app.features.user.infrastructure.models.user_model import UserModel  # noqa: F401
-from src.app.features.user.infrastructure.models.user_preferences_model import UserPreferencesModel  # noqa: F401
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.logging import CorrelationIdMiddleware, load_logging_config, setup_logging
 from src.app.shared.persistence.engine_factory import close_engine, get_engine
@@ -50,29 +49,29 @@ async def lifespan(app: FastAPI):
 
 
 # Initialize FastAPI application
-fastApiApp = FastAPI(title=app_name, version=app_version, lifespan=lifespan)
+fastapi_app = FastAPI(title=app_name, version=app_version, lifespan=lifespan)
 
 # Register correlation ID middleware (must be before app starts)
-fastApiApp.add_middleware(CorrelationIdMiddleware)
+fastapi_app.add_middleware(CorrelationIdMiddleware)
 
 # Register rate limiter with FastAPI
-fastApiApp.state.limiter = limiter
+fastapi_app.state.limiter = limiter
 
 # Disable API documentation in non-local environments
 if ENV not in ("local", "container"):
-    fastApiApp.docs_url = None
-    fastApiApp.redoc_url = None
-    fastApiApp.openapi_url = None
+    fastapi_app.docs_url = None
+    fastapi_app.redoc_url = None
+    fastapi_app.openapi_url = None
 
 
-@fastApiApp.get("/")
+@fastapi_app.get("/")
 def read_root():
     """Root endpoint returning welcome message."""
     return {"message": "Welcome to the API"}
 
 
 # Register application components
-register_exception_handlers(fastApiApp)
-register_middleware(fastApiApp)
-register_health_endpoints(fastApiApp)
-register_routers(fastApiApp)
+register_exception_handlers(fastapi_app)
+register_middleware(fastapi_app)
+register_health_endpoints(fastapi_app)
+register_routers(fastapi_app)

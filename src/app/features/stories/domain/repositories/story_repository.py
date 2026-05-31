@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
+
 if TYPE_CHECKING:
     from src.app.features.stories.domain.entities.story_entity import StoryEntity
 

@@ -310,12 +310,13 @@ def test_create_user_entity():
 ```python
 import pytest
 from httpx import AsyncClient
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
+
 
 @pytest.mark.integration
 async def test_get_user_endpoint():
     """Test GET /api/v1/users/{user_id} endpoint."""
-    async with AsyncClient(app=fastApiApp, base_url="http://test") as client:
+    async with AsyncClient(app=fastapi_app, base_url="http://test") as client:
         response = await client.get("/api/v1/users/1")
 
     assert response.status_code == 200

@@ -5,7 +5,7 @@ This implementation uses an in-memory store for simplicity.
 For production deployments with multiple instances, replace with Redis.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 
 
@@ -34,7 +34,7 @@ class TokenRevocationService:
             ttl_minutes: Time-to-live in minutes (default: 7 days for refresh tokens)
         """
         with self._lock:
-            expiry = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
+            expiry = datetime.now(UTC) + timedelta(minutes=ttl_minutes)
             self._revoked_tokens[token] = expiry
             self._cleanup_expired()
 
@@ -54,7 +54,7 @@ class TokenRevocationService:
 
     def _cleanup_expired(self) -> None:
         """Remove expired tokens from storage (internal method)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_tokens = [token for token, expiry in self._revoked_tokens.items() if expiry <= now]
         for token in expired_tokens:
             del self._revoked_tokens[token]

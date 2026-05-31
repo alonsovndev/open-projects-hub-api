@@ -1,4 +1,4 @@
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 
 
-app = fastApiApp
+app = fastapi_app

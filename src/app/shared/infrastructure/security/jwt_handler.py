@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
@@ -115,7 +115,7 @@ class JWTHandler:
         Returns:
             Encoded JWT token string
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         expires_at = now + timedelta(minutes=self.expiration_minutes)
 
         payload: dict[str, Any] = {
@@ -131,7 +131,7 @@ class JWTHandler:
         if additional_claims:
             payload.update(additional_claims)
 
-        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+        token: str = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         log.info(f"JWT token created for user {user_id} with role {role}")
 
         return token
@@ -153,7 +153,7 @@ class JWTHandler:
         Returns:
             Encoded JWT refresh token string
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         expires_at = now + timedelta(minutes=self.refresh_expiration_minutes)
 
         payload: dict[str, Any] = {
@@ -167,7 +167,7 @@ class JWTHandler:
             "type": "refresh",  # Mark as refresh token
         }
 
-        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+        token: str = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         log.info(f"JWT refresh token created for user {user_id}")
 
         return token
@@ -189,7 +189,7 @@ class JWTHandler:
             jwt.InvalidTokenError: If token is invalid
         """
         try:
-            payload = jwt.decode(
+            return jwt.decode(  # type: ignore[no-any-return]
                 token,
                 self.secret_key,
                 algorithms=[self.algorithm],
@@ -203,7 +203,6 @@ class JWTHandler:
                     "verify_iss": True,
                 },
             )
-            return payload
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired JWT token")
             raise
@@ -268,7 +267,7 @@ class JWTHandler:
                 log.warning("Attempted to use non-refresh token for refresh operation")
                 raise jwt.InvalidTokenError("Token is not a refresh token")
 
-            return payload
+            return payload  # type: ignore[no-any-return]
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired refresh token")
             raise
