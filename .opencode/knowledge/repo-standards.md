@@ -117,7 +117,7 @@ class ProjectEntity:
     @staticmethod
     def _validate_name(name: str):
         ProjectValidators.validate_name(name)  # Just passes through
-    
+
     def update_details(self, name: str):
         self._validate_name(name)  # Extra indirection
 ```
