@@ -43,6 +43,7 @@ from src.app.features.projects.application.use_cases.get_project_by_id import Ge
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 
 
 # Feature-specific repository
@@ -50,7 +51,6 @@ async def get_project_repository(
     session: AsyncSession = Depends(get_database_session),
 ) -> ProjectRepository:
     """Project repository factory (feature-specific)."""
-    from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 
     return ProjectRepositoryImpl(session)
 

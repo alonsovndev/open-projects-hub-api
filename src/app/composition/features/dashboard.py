@@ -33,6 +33,7 @@ from src.app.composition.repositories import get_story_repository
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
 from src.app.features.dashboard.infrastructure.repositories.dashboard_repository import DashboardRepository
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 
 
@@ -54,7 +55,6 @@ async def get_project_repository(
     This is duplicated here because dashboard queries projects differently
     (read-only aggregate queries vs full CRUD).
     """
-    from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 
     return ProjectRepositoryImpl(session)
 

@@ -47,6 +47,7 @@ from src.app.features.refinement.application.use_cases.generate_stories_from_not
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
+from src.app.features.refinement.infrastructure.repositories.story_draft_repository_impl import StoryDraftRepositoryImpl
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 
 
@@ -55,9 +56,6 @@ async def get_draft_repository(
     session: AsyncSession = Depends(get_database_session),
 ) -> StoryDraftRepository:
     """Draft repository factory (feature-specific)."""
-    from src.app.features.refinement.infrastructure.repositories.story_draft_repository_impl import (
-        StoryDraftRepositoryImpl,
-    )
 
     return StoryDraftRepositoryImpl(session)
 
