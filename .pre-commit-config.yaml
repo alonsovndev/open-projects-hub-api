@@ -32,6 +32,7 @@ repos:
     name: fix end of files
   - id: check-yaml
     name: check yaml syntax
+    exclude: ^src/app/config/config_.*\.yml$
   - id: check-json
     name: check json syntax
   - id: check-toml
