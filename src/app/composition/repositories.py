@@ -34,8 +34,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.composition.infrastructure import get_database_session
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
+from src.app.features.clients.infrastructure.repositories import ClientRepositoryImpl
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 
 
 async def get_user_repository(
@@ -46,7 +49,7 @@ async def get_user_repository(
 
     Used by:
     - auth: Login/register operations, user validation
-    - user: Profile management, preferences, password changes
+    - user: Profile management, password changes
     - dashboard: User statistics and activity queries
 
     The UserRepository is one of the most frequently used repositories in the
@@ -58,7 +61,6 @@ async def get_user_repository(
     Returns:
         UserRepository: User repository interface implementation
     """
-    from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 
     return UserRepositoryImpl(session)
 
@@ -84,7 +86,6 @@ async def get_story_repository(
     Returns:
         StoryRepository: Story repository interface implementation
     """
-    from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
 
     return StoryRepositoryImpl(session)
 
@@ -114,6 +115,5 @@ async def get_client_repository(
     Returns:
         ClientRepository: Client repository interface implementation
     """
-    from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
 
     return ClientRepositoryImpl(session)

@@ -294,7 +294,7 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 ## Detailed Endpoint Documentation
 
 - [Authentication Endpoints](./authentication.md) - Login, register, refresh
-- [User Management Endpoints](./users.md) - Profile, preferences, admin user creation
+- [User Management Endpoints](./users.md) - Profile, admin user creation
 - [Error Reference](./errors.md) - All error codes and responses
 
 ## API Versioning

@@ -24,8 +24,6 @@ All endpoints are prefixed with `/v1`.
 | `GET` | `/v1/users/me/profile` | Authenticated | Get current user profile |
 | `PATCH` | `/v1/users/me/profile` | Authenticated | Update current user profile |
 | `POST` | `/v1/users/me/password` | Authenticated | Change password |
-| `GET` | `/v1/users/me/preferences` | Authenticated | Get user preferences |
-| `PATCH` | `/v1/users/me/preferences` | Authenticated | Update user preferences |
 | `POST` | `/v1/users` | Admin Only | Create user |
 | `POST` | `/v1/clients` | Admin Only | Create client |
 | `GET` | `/v1/clients` | Authenticated | List clients with pagination |
