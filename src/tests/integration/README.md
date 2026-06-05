@@ -103,12 +103,12 @@ Tests for `ProjectRepositoryImpl`:
 - **CRUD Operations:**
   - Create, read, update, delete projects
   - Handle nonexistent records gracefully
-  
+
 - **Querying & Filtering:**
   - Find all with pagination (limit, offset)
   - Filter by status (active, completed, archived)
   - Count total projects with filters
-  
+
 - **Data Integrity:**
   - Concurrent saves maintain integrity
   - Proper ordering (most recent first)
@@ -122,11 +122,11 @@ Tests for `UserRepositoryImpl`:
 - **CRUD Operations:**
   - Create, read, update, delete users
   - Find by email address
-  
+
 - **Constraints:**
   - Email uniqueness enforcement
   - Case-insensitive email search
-  
+
 - **Password Handling:**
   - Password hash storage and retrieval
   - Hash integrity verification
@@ -140,18 +140,18 @@ Tests for `StoryRepositoryImpl`:
 - **CRUD Operations:**
   - Create, read, update, delete stories
   - Update story assignments
-  
+
 - **Foreign Key Constraints:**
   - Enforce valid project_id references
   - Enforce valid assigned_to user references
-  
+
 - **Complex Filtering:**
   - Filter by status (todo, in_progress, done)
   - Filter by priority (low, medium, high)
   - Filter by project_id
   - Filter by assigned user
   - Combined multi-filter queries
-  
+
 - **Pagination:**
   - Paginate with project filter
   - Verify no data overlap between pages
@@ -245,7 +245,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:15
@@ -260,19 +260,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      
+
       - name: Run integration tests
         env:
           POSTGRES_PASSWORD: test_password
@@ -365,7 +365,7 @@ async def test_save_and_retrieve(db_session: AsyncSession):
     # Save
     await repository.save(entity)
     await db_session.commit()
-    
+
     # Retrieve and verify
     found = await repository.find_by_id(entity.id.value)
     assert found.name == entity.name
