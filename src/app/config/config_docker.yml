@@ -1,18 +1,18 @@
 app:
-  name: "App API"
-  version: "1.0.0"
+  name: App API
+  version: 1.0.0
 
 jwt:
   secret_key: !ENV ${SECRET_KEY}
-  algorithm: "HS256"
+  algorithm: HS256
   access_token_expire_minutes: 15
 
 postgres:
-  username: "open-projects-hub-admin"
+  username: open-projects-hub-admin
   password: !ENV ${POSTGRES_PASSWORD}
-  host: "postgres"
+  host: postgres
   port: 5432
-  dbname: "open-projects-hub-db"
+  dbname: open-projects-hub-db
   echo: true
   pool_size: 10
   max_over_flow: 10
@@ -22,11 +22,11 @@ postgres:
 persistence:
   driver: postgresql
   postgres:
-    username: "open-projects-hub-admin"
+    username: open-projects-hub-admin
     password: !ENV ${POSTGRES_PASSWORD}
-    host: "postgres"
+    host: postgres
     port: 5432
-    dbname: "open-projects-hub-db"
+    dbname: open-projects-hub-db
     echo: true
     pool_size: 10
     max_overflow: 10
@@ -37,4 +37,4 @@ logging:
   level: INFO
   format: json
   outputs:
-    - type: console
+  - type: console

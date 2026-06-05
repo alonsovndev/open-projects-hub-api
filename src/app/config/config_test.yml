@@ -1,18 +1,18 @@
 app:
-  name: "App API"
-  version: "1.0.0"
+  name: App API
+  version: 1.0.0
 
 jwt:
   secret_key: !ENV ${SECRET_KEY}
-  algorithm: "HS256"
+  algorithm: HS256
   access_token_expire_minutes: 1440
 
 postgres:
-  username: "open-projects-hub-admin"
+  username: open-projects-hub-admin
   password: !ENV ${POSTGRES_PASSWORD}
-  host: "test-host"
+  host: test-host
   port: 5432
-  dbname: "open-projects-hub-db"
+  dbname: open-projects-hub-db
   echo: true
   pool_size: 10
   max_over_flow: 10
@@ -26,4 +26,4 @@ logging:
   level: WARNING
   format: text
   outputs:
-    - type: console
+  - type: console
