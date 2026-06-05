@@ -20,12 +20,12 @@ class UpdateStoryDraftRequest(BaseModel):
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, v: str | None) -> str | None:
+    def validate_title(cls, title: str | None) -> str | None:
         """Validate story title using domain validators."""
-        if v is not None:
-            RefinementValidators.validate_title(v)
-            return v.strip()
-        return v
+        if title is not None:
+            RefinementValidators.validate_title(title)
+            return title.strip()
+        return title
 
 
 class GenerateStoriesRequest(BaseModel):
@@ -41,17 +41,17 @@ class GenerateStoriesRequest(BaseModel):
 
     @field_validator("project_id")
     @classmethod
-    def validate_project_id(cls, v: str) -> str:
+    def validate_project_id(cls, project_id: str) -> str:
         """Validate project ID using domain validators."""
-        RefinementValidators.validate_project_id(v)
-        return v.strip()
+        RefinementValidators.validate_project_id(project_id)
+        return project_id.strip()
 
     @field_validator("raw_notes")
     @classmethod
-    def validate_raw_notes(cls, v: str) -> str:
+    def validate_raw_notes(cls, raw_notes: str) -> str:
         """Validate raw notes using domain validators."""
-        RefinementValidators.validate_raw_notes(v)
-        return v.strip()
+        RefinementValidators.validate_raw_notes(raw_notes)
+        return raw_notes.strip()
 
 
 class GeneratedStoryResponse(BaseModel):
@@ -93,11 +93,11 @@ class ApproveDraftsBulkRequest(BaseModel):
 
     @field_validator("draft_ids")
     @classmethod
-    def validate_draft_ids(cls, v: list[str]) -> list[str]:
+    def validate_draft_ids(cls, draft_ids: list[str]) -> list[str]:
         """Validate draft IDs."""
-        if not v or len(v) == 0:
+        if not draft_ids or len(draft_ids) == 0:
             raise ValueError("At least one draft ID is required")
-        return v
+        return draft_ids
 
 
 class ApproveDraftsBulkResponse(BaseModel):

@@ -23,18 +23,18 @@ class CreateClientRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v: str) -> str:
+    def validate_name(cls, name: str) -> str:
         """Validate client name using domain validators."""
-        ClientValidators.validate_name(v)
-        return v
+        ClientValidators.validate_name(name)
+        return name
 
     @field_validator("company")
     @classmethod
-    def validate_company(cls, v: str | None) -> str | None:
+    def validate_company(cls, company: str | None) -> str | None:
         """Validate company name using domain validators."""
-        if v:
-            ClientValidators.validate_company(v)
-        return v
+        if company:
+            ClientValidators.validate_company(company)
+        return company
 
 
 class UpdateClientRequest(BaseModel):
@@ -54,19 +54,19 @@ class UpdateClientRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v: str | None) -> str | None:
+    def validate_name(cls, name: str | None) -> str | None:
         """Validate client name using domain validators."""
-        if v is not None:
-            ClientValidators.validate_name(v)
-        return v
+        if name is not None:
+            ClientValidators.validate_name(name)
+        return name
 
     @field_validator("company")
     @classmethod
-    def validate_company(cls, v: str | None) -> str | None:
+    def validate_company(cls, company: str | None) -> str | None:
         """Validate company name using domain validators."""
-        if v is not None:
-            ClientValidators.validate_company(v)
-        return v
+        if company is not None:
+            ClientValidators.validate_company(company)
+        return company
 
 
 class ClientResponse(BaseModel):

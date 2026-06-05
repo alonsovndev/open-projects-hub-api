@@ -24,28 +24,28 @@ class CreateStoryRequest(BaseModel):
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, v: str) -> str:
+    def validate_title(cls, title: str) -> str:
         """Validate story title."""
-        StoryValidators.validate_title(v)
-        return v
+        StoryValidators.validate_title(title)
+        return title
 
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: str | None) -> str | None:
+    def validate_priority(cls, priority: str | None) -> str | None:
         """Validate priority if provided."""
-        if v is not None:
+        if priority is not None:
             valid_priorities = [p.value for p in StoryPriority]
-            if v not in valid_priorities:
+            if priority not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
-        return v
+        return priority
 
     @field_validator("points")
     @classmethod
-    def validate_points(cls, v: int | None) -> int | None:
+    def validate_points(cls, points: int | None) -> int | None:
         """Validate story points if provided."""
-        if v is not None:
-            StoryValidators.validate_points(v)
-        return v
+        if points is not None:
+            StoryValidators.validate_points(points)
+        return points
 
 
 class UpdateStoryRequest(BaseModel):
@@ -64,39 +64,39 @@ class UpdateStoryRequest(BaseModel):
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, v: str | None) -> str | None:
+    def validate_title(cls, title: str | None) -> str | None:
         """Validate story title if provided."""
-        if v is not None:
-            StoryValidators.validate_title(v)
-        return v
+        if title is not None:
+            StoryValidators.validate_title(title)
+        return title
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v: str | None) -> str | None:
+    def validate_status(cls, status: str | None) -> str | None:
         """Validate status if provided."""
-        if v is not None:
+        if status is not None:
             valid_statuses = [s.value for s in StoryStatus]
-            if v not in valid_statuses:
+            if status not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
-        return v
+        return status
 
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: str | None) -> str | None:
+    def validate_priority(cls, priority: str | None) -> str | None:
         """Validate priority if provided."""
-        if v is not None:
+        if priority is not None:
             valid_priorities = [p.value for p in StoryPriority]
-            if v not in valid_priorities:
+            if priority not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
-        return v
+        return priority
 
     @field_validator("points")
     @classmethod
-    def validate_points(cls, v: int | None) -> int | None:
+    def validate_points(cls, points: int | None) -> int | None:
         """Validate story points if provided."""
-        if v is not None:
-            StoryValidators.validate_points(v)
-        return v
+        if points is not None:
+            StoryValidators.validate_points(points)
+        return points
 
 
 class AssignStoryRequest(BaseModel):

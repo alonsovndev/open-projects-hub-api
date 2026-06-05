@@ -53,27 +53,27 @@ class CreateProjectRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v: str) -> str:
+    def validate_name(cls, name: str) -> str:
         """Validate project name."""
-        ProjectValidators.validate_name(v)
-        return v
+        ProjectValidators.validate_name(name)
+        return name
 
     @field_validator("code")
     @classmethod
-    def validate_code(cls, v: str) -> str:
+    def validate_code(cls, code: str) -> str:
         """Validate project code."""
-        ProjectValidators.validate_code(v)
-        return v
+        ProjectValidators.validate_code(code)
+        return code
 
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: str | None) -> str | None:
+    def validate_priority(cls, priority: str | None) -> str | None:
         """Validate priority if provided."""
-        if v is not None:
+        if priority is not None:
             valid_priorities = [p.value for p in ProjectPriority]
-            if v not in valid_priorities:
+            if priority not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
-        return v
+        return priority
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "CreateProjectRequest":
@@ -102,39 +102,39 @@ class UpdateProjectRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v: str | None) -> str | None:
+    def validate_name(cls, name: str | None) -> str | None:
         """Validate project name if provided."""
-        if v is not None:
-            ProjectValidators.validate_name(v)
-        return v
+        if name is not None:
+            ProjectValidators.validate_name(name)
+        return name
 
     @field_validator("code")
     @classmethod
-    def validate_code(cls, v: str | None) -> str | None:
+    def validate_code(cls, code: str | None) -> str | None:
         """Validate project code if provided."""
-        if v is not None:
-            ProjectValidators.validate_code(v)
-        return v
+        if code is not None:
+            ProjectValidators.validate_code(code)
+        return code
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v: str | None) -> str | None:
+    def validate_status(cls, status: str | None) -> str | None:
         """Validate status if provided."""
-        if v is not None:
+        if status is not None:
             valid_statuses = [s.value for s in ProjectStatus]
-            if v not in valid_statuses:
+            if status not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
-        return v
+        return status
 
     @field_validator("priority")
     @classmethod
-    def validate_priority(cls, v: str | None) -> str | None:
+    def validate_priority(cls, priority: str | None) -> str | None:
         """Validate priority if provided."""
-        if v is not None:
+        if priority is not None:
             valid_priorities = [p.value for p in ProjectPriority]
-            if v not in valid_priorities:
+            if priority not in valid_priorities:
                 raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
-        return v
+        return priority
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "UpdateProjectRequest":
