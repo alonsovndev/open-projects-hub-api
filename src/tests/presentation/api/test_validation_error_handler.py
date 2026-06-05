@@ -7,10 +7,10 @@ matching the format used by domain validation errors.
 
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 
 
-client = TestClient(fastApiApp)
+client = TestClient(fastapi_app)
 
 
 class TestValidationErrorHandler:

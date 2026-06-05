@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -33,7 +33,7 @@ def reset_rate_limiter():
 
 @pytest.fixture
 def client():
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture

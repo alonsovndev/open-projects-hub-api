@@ -1,12 +1,12 @@
 """Integration tests for story endpoints."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
@@ -16,7 +16,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
@@ -206,7 +206,7 @@ class TestUpdateStoryEndpoint:
             priority=mock_story_response.priority,
             points=mock_story_response.points,
             created_at=mock_story_response.created_at,
-            updated_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.now(tz=UTC).isoformat(),
         )
         with patch(
             "src.app.features.stories.application.use_cases.update_story.UpdateStoryUseCase.execute",
@@ -309,7 +309,7 @@ class TestAssignStoryEndpoint:
             priority=mock_story_response.priority,
             points=mock_story_response.points,
             created_at=mock_story_response.created_at,
-            updated_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.now(tz=UTC).isoformat(),
         )
         with patch(
             "src.app.features.stories.application.use_cases.assign_story.AssignStoryUseCase.execute",

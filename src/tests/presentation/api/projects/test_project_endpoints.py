@@ -1,12 +1,12 @@
 """Integration tests for project endpoints."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
@@ -20,7 +20,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
@@ -68,8 +68,8 @@ def mock_project_entity():
         priority=ProjectPriority.MEDIUM,
         start_date=date(2026, 5, 1),
         end_date=date(2026, 12, 31),
-        created_at=datetime(2026, 5, 9, 12, 0, 0),
-        updated_at=datetime(2026, 5, 9, 12, 0, 0),
+        created_at=datetime(2026, 5, 9, 12, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 5, 9, 12, 0, 0, tzinfo=UTC),
     )
 
 
@@ -230,7 +230,7 @@ class TestUpdateProjectEndpoint:
             start_date=mock_project_response.start_date,
             end_date=mock_project_response.end_date,
             created_at=mock_project_response.created_at,
-            updated_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.now(tz=UTC).isoformat(),
         )
         with patch(
             "src.app.features.projects.application.use_cases.update_project.UpdateProjectUseCase.execute",

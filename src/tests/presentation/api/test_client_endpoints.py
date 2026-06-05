@@ -1,12 +1,12 @@
 """Integration tests for client endpoints."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, PaginatedClientsResponse
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
@@ -18,7 +18,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
@@ -57,8 +57,8 @@ def mock_client_entity():
         id=entity_id,
         name="Test Client",
         company="Test Company",
-        created_at=datetime(2026, 5, 21, 12, 0, 0),
-        updated_at=datetime(2026, 5, 21, 12, 0, 0),
+        created_at=datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC),
     )
 
 
@@ -265,7 +265,7 @@ class TestUpdateClientEndpoint:
             address=mock_client_response.address,
             notes=mock_client_response.notes,
             created_at=mock_client_response.created_at,
-            updated_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.now(tz=UTC).isoformat(),
         )
 
         with patch(

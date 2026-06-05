@@ -1,12 +1,12 @@
 """Integration tests for refinement endpoints."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.refinement.application.dtos.refinement_dto import GeneratedStoryResponse, GenerateStoriesResponse
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
@@ -20,7 +20,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
@@ -62,8 +62,8 @@ def mock_draft_entity():
         project_id=EntityId.from_string("550e8400-e29b-41d4-a716-446655440001"),
         created_by=EntityId.from_string("550e8400-e29b-41d4-a716-446655440001"),
         status=RefinementStatus.DRAFT,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
     )
 
 
@@ -150,7 +150,7 @@ class TestUpdateDraftEndpoint:
 
         assert response.status_code == 422
 
-    def test_update_draft_camelCase_serialization(self, client: TestClient, admin_token: str, mock_draft_entity):
+    def test_update_draft_camel_case_serialization(self, client: TestClient, admin_token: str, mock_draft_entity):
         """Test that request accepts camelCase JSON."""
         with patch(
             "src.app.features.refinement.application.use_cases.update_story_draft.UpdateStoryDraftUseCase.execute",
@@ -257,7 +257,7 @@ class TestGenerateStoriesEndpoint:
 
         assert response.status_code == 422
 
-    def test_generate_stories_camelCase_serialization(self, client: TestClient, admin_token: str):
+    def test_generate_stories_camel_case_serialization(self, client: TestClient, admin_token: str):
         """Test that request and response use camelCase."""
         mock_response = GenerateStoriesResponse(
             stories=[
@@ -446,7 +446,7 @@ class TestApproveDraftsBulkEndpoint:
 
         assert response.status_code == 422
 
-    def test_approve_drafts_bulk_camelCase_serialization(self, client: TestClient, admin_token: str):
+    def test_approve_drafts_bulk_camel_case_serialization(self, client: TestClient, admin_token: str):
         """Test that request and response use camelCase."""
         mock_story = StoryResponse(
             id="550e8400-e29b-41d4-a716-446655440100",

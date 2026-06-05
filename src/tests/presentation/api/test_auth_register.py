@@ -1,17 +1,17 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 
 
 @pytest.fixture
 def client():
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def mock_register_response():
         refresh_token="mock.jwt.refresh.token",
         email="newuser@example.com",
         display_name="New User",
-        logged_in_at=datetime.utcnow().isoformat(),
+        logged_in_at=datetime.now(tz=UTC).isoformat(),
         role="viewer",
         user=UserDetail(
             email="newuser@example.com",

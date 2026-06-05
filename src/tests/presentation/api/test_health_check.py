@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 
 
 @pytest.fixture
 def client():
     """Create a test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 class TestHealthCheck:

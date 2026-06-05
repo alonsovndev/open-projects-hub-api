@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastApiApp
+from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.dashboard.application.dtos.dashboard_dto import (
     DashboardStatsResponse,
@@ -19,7 +19,7 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 @pytest.fixture
 def client():
     """Create test client."""
-    return TestClient(fastApiApp)
+    return TestClient(fastapi_app)
 
 
 @pytest.fixture
