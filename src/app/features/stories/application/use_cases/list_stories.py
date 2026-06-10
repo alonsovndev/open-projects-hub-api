@@ -1,9 +1,12 @@
 """List stories use case."""
 
+from uuid import UUID
+
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class ListStoriesUseCase:
@@ -20,6 +23,7 @@ class ListStoriesUseCase:
 
     async def execute(
         self,
+        user_id: str,
         limit: int = 20,
         offset: int = 0,
         project_id: str | None = None,
@@ -31,6 +35,7 @@ class ListStoriesUseCase:
         Execute list stories use case.
 
         Args:
+            user_id: Current user ID
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
             project_id: Optional project filter
@@ -52,8 +57,20 @@ class ListStoriesUseCase:
         if priority and priority not in ["low", "medium", "high"]:
             raise ValueError("Priority must be one of: low, medium, high")
 
-        project_uuid = self._to_uuid(project_id) if project_id else None
-        assigned_to_uuid = self._to_uuid(assigned_to) if assigned_to else None
+        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log.info(
+            "Listing stories",
+            event_type="stories.list.started",
+            limit=limit,
+            offset=offset,
+            project_id=project_id,
+            status=status,
+            priority=priority,
+            assigned_to=assigned_to,
+        )
+
+        project_uuid = UUID(project_id) if project_id else None
+        assigned_to_uuid = UUID(assigned_to) if assigned_to else None
 
         total = await self._repository.count(
             project_id=project_uuid,
@@ -72,19 +89,12 @@ class ListStoriesUseCase:
 
         items = [to_story_response(e) for e in entities]
 
-        # Calculate page number (1-indexed)
         page = (offset // limit) + 1 if limit > 0 else 1
 
+        log.event("stories.list.success", total=total, returned=len(items))
         return PaginatedResponse(
             total=total,
             page=page,
             per_page=limit,
             items=items,
         )
-
-    @staticmethod
-    def _to_uuid(value: str):
-        """Convert string to UUID."""
-        from uuid import UUID
-
-        return UUID(value)

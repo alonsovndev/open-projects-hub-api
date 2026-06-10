@@ -7,10 +7,7 @@ from src.app.features.stories.application.mappers.story_mapper import to_story_r
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class UpdateStoryUseCase:
@@ -25,13 +22,14 @@ class UpdateStoryUseCase:
         """
         self._repository = story_repository
 
-    async def execute(self, story_id: str, request: UpdateStoryRequest) -> StoryResponse | None:
+    async def execute(self, story_id: str, request: UpdateStoryRequest, created_by: str) -> StoryResponse | None:
         """
         Execute update story use case.
 
         Args:
             story_id: Story UUID
             request: UpdateStoryRequest DTO with fields to update
+            created_by: User ID performing the update
 
         Returns:
             StoryResponse if found and updated, None otherwise
@@ -39,17 +37,13 @@ class UpdateStoryUseCase:
         Raises:
             ValueError: If validation fails
         """
+        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+
         try:
             entity = await self._repository.find_by_id(UUID(story_id))
 
             if not entity:
-                log.warning(
-                    "Story not found for update",
-                    extra={
-                        "story_id": story_id,
-                        "event_type": "story.update.not_found",
-                    },
-                )
+                log.failure("story.update.not_found", entity_id=story_id)
                 return None
 
             # Track changes for logging
@@ -70,14 +64,7 @@ class UpdateStoryUseCase:
                 try:
                     story_status = StoryStatus(request.status.lower())
                 except ValueError as e:
-                    log_error_event(
-                        logger=log,
-                        error_type="story.update.invalid_status",
-                        message="Invalid story status value",
-                        error=e,
-                        entity_id=story_id,
-                        additional_data={"status": request.status},
-                    )
+                    log.failure("story.update.invalid_status", error=e, entity_id=story_id, status=request.status)
                     raise ValueError(f"Invalid status '{request.status}'. Must be: todo, in_progress, done") from e
 
             # Validate priority enum early to provide clear user feedback
@@ -86,14 +73,7 @@ class UpdateStoryUseCase:
                 try:
                     story_priority = StoryPriority(request.priority.lower())
                 except ValueError as e:
-                    log_error_event(
-                        logger=log,
-                        error_type="story.update.invalid_priority",
-                        message="Invalid story priority value",
-                        error=e,
-                        entity_id=story_id,
-                        additional_data={"priority": request.priority},
-                    )
+                    log.failure("story.update.invalid_priority", error=e, entity_id=story_id, priority=request.priority)
                     raise ValueError(f"Invalid priority '{request.priority}'. Must be: low, medium, high") from e
 
             entity.update_details(
@@ -107,35 +87,15 @@ class UpdateStoryUseCase:
             saved_entity = await self._repository.save(entity)
 
             if not saved_entity:
-                log_error_event(
-                    logger=log,
-                    error_type="story.update.save_failed",
-                    message="Failed to save updated story",
-                    entity_id=story_id,
-                )
+                log.failure("story.update.save_failed", entity_id=story_id)
                 raise ValueError("Failed to update story")
 
-            log_business_event(
-                logger=log,
-                event_type="story.updated",
-                message="Story updated successfully",
-                entity_id=story_id,
-                additional_data={
-                    "story_title": saved_entity.title,
-                    "changes": changes,
-                },
-            )
+            log.event("story.updated", entity_id=story_id, story_title=saved_entity.title, changes=changes)
 
             return to_story_response(saved_entity)
 
         except ValueError:
             raise
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="story.update.unexpected_error",
-                message="Unexpected error during story update",
-                error=e,
-                entity_id=story_id,
-            )
+            log.failure("story.update.unexpected_error", error=e, entity_id=story_id)
             raise

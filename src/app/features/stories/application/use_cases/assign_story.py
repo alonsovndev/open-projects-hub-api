@@ -6,10 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class AssignStoryUseCase:
@@ -24,13 +21,14 @@ class AssignStoryUseCase:
         """
         self._repository = story_repository
 
-    async def execute(self, story_id: str, user_id: str) -> StoryResponse | None:
+    async def execute(self, story_id: str, user_id: str, created_by: str) -> StoryResponse | None:
         """
         Execute assign story use case.
 
         Args:
             story_id: Story UUID
             user_id: User UUID to assign
+            created_by: User ID performing the assignment
 
         Returns:
             StoryResponse if found and assigned, None otherwise
@@ -38,18 +36,13 @@ class AssignStoryUseCase:
         Raises:
             ValueError: If validation fails
         """
+        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+
         try:
             entity = await self._repository.find_by_id(UUID(story_id))
 
             if not entity:
-                log.warning(
-                    "Story not found for assignment",
-                    extra={
-                        "story_id": story_id,
-                        "user_id": user_id,
-                        "event_type": "story.assign.not_found",
-                    },
-                )
+                log.failure("story.assign.not_found", entity_id=story_id, assigned_to=user_id)
                 return None
 
             # Track previous assignment for logging
@@ -60,25 +53,15 @@ class AssignStoryUseCase:
             saved_entity = await self._repository.save(entity)
 
             if not saved_entity:
-                log_error_event(
-                    logger=log,
-                    error_type="story.assign.save_failed",
-                    message="Failed to save story assignment",
-                    entity_id=story_id,
-                    additional_data={"assigned_to": user_id},
-                )
+                log.failure("story.assign.save_failed", assigned_to=user_id)
                 raise ValueError("Failed to assign story")
 
-            log_business_event(
-                logger=log,
-                event_type="story.assigned",
-                message="Story assigned successfully",
+            log.event(
+                "story.assigned",
                 entity_id=story_id,
-                additional_data={
-                    "story_title": saved_entity.title,
-                    "assigned_to": user_id,
-                    "previous_assignee": previous_assignee,
-                },
+                story_title=saved_entity.title,
+                assigned_to=user_id,
+                previous_assignee=previous_assignee,
             )
 
             return to_story_response(saved_entity)
@@ -86,11 +69,5 @@ class AssignStoryUseCase:
         except ValueError:
             raise
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="story.assign.unexpected_error",
-                message="Unexpected error during story assignment",
-                error=e,
-                entity_id=story_id,
-            )
+            log.failure("story.assign.unexpected_error", error=e)
             raise

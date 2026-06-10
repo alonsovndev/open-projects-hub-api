@@ -63,7 +63,7 @@ async def create_story(
         401: Unauthorized
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(
+    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
         current_user=current_user,
     )
@@ -105,7 +105,9 @@ async def list_stories(
     """
 
     async def execute():
+        user_id = str(current_user["sub"])
         return await use_case.execute(
+            user_id=user_id,
             limit=limit,
             offset=offset,
             project_id=project_id,
@@ -114,7 +116,7 @@ async def list_stories(
             assigned_to=assigned_to,
         )
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.get("/by-project/{project_id}", response_model=PaginatedResponse[StoryResponse])
@@ -146,13 +148,15 @@ async def get_stories_by_project(
     """
 
     async def execute():
+        user_id = str(current_user["sub"])
         return await use_case.execute(
             project_id=str(project_id),
+            user_id=user_id,
             limit=limit,
             offset=offset,
         )
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.get("/{story_id}", response_model=StoryResponse)
@@ -182,14 +186,15 @@ async def get_story_by_id(
     """
 
     async def execute():
-        result = await use_case.execute(str(story_id))
+        user_id = str(current_user["sub"])
+        result = await use_case.execute(str(story_id), user_id=user_id)
 
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.patch("/{story_id}", response_model=StoryResponse)
@@ -236,7 +241,7 @@ async def update_story(
                 # Get story to check ownership
                 async for session in get_database_session():
                     story_repo_inst = StoryRepositoryImpl(session)
-                    story = await story_repo_inst.find_by_id(story_entity_id)
+                    story = await story_repo_inst.find_by_id(story_entity_id.value)
 
                     if not story:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
@@ -252,17 +257,18 @@ async def update_story(
                     break  # Exit after first iteration
 
             except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from None
 
         # Proceed with update
-        result = await use_case.execute(story_id=str(story_id), request=payload)
+        user_id = str(current_user["sub"])
+        result = await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
 
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.delete("/{story_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -303,12 +309,12 @@ async def delete_story(
                 # Get story to check ownership
                 async for session in get_database_session():
                     story_repo_inst = StoryRepositoryImpl(session)
-                    story = await story_repo_inst.find_by_id(story_entity_id)
+                    story = await story_repo_inst.find_by_id(story_entity_id.value)
 
                     if not story:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
-                    user_id = current_user.get("sub")
+                    user_id = str(current_user["sub"])
                     if story.created_by.value != user_id:
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
@@ -319,10 +325,11 @@ async def delete_story(
                     break  # Exit after first iteration
 
             except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from None
 
         # Proceed with delete
-        deleted = await use_case.execute(str(story_id))
+        user_id = str(current_user["sub"])
+        deleted = await use_case.execute(story_id=str(story_id), created_by=user_id)
 
         if not deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
@@ -359,9 +366,11 @@ async def assign_story(
     """
 
     async def execute():
+        user_id = str(current_user["sub"])
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=payload.user_id,
+            created_by=user_id,
         )
 
         if not result:
@@ -369,4 +378,4 @@ async def assign_story(
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
