@@ -10,10 +10,7 @@ from src.app.features.user.domain.repositories.user_repository import UserReposi
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
-from src.app.shared.logging import get_logger
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class RefreshTokenRequest(BaseModel):
@@ -72,33 +69,39 @@ class RefreshTokenUseCase:
             ValueError: If user not found
         """
         token_revocation = get_token_revocation_service()
+        log = None
 
         try:
-            # Check if token has already been used (revoked)
-            if token_revocation.is_revoked(payload.refresh_token):
-                log.warning("Attempt to reuse revoked refresh token")
-                raise jwt.InvalidTokenError("Refresh token has already been used")
-
-            # Decode and validate refresh token
+            # Decode and validate refresh token first to get user context
             refresh_payload = self.jwt_handler.decode_refresh_token(payload.refresh_token)
 
-            user_id = refresh_payload.get("sub")
-            email = refresh_payload.get("email")
+            user_id = str(refresh_payload["sub"])
+            email = str(refresh_payload["email"])
+            log = BusinessLogger(get_logger(__name__), user_id=user_id)
+
+            # Check if token has already been used (revoked)
+            if token_revocation.is_revoked(payload.refresh_token):
+                log.warning("Attempt to reuse revoked refresh token", event_type="auth.refresh.token_reused")
+                raise jwt.InvalidTokenError("Refresh token has already been used")
 
             # Revoke the old refresh token immediately (single-use token)
             token_revocation.revoke_token(payload.refresh_token)
-            log.info(f"Refresh token revoked for user: {user_id}")
+            log.info("Refresh token revoked", event_type="auth.refresh.token_revoked")
 
             # Verify user still exists
             user_entity = await self.user_repository.find_by_email(Email(email))
 
             if not user_entity:
-                log.warning(f"Refresh token used for non-existent user: {email}")
+                log.warning(
+                    "Refresh token used for non-existent user", event_type="auth.refresh.user_not_found", email=email
+                )
                 raise ValueError("User not found")
 
             # Verify user_id matches
             if str(user_entity.id) != user_id:
-                log.warning(f"User ID mismatch in refresh token for email: {email}")
+                log.warning(
+                    "User ID mismatch in refresh token", event_type="auth.refresh.user_id_mismatch", email=email
+                )
                 raise jwt.InvalidTokenError("Invalid user credentials in token")
 
             # Generate new access token
@@ -115,7 +118,7 @@ class RefreshTokenUseCase:
                 role=user_entity.role.value,
             )
 
-            log.info(f"Tokens refreshed successfully for user: {user_id}")
+            log.info("Tokens refreshed successfully", event_type="auth.refresh.success", user_id=str(user_entity.id))
 
             return RefreshTokenResponse(
                 access_token=new_access_token,
@@ -125,5 +128,8 @@ class RefreshTokenUseCase:
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             raise
         except Exception as e:
-            log.error(f"Unexpected error in RefreshTokenUseCase: {e!s}")
+            if log:
+                log.error(
+                    "Unexpected error in RefreshTokenUseCase", error=e, error_type="auth.refresh.unexpected_error"
+                )
             raise

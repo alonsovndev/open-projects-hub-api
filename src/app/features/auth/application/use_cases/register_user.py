@@ -15,10 +15,7 @@ from src.app.features.user.application.exceptions.user_exception import UserAlre
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import get_logger
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import ApplicationLogger, get_logger
 
 
 class RegisterUserUseCase:
@@ -47,6 +44,8 @@ class RegisterUserUseCase:
             UserAlreadyExistsException: If email already exists
             ValueError: If validation fails
         """
+        log = ApplicationLogger(get_logger(__name__), component="auth")
+
         try:
             password_hash = await PasswordHandler.hash_password(payload.password)
 
@@ -56,14 +55,22 @@ class RegisterUserUseCase:
             existing_user = await self.user_repository.find_by_email(new_user_entity.email)
 
             if existing_user:
-                log.warning(f"Registration attempt with existing email: {new_user_entity.email}")
+                log.warning(
+                    "Registration attempt with existing email",
+                    event_type="auth.register.email_exists",
+                    email=str(new_user_entity.email),
+                )
                 raise UserAlreadyExistsException(str(new_user_entity.email))
 
             created_user = await self.user_repository.save(new_user_entity)
 
             # Handle race condition where another request created the user between check and save
             if created_user is None:
-                log.warning(f"Race condition: User with email {new_user_entity.email} was created by another request")
+                log.warning(
+                    "Race condition during registration",
+                    event_type="auth.register.race_condition",
+                    email=str(new_user_entity.email),
+                )
                 raise UserAlreadyExistsException(str(new_user_entity.email))
 
             token = self.jwt_handler.create_access_token(
@@ -76,11 +83,13 @@ class RegisterUserUseCase:
 
             response = AdminLoginResponse.from_user_entity(created_user, token, refresh_token)
 
-            log.info(f"User registered successfully: {created_user.id}")
+            log.info(
+                "User registered successfully", event_type="auth.register.success", user_id=str(created_user.id.value)
+            )
             return response
 
         except (ValueError, UserAlreadyExistsException):
             raise
         except Exception as e:
-            log.error(f"Unexpected error in RegisterUserUseCase: {e!s}")
+            log.error("Unexpected error in RegisterUserUseCase", error=e, error_type="auth.register.unexpected_error")
             raise
