@@ -10,10 +10,7 @@ from src.app.features.user.application.exceptions.user_exception import UserNotF
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class ChangePasswordUseCase:
@@ -39,6 +36,8 @@ class ChangePasswordUseCase:
             UserNotFoundException: If user doesn't exist
             ValueError: If validation fails or current password incorrect
         """
+        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+
         try:
             # Validate new password
             self._validate_password(new_password)
@@ -49,10 +48,8 @@ class ChangePasswordUseCase:
             if user_entity is None:
                 log.warning(
                     "User not found for password change",
-                    extra={
-                        "user_id": user_id,
-                        "event_type": "user.password.change.user_not_found",
-                    },
+                    event_type="user.password.change.user_not_found",
+                    user_id=user_id,
                 )
                 raise UserNotFoundException(user_id)
 
@@ -62,10 +59,8 @@ class ChangePasswordUseCase:
             if not is_valid:
                 log.warning(
                     "Incorrect current password for password change",
-                    extra={
-                        "user_id": user_id,
-                        "event_type": "user.password.change.incorrect_password",
-                    },
+                    event_type="user.password.change.incorrect_password",
+                    user_id=user_id,
                 )
                 raise ValueError("Current password is incorrect")
 
@@ -78,23 +73,12 @@ class ChangePasswordUseCase:
             # Save updated entity
             await self.user_repository.save(user_entity)
 
-            log_business_event(
-                logger=log,
-                event_type="user.password.changed",
-                message="Password changed successfully",
-                user_id=user_id,
-            )
+            log.event("user.password.changed")
 
         except (UserNotFoundException, ValueError):
             raise
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="user.password.change.unexpected_error",
-                message="Unexpected error during password change",
-                error=e,
-                user_id=user_id,
-            )
+            log.failure("user.password.change.unexpected_error", error=e)
             raise
 
     def _validate_password(self, password: str) -> None:

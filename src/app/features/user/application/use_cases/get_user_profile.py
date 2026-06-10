@@ -8,10 +8,7 @@ from src.app.features.user.application.dtos.user_dto import UserResponse
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import get_logger
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class GetUserProfileUseCase:
@@ -37,11 +34,13 @@ class GetUserProfileUseCase:
         Raises:
             UserNotFoundException: If user doesn't exist
         """
+        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+
         try:
             user_entity = await self.user_repository.find_by_id(EntityId.from_string(user_id))
 
             if user_entity is None:
-                log.warning(f"User profile not found: {user_id}")
+                log.failure("user.profile.not_found", entity_id=user_id)
                 raise UserNotFoundException(user_id)
 
             response = UserResponse(
@@ -51,11 +50,11 @@ class GetUserProfileUseCase:
                 role=user_entity.role.value,
             )
 
-            log.info(f"User profile retrieved: {user_id}")
+            log.event("user.profile.retrieved", entity_id=user_id)
             return response
 
         except UserNotFoundException:
             raise
         except Exception as e:
-            log.error(f"Unexpected error in GetUserProfileUseCase: {e!s}")
+            log.failure("user.profile.unexpected_error", error=e, entity_id=user_id)
             raise

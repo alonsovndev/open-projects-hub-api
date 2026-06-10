@@ -221,6 +221,7 @@ async def create_user(
     """
 
     async def execute():
-        return await create_user_use_case.execute(payload)
+        user_id = str(current_user["sub"])
+        return await create_user_use_case.execute(payload, created_by=user_id)
 
     return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)  # type: ignore[no-any-return]
