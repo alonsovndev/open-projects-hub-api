@@ -8,6 +8,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class ApproveDraftsBulkUseCase:
@@ -28,7 +29,7 @@ class ApproveDraftsBulkUseCase:
         self._draft_repository = draft_repository
         self._story_repository = story_repository
 
-    async def execute(self, draft_ids: list[str]) -> list[StoryResponse]:
+    async def execute(self, draft_ids: list[str], created_by: str) -> list[StoryResponse]:
         """
         Execute bulk approve drafts use case.
 
@@ -36,6 +37,7 @@ class ApproveDraftsBulkUseCase:
 
         Args:
             draft_ids: List of draft IDs
+            created_by: User ID approving the drafts
 
         Returns:
             List of StoryResponse with created story data
@@ -43,7 +45,10 @@ class ApproveDraftsBulkUseCase:
         Raises:
             ValueError: If any draft validation fails
         """
+        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+
         if not draft_ids:
+            log.warning("Bulk approve called with empty draft list", event_type="refinement.bulk_approve.empty_list")
             return []
 
         created_stories: list[StoryResponse] = []
@@ -53,7 +58,11 @@ class ApproveDraftsBulkUseCase:
             draft = await self._draft_repository.find_by_id(draft_entity_id.value)
 
             if not draft:
-                # Allow partial success - skip missing drafts instead of failing entire batch
+                log.warning(
+                    "Draft not found in bulk approval",
+                    event_type="refinement.bulk_approve.draft_not_found",
+                    entity_id=draft_id,
+                )
                 continue
 
             story = await self._create_story_from_draft(draft)
@@ -62,7 +71,24 @@ class ApproveDraftsBulkUseCase:
             draft.mark_applied()
             await self._draft_repository.save(draft)
 
+            log.event(
+                "refinement.draft.approved",
+                entity_id=draft_id,
+                story_id=str(story.id.value),
+                project_id=str(draft.project_id.value),
+                story_title=story.title,
+            )
+
             created_stories.append(to_story_response(story))
+
+        if created_stories:
+            log.info(
+                "Bulk approval completed",
+                event_type="refinement.bulk_approve.completed",
+                approved_count=len(created_stories),
+            )
+        else:
+            log.warning("No drafts were approved in bulk operation", event_type="refinement.bulk_approve.no_results")
 
         return created_stories
 

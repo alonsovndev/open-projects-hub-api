@@ -55,9 +55,11 @@ async def update_draft(
     """
 
     async def execute():
+        user_id = str(current_user["sub"])
         result = await use_case.execute(
             draft_id=str(draft_id),
             request=payload,
+            created_by=user_id,
         )
 
         if not result:
@@ -68,7 +70,7 @@ async def update_draft(
 
         return {"id": str(result.id.value)}
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.post("/generate-stories", response_model=GenerateStoriesResponse)
@@ -99,15 +101,15 @@ async def generate_stories(
         try:
             return await use_case.execute(
                 request=payload,
-                created_by=current_user.get("sub"),
+                created_by=str(current_user["sub"]),
             )
         except AIServiceError as e:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"AI service error: {e!s}",
-            )
+            ) from e
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.post("/drafts/{draft_id}/approve", response_model=StoryResponse)
@@ -136,7 +138,8 @@ async def approve_draft(
     """
 
     async def execute():
-        result = await use_case.execute(str(draft_id))
+        user_id = str(current_user["sub"])
+        result = await use_case.execute(str(draft_id), created_by=user_id)
 
         if not result:
             raise HTTPException(
@@ -146,7 +149,7 @@ async def approve_draft(
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.post("/approve-drafts", response_model=ApproveDraftsBulkResponse)
@@ -174,7 +177,8 @@ async def approve_drafts_bulk(
     """
 
     async def execute():
-        stories = await use_case.execute(payload.draft_ids)
+        user_id = str(current_user["sub"])
+        stories = await use_case.execute(payload.draft_ids, created_by=user_id)
 
         if not stories:
             raise HTTPException(
@@ -187,4 +191,4 @@ async def approve_drafts_bulk(
             stories=[{"id": s.id, "title": s.title} for s in stories],
         )
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]

@@ -4,10 +4,10 @@ from src.app.config.app_config import AppConfig
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
 from src.app.features.refinement.infrastructure.ai.gemini_service import GeminiService
 from src.app.features.refinement.infrastructure.ai.mock_service import MockAIService
-from src.app.shared.logging import get_logger
+from src.app.shared.logging import ApplicationLogger, get_logger
 
 
-log = get_logger(__name__)
+log = ApplicationLogger(get_logger(__name__), component="ai_factory")
 
 
 def create_ai_service() -> AIService:
@@ -35,7 +35,7 @@ def create_ai_service() -> AIService:
         log.info("Using MockAIService for story refinement (explicit config)")
         return MockAIService()
     if provider == "gemini" and is_valid_key(gemini_key):
-        log.info("Using Gemini service for story refinement (model: %s)", gemini_model)
+        log.info(f"Using Gemini service for story refinement (model: {gemini_model})")
         return GeminiService(api_key=gemini_key, model=gemini_model)
 
     # Auto-detect if no explicit provider

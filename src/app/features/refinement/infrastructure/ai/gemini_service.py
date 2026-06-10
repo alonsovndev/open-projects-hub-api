@@ -13,10 +13,7 @@ from src.app.features.refinement.infrastructure.ai.ai_service import (
     RefinementResult,
     RefinementSuggestion,
 )
-from src.app.shared.logging import get_logger
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import IntegrationLogger, get_logger
 
 
 class GeminiService(AIService):
@@ -98,6 +95,7 @@ Return ONLY a valid JSON object with this exact structure:
         self._base_url = base_url
         self._temperature = temperature
         self._max_tokens = max_tokens
+        self._log = IntegrationLogger(get_logger(__name__), service_name="gemini")
 
     async def refine_story(
         self,
@@ -175,14 +173,14 @@ Return ONLY a valid JSON object with this exact structure:
                 content = data["candidates"][0]["content"]["parts"][0]["text"]
 
                 # Log raw response for debugging
-                log.debug(f"Gemini raw response length: {len(content)} chars")
+                self._log.debug(f"Gemini raw response length: {len(content)} chars")
 
                 return self._parse_response(content)
 
         except AIServiceError:
             raise
         except Exception as e:
-            raise AIServiceError(f"Failed to call Gemini API: {e!s}")
+            raise AIServiceError(f"Failed to call Gemini API: {e!s}") from e
 
     async def is_available(self) -> bool:
         """Check if Gemini service is configured."""
@@ -256,14 +254,14 @@ Return ONLY a valid JSON object with this exact structure:
                 data = response.json()
                 content = data["candidates"][0]["content"]["parts"][0]["text"]
 
-                log.debug(f"Gemini bulk generation response length: {len(content)} chars")
+                self._log.debug(f"Gemini bulk generation response length: {len(content)} chars")
 
                 return self._parse_bulk_generation(content, raw_notes)
 
         except AIServiceError:
             raise
         except Exception as e:
-            raise AIServiceError(f"Failed to call Gemini API for bulk generation: {e!s}")
+            raise AIServiceError(f"Failed to call Gemini API for bulk generation: {e!s}") from e
 
     def _build_user_prompt(
         self,
@@ -302,8 +300,8 @@ Return ONLY a valid JSON object with this exact structure:
                 data = json.loads(json_str)
             except json.JSONDecodeError as e:
                 # If JSON is malformed, log it and try to fix common issues
-                log.warning(f"Malformed JSON from Gemini (length {len(json_str)}): {e!s}")
-                log.debug(f"Raw content preview: {json_str[:500]}...")
+                self._log.warning(f"Malformed JSON from Gemini (length {len(json_str)}): {e!s}")
+                self._log.debug(f"Raw content preview: {json_str[:500]}...")
 
                 # Try to extract and fix the JSON
                 # Remove any trailing commas before closing braces/brackets
@@ -330,9 +328,9 @@ Return ONLY a valid JSON object with this exact structure:
             )
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            log.error(f"Failed to parse Gemini response: {e}")
-            log.error(f"Content that failed: {content[:1000]}")
-            raise AIServiceError(f"Invalid Gemini response format: {e!s}")
+            self._log.error(f"Failed to parse Gemini response: {e}")
+            self._log.error(f"Content that failed: {content[:1000]}")
+            raise AIServiceError(f"Invalid Gemini response format: {e!s}") from e
 
     def _parse_bulk_generation(self, content: str, raw_notes: str) -> BulkGenerationResult:
         """Parse the bulk generation response JSON."""
@@ -348,7 +346,7 @@ Return ONLY a valid JSON object with this exact structure:
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError as e:
-                log.warning(f"Malformed JSON from bulk generation: {e!s}")
+                self._log.warning(f"Malformed JSON from bulk generation: {e!s}")
                 json_str = re.sub(r",(\s*[}\]])", r"\1", json_str)
                 data = json.loads(json_str)
 
@@ -369,6 +367,6 @@ Return ONLY a valid JSON object with this exact structure:
             )
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            log.error(f"Failed to parse bulk generation response: {e}")
-            log.error(f"Content that failed: {content[:1000]}")
-            raise AIServiceError(f"Invalid bulk generation response format: {e!s}")
+            self._log.error(f"Failed to parse bulk generation response: {e}")
+            self._log.error(f"Content that failed: {content[:1000]}")
+            raise AIServiceError(f"Invalid bulk generation response format: {e!s}") from e

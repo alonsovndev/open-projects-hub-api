@@ -8,10 +8,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class ApproveDraftUseCase:
@@ -32,7 +29,7 @@ class ApproveDraftUseCase:
         self._draft_repository = draft_repository
         self._story_repository = story_repository
 
-    async def execute(self, draft_id: str) -> StoryResponse | None:
+    async def execute(self, draft_id: str, created_by: str) -> StoryResponse | None:
         """
         Execute approve draft use case.
 
@@ -40,6 +37,7 @@ class ApproveDraftUseCase:
 
         Args:
             draft_id: Draft ID
+            created_by: User ID approving the draft
 
         Returns:
             StoryResponse with created story data, or None if draft not found
@@ -47,18 +45,14 @@ class ApproveDraftUseCase:
         Raises:
             ValueError: If draft validation fails
         """
+        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+
         try:
             draft_entity_id = EntityId.from_string(draft_id)
             draft = await self._draft_repository.find_by_id(draft_entity_id.value)
 
             if not draft:
-                log.warning(
-                    "Draft not found for approval",
-                    extra={
-                        "draft_id": draft_id,
-                        "event_type": "refinement.approve.not_found",
-                    },
-                )
+                log.failure("refinement.approve.not_found", entity_id=draft_id)
                 return None
 
             story = await self._create_story_from_draft(draft)
@@ -67,28 +61,18 @@ class ApproveDraftUseCase:
             draft.mark_applied()
             await self._draft_repository.save(draft)
 
-            log_business_event(
-                logger=log,
-                event_type="refinement.draft.approved",
-                message="Draft approved and converted to story",
+            log.event(
+                "refinement.draft.approved",
                 entity_id=draft_id,
-                additional_data={
-                    "story_id": str(story.id.value),
-                    "project_id": str(draft.project_id.value),
-                    "story_title": story.title,
-                },
+                story_id=str(story.id.value),
+                project_id=str(draft.project_id.value),
+                story_title=story.title,
             )
 
             return to_story_response(story)
 
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="refinement.approve.failed",
-                message="Failed to approve draft",
-                error=e,
-                additional_data={"draft_id": draft_id},
-            )
+            log.failure("refinement.approve.failed", error=e, entity_id=draft_id)
             raise
 
     async def _create_story_from_draft(self, draft: StoryDraftEntity) -> StoryEntity:
@@ -126,15 +110,6 @@ class ApproveDraftUseCase:
         saved_story = await self._story_repository.save(story)
 
         if not saved_story:
-            log_error_event(
-                logger=log,
-                error_type="refinement.approve.story_creation_failed",
-                message="Failed to create story from draft",
-                additional_data={
-                    "draft_id": str(draft.id.value),
-                    "project_id": str(draft.project_id.value),
-                },
-            )
             raise ValueError("Failed to create story from draft")
 
         return saved_story

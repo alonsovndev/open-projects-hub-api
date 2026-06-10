@@ -10,10 +10,7 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class GenerateStoriesFromNotesUseCase:
@@ -52,25 +49,23 @@ class GenerateStoriesFromNotesUseCase:
         Raises:
             AIServiceError: If AI service fails
         """
+        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+
         try:
             log.info(
                 "Starting AI story generation from notes",
-                extra={
-                    "project_id": request.project_id,
-                    "notes_length": len(request.raw_notes),
-                    "event_type": "refinement.generate.started",
-                },
+                event_type="refinement.generate.started",
+                project_id=request.project_id,
+                notes_length=len(request.raw_notes),
             )
 
             result = await self._ai_service.generate_stories_from_notes(request.raw_notes)
 
             log.info(
                 "AI service generated stories successfully",
-                extra={
-                    "project_id": request.project_id,
-                    "story_count": len(result.stories),
-                    "event_type": "refinement.generate.ai_completed",
-                },
+                event_type="refinement.generate.ai_completed",
+                project_id=request.project_id,
+                story_count=len(result.stories),
             )
 
             project_uuid = EntityId.from_string(request.project_id)
@@ -96,16 +91,11 @@ class GenerateStoriesFromNotesUseCase:
                     )
                 )
 
-            log_business_event(
-                logger=log,
-                event_type="refinement.stories.generated",
-                message="Stories generated from notes successfully",
+            log.event(
+                "refinement.stories.generated",
                 entity_id=request.project_id,
-                user_id=created_by,
-                additional_data={
-                    "story_count": len(story_responses),
-                    "notes_length": len(request.raw_notes),
-                },
+                story_count=len(story_responses),
+                notes_length=len(request.raw_notes),
             )
 
             return GenerateStoriesResponse(
@@ -114,14 +104,5 @@ class GenerateStoriesFromNotesUseCase:
             )
 
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="refinement.generate.failed",
-                message="Failed to generate stories from notes",
-                error=e,
-                additional_data={
-                    "project_id": request.project_id,
-                    "user_id": created_by,
-                },
-            )
+            log.failure("refinement.generate.failed", error=e, project_id=request.project_id)
             raise
