@@ -165,6 +165,11 @@ from src.app.features.projects.presentation.dependencies import get_create_proje
 - Use cases return concrete use case classes
 - Infrastructure services may use singleton pattern (e.g., AI service)
 
+**FastAPI vs Plain Factories:**
+- Use `async def` factories with `Depends(...)` for standard DI in routes and use case wiring
+- Use `def` (synchronous) plain factories (e.g., `build_story_repository`) when FastAPI `Depends()` resolution is not available — typically in auth dependency closures or path-parameter-dependent authorization checks
+- Both variants live in the same composition module; the plain factory is a thin wrapper that bypasses DI for constrained contexts
+
 **Adding New Dependencies:**
 1. Create factory function in appropriate composition module
 2. Return interface type from factory (for repositories)

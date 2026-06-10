@@ -80,11 +80,37 @@ async def get_story_repository(
     is shared because both manual story creation (stories feature) and AI-generated
     story approval (refinement feature) operate on the same Story domain entity.
 
+    This function uses FastAPI's Depends() for DI. For contexts where Depends()
+    is not available (e.g., auth dependencies), use build_story_repository() instead.
+
     Args:
         session: Request-scoped database session from infrastructure layer
 
     Returns:
         StoryRepository: Story repository interface implementation
+    """
+
+    return StoryRepositoryImpl(session)
+
+
+def build_story_repository(session: AsyncSession) -> StoryRepository:
+    """
+    Plain factory for StoryRepository (no FastAPI Depends dependency).
+
+    Use this outside of FastAPI DI resolution (e.g., in auth_dependencies.py's
+    create_story_owner_or_admin_dependency factory, or in route handler closures
+    that need inline repository access).
+
+    Args:
+        session: SQLAlchemy async session (already resolved)
+
+    Returns:
+        StoryRepository: Story repository implementation
+
+    Example:
+        async for session in get_database_session():
+            repo = build_story_repository(session)
+            story = await repo.find_by_id(story_id)
     """
 
     return StoryRepositoryImpl(session)

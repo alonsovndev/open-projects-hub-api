@@ -9,12 +9,14 @@ from fastapi.params import Depends
 from src.app.composition import (
     get_assign_story_use_case,
     get_create_story_use_case,
+    get_database_session,
     get_delete_story_use_case,
     get_get_stories_by_project_use_case,
     get_get_story_by_id_use_case,
     get_list_stories_use_case,
     get_update_story_use_case,
 )
+from src.app.composition.repositories import build_story_repository
 from src.app.features.auth.presentation.auth_dependencies import get_current_user
 from src.app.features.stories.application.dtos.story_dto import (
     AssignStoryRequest,
@@ -37,6 +39,39 @@ from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 router = APIRouter()
 handler = BaseRouteHandler()
+
+
+async def _authorize_story_owner_or_admin(story_id: str, current_user: dict[str, Any]) -> None:
+    """Verify the current user is the story owner or an admin.
+
+    Raises:
+        HTTPException 400: Invalid story ID format
+        HTTPException 403: Not authorized
+        HTTPException 404: Story not found
+    """
+    user_role = current_user.get("role")
+    if user_role == UserRole.ADMIN.value:
+        return
+
+    try:
+        story_entity_id = EntityId.from_string(story_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from None
+
+    async for session in get_database_session():
+        story_repo = build_story_repository(session)
+        story = await story_repo.find_by_id(story_entity_id.value)
+
+        if not story:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+
+        user_id = current_user.get("sub")
+        if story.created_by.value != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to modify this story. Only the creator or an admin can modify stories.",
+            )
+        return
 
 
 @router.post("", response_model=StoryResponse, status_code=status.HTTP_201_CREATED)
@@ -228,38 +263,8 @@ async def update_story(
     """
 
     async def execute():
-        # Authorization check: admin or story owner
-        user_role = current_user.get("role")
-        if user_role != UserRole.ADMIN.value:
-            # Not admin - check if user is story owner
-            from src.app.composition import get_database_session
-            from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
+        await _authorize_story_owner_or_admin(str(story_id), current_user)
 
-            try:
-                story_entity_id = EntityId.from_string(str(story_id))
-
-                # Get story to check ownership
-                async for session in get_database_session():
-                    story_repo_inst = StoryRepositoryImpl(session)
-                    story = await story_repo_inst.find_by_id(story_entity_id.value)
-
-                    if not story:
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-                    user_id = current_user.get("sub")
-                    if story.created_by.value != user_id:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail=(
-                                "Not authorized to modify this story. Only the creator or an admin can modify stories."
-                            ),
-                        )
-                    break  # Exit after first iteration
-
-            except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from None
-
-        # Proceed with update
         user_id = str(current_user["sub"])
         result = await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
 
@@ -296,38 +301,8 @@ async def delete_story(
     """
 
     async def execute():
-        # Authorization check: admin or story owner
-        user_role = current_user.get("role")
-        if user_role != UserRole.ADMIN.value:
-            # Not admin - check if user is story owner
-            from src.app.composition import get_database_session
-            from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
+        await _authorize_story_owner_or_admin(str(story_id), current_user)
 
-            try:
-                story_entity_id = EntityId.from_string(str(story_id))
-
-                # Get story to check ownership
-                async for session in get_database_session():
-                    story_repo_inst = StoryRepositoryImpl(session)
-                    story = await story_repo_inst.find_by_id(story_entity_id.value)
-
-                    if not story:
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-                    user_id = str(current_user["sub"])
-                    if story.created_by.value != user_id:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail=(
-                                "Not authorized to delete this story. Only the creator or an admin can delete stories."
-                            ),
-                        )
-                    break  # Exit after first iteration
-
-            except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from None
-
-        # Proceed with delete
         user_id = str(current_user["sub"])
         deleted = await use_case.execute(story_id=str(story_id), created_by=user_id)
 

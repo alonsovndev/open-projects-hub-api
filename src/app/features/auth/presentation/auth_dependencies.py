@@ -5,6 +5,8 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from src.app.composition import get_database_session
+from src.app.composition.repositories import build_story_repository
 from src.app.config.app_config import AppConfig
 from src.app.features.auth.domain.exceptions.auth_exceptions import UnauthorizedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -131,12 +133,8 @@ def create_story_owner_or_admin_dependency(story_id: str):
             # Parse story ID
             story_entity_id = EntityId.from_string(story_id)
 
-            # Get database session and repository
-            from src.app.composition import get_database_session
-            from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
-
             async for session in get_database_session():
-                story_repo = StoryRepositoryImpl(session)
+                story_repo = build_story_repository(session)
                 # Convert EntityId to UUID for repository call
                 story = await story_repo.find_by_id(story_entity_id.value)
 

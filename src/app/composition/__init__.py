@@ -32,7 +32,7 @@ Design Pattern:
 """
 
 # ============================================================================
-# Infrastructure (Level 1)
+# Infrastructure (Level 1) - DB session, external services
 # ============================================================================
 # ============================================================================
 # Feature: Auth
@@ -106,57 +106,63 @@ from src.app.composition.infrastructure import get_ai_service, get_database_sess
 # ============================================================================
 # Repositories - Shared (Level 2)
 # ============================================================================
-from src.app.composition.repositories import get_client_repository, get_story_repository, get_user_repository
+from src.app.composition.repositories import (
+    build_story_repository,
+    get_client_repository,
+    get_story_repository,
+    get_user_repository,
+)
 
 
 # ============================================================================
 # Public API Exports
 # ============================================================================
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by category for readability
     # Infrastructure
     "get_ai_service",
+    "get_database_session",
+    # Repositories (shared)
+    "build_story_repository",
+    "get_client_repository",
+    "get_story_repository",
+    "get_user_repository",
+    # Auth
+    "get_login_use_case",
+    "get_refresh_token_use_case",
+    "get_register_use_case",
+    # Clients
+    "get_create_client_use_case",
+    "get_delete_client_use_case",
+    "get_get_client_by_id_use_case",
+    "get_get_clients_use_case",
+    "get_update_client_use_case",
+    # Dashboard
+    "get_dashboard_stats_use_case",
+    # Projects
+    "get_create_project_use_case",
+    "get_delete_project_use_case",
+    "get_list_projects_use_case",
+    "get_project_by_id_use_case",
+    "get_project_repository",
+    "get_update_project_use_case",
     # Refinement
     "get_approve_draft_use_case",
     "get_approve_drafts_bulk_use_case",
-    # Stories
-    "get_assign_story_use_case",
-    # Users
-    "get_change_password_use_case",
-    # Repositories (shared)
-    "get_client_repository",
-    # Clients
-    "get_create_client_use_case",
-    # Projects
-    "get_create_project_use_case",
-    "get_create_story_use_case",
-    "get_create_user_use_case",
-    # Dashboard
-    "get_dashboard_stats_use_case",
-    "get_database_session",
-    "get_delete_client_use_case",
-    "get_delete_project_use_case",
-    "get_delete_story_use_case",
     "get_draft_repository",
     "get_generate_stories_use_case",
-    "get_get_client_by_id_use_case",
-    "get_get_clients_use_case",
+    "get_update_draft_use_case",
+    # Stories
+    "get_assign_story_use_case",
+    "get_create_story_use_case",
+    "get_delete_story_use_case",
     "get_get_stories_by_project_use_case",
     "get_get_story_by_id_use_case",
+    "get_list_stories_use_case",
+    "get_update_story_use_case",
+    # Users
+    "get_change_password_use_case",
+    "get_create_user_use_case",
     "get_get_user_by_id_use_case",
     "get_get_user_profile_use_case",
-    "get_list_projects_use_case",
-    "get_list_stories_use_case",
-    # Auth
-    "get_login_use_case",
-    "get_project_by_id_use_case",
-    "get_project_repository",
-    "get_refresh_token_use_case",
-    "get_register_use_case",
-    "get_story_repository",
-    "get_update_client_use_case",
-    "get_update_draft_use_case",
-    "get_update_project_use_case",
-    "get_update_story_use_case",
     "get_update_user_profile_use_case",
-    "get_user_repository",
 ]
