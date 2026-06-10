@@ -4,7 +4,7 @@ Tests for ApproveDraftUseCase.
 Tests draft approval and story conversion.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -40,8 +40,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -55,8 +55,8 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
@@ -104,8 +104,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -119,8 +119,8 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
@@ -149,8 +149,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
         mock_story_repo.save.return_value = None
@@ -178,8 +178,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -193,8 +193,8 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
@@ -225,8 +225,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -240,8 +240,8 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft

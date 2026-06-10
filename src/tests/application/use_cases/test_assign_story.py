@@ -4,7 +4,7 @@ Tests for AssignStoryUseCase.
 Tests story assignment including validation and error handling.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -39,8 +39,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -79,8 +79,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.IN_PROGRESS,
             priority=StoryPriority.HIGH,
             points=5,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -136,8 +136,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = None
@@ -170,8 +170,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -205,8 +205,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
 

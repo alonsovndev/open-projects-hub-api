@@ -4,7 +4,7 @@ Tests for UpdateStoryDraftUseCase.
 Tests draft update including validation and error handling.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -35,8 +35,8 @@ class TestUpdateStoryDraftUseCase:
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_draft
 
@@ -49,7 +49,7 @@ class TestUpdateStoryDraftUseCase:
             created_by=existing_draft.created_by,
             status=RefinementStatus.DRAFT,
             created_at=existing_draft.created_at,
-            updated_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.save.return_value = updated_draft
 
@@ -125,8 +125,8 @@ class TestUpdateStoryDraftUseCase:
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_draft
         mock_repo.save.return_value = existing_draft

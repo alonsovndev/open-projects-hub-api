@@ -1,7 +1,7 @@
 import asyncio
-import os
 import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import pool
@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 
 # Add the project's root directory to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.app.config.app_config import AppConfig
 from src.app.shared.persistence.base_model import Base
@@ -35,7 +35,9 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Dynamically load database URL from AppConfig
-postgres_config: dict = AppConfig.instance().get_config("postgres", {})
+# Try new persistence config first, fall back to legacy postgres config
+app_config = AppConfig.instance()
+postgres_config: dict = app_config.get_config("persistence.postgres", {}) or app_config.get_config("postgres", {})
 db_host = postgres_config.get("host", "")
 db_port = postgres_config.get("port", 5432)
 db_name = postgres_config.get("dbname", "")

@@ -1,6 +1,6 @@
 """Tests for GetClientsUseCase."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -22,14 +22,14 @@ class TestGetClientsUseCase:
         client1 = ClientEntity(
             id=EntityId.generate(),
             name="Client One",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
         client2 = ClientEntity(
             id=EntityId.generate(),
             name="Client Two",
-            created_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=UTC),
         )
 
         mock_repo.find_all.return_value = [client1, client2]
@@ -106,8 +106,8 @@ class TestGetClientsUseCase:
         client = ClientEntity(
             id=EntityId.generate(),
             name="Full Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
         client._email = None
         client._phone = None

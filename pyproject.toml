@@ -2,7 +2,7 @@
 name = "open-projects-hub-api"
 version = "1.0.0"
 description = "FastAPI backend for Open Projects Hub"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 # Line length
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 # Source directories
 src = ["src", "scripts"]
@@ -90,7 +90,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "S105",    # Possible hardcoded password (test data)
     "S106",    # Possible hardcoded password (test data)
     "PLR2004", # Magic value used in comparison
-    "UP017",   # datetime.UTC alias requires Python 3.11+
 ]
 "alembic/**/*.py" = [
     "E402",    # Module level import not at top
@@ -249,7 +248,7 @@ show_contexts = true
 
 # ==================== MyPy Configuration ====================
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = false
 warn_return_any = true
 warn_unused_configs = true

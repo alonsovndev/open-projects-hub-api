@@ -4,7 +4,7 @@ Tests for ApproveDraftsBulkUseCase.
 Tests bulk draft approval and story conversion.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -41,8 +41,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         draft_2 = StoryDraftEntity(
             id=draft_id_2,
@@ -52,8 +52,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         def find_side_effect(draft_id):
@@ -115,8 +115,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         def find_side_effect(draft_id):
@@ -136,8 +136,8 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.save.return_value = story_1
         mock_draft_repo.save.return_value = draft_1
@@ -185,8 +185,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         draft_2 = StoryDraftEntity(
             id=draft_id_2,
@@ -196,8 +196,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         def find_side_effect(draft_id):
@@ -219,8 +219,8 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         story_2 = StoryEntity(
             id=EntityId.generate(),
@@ -232,8 +232,8 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         def save_side_effect(entity):
@@ -267,8 +267,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = draft
         mock_story_repo.save.return_value = None

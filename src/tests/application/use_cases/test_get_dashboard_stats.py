@@ -4,7 +4,7 @@ Tests for GetDashboardStatsUseCase.
 Tests dashboard statistics retrieval including aggregated counts.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -52,8 +52,8 @@ class TestGetDashboardStatsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_project_repo.find_all.return_value = [(project1, "Client 1")]
 
@@ -67,8 +67,8 @@ class TestGetDashboardStatsUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.HIGH,
             points=5,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_story_repo.find_all.return_value = [story1]
 
@@ -123,8 +123,8 @@ class TestGetDashboardStatsUseCase:
                     priority=ProjectPriority.MEDIUM,
                     start_date=None,
                     end_date=None,
-                    created_at=datetime.now(tz=timezone.utc),
-                    updated_at=datetime.now(tz=timezone.utc),
+                    created_at=datetime.now(tz=UTC),
+                    updated_at=datetime.now(tz=UTC),
                 ),
                 f"Client {i}",
             )
@@ -143,8 +143,8 @@ class TestGetDashboardStatsUseCase:
                 status=StoryStatus.TODO,
                 priority=StoryPriority.MEDIUM,
                 points=None,
-                created_at=datetime.now(tz=timezone.utc),
-                updated_at=datetime.now(tz=timezone.utc),
+                created_at=datetime.now(tz=UTC),
+                updated_at=datetime.now(tz=UTC),
             )
             for i in range(5)
         ]
@@ -208,7 +208,7 @@ class TestGetDashboardStatsUseCase:
 
         user_id = uuid4()
         project_id = EntityId.generate()
-        created_at = datetime(2026, 5, 10, 12, 0, 0, tzinfo=timezone.utc)
+        created_at = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
 
         mock_dashboard_repo.get_aggregated_stats.return_value = {
             "total_projects": 1,
@@ -258,7 +258,7 @@ class TestGetDashboardStatsUseCase:
 
         user_id = uuid4()
         story_id = EntityId.generate()
-        created_at = datetime(2026, 5, 10, 14, 30, 0, tzinfo=timezone.utc)
+        created_at = datetime(2026, 5, 10, 14, 30, 0, tzinfo=UTC)
 
         mock_dashboard_repo.get_aggregated_stats.return_value = {
             "total_projects": 0,

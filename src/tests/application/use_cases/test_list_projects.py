@@ -4,7 +4,7 @@ Tests for ListProjectsUseCase.
 Tests project listing with pagination and filtering.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -37,8 +37,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         project2 = ProjectEntity(
@@ -52,8 +52,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         mock_repo.count.return_value = 2
@@ -111,8 +111,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         mock_repo.count.return_value = 1
@@ -181,8 +181,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.HIGH,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
         mock_repo.count.return_value = 1

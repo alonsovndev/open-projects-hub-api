@@ -1,6 +1,6 @@
 """Tests for UpdateClientUseCase."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -25,16 +25,16 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Old Name",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
 
         updated_client = ClientEntity(
             id=client_id,
             name="New Name",
             company="New Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=UTC),
         )
 
         mock_repo.find_by_id.return_value = existing_client
@@ -60,8 +60,8 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Test Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
         existing_client._email = Email("old@example.com")
 
@@ -102,16 +102,16 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Test Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
         existing_client._email = Email("same@example.com")
 
         updated_client = ClientEntity(
             id=client_id,
             name="Updated Name",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=UTC),
         )
         updated_client._email = Email("same@example.com")
 
@@ -137,16 +137,16 @@ class TestUpdateClientUseCase:
             id=client_id,
             name="Test Client",
             company="Original Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
 
         updated_client = ClientEntity(
             id=client_id,
             name="Test Client",
             company="Original Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=UTC),
         )
 
         mock_repo.find_by_id.return_value = existing_client

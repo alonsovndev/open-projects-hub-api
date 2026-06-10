@@ -4,7 +4,7 @@ Tests for GenerateStoriesFromNotesUseCase.
 Tests story generation from raw notes including AI service mocking.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -64,8 +64,8 @@ class TestGenerateStoriesFromNotesUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.save.return_value = saved_draft
 
@@ -180,8 +180,8 @@ class TestGenerateStoriesFromNotesUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.save.return_value = saved_draft
 

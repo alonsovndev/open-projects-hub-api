@@ -1,6 +1,6 @@
 """Tests for CreateClientUseCase."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -27,8 +27,8 @@ class TestCreateClientUseCase:
             company=None,
             address=None,
             notes=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.save.return_value = created_entity
 
@@ -56,8 +56,8 @@ class TestCreateClientUseCase:
             company="Test Company",
             address="123 Test St",
             notes="Important client",
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         created_entity._email = None
         created_entity._phone = None
@@ -167,8 +167,8 @@ class TestCreateClientUseCase:
         created_entity = ClientEntity(
             id=EntityId.generate(),
             name="Client Without Email",
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.save.return_value = created_entity
 

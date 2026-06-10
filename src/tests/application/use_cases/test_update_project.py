@@ -4,7 +4,7 @@ Tests for UpdateProjectUseCase.
 Tests project update including validation and error handling.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -42,8 +42,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -83,8 +83,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -147,8 +147,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -189,8 +189,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=date(2026, 5, 1),
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
 
@@ -224,8 +224,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = None
@@ -260,8 +260,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -306,8 +306,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Old Client")
 

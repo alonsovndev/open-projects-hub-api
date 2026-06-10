@@ -1,6 +1,6 @@
 """Tests for GetClientByIdUseCase."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -25,8 +25,8 @@ class TestGetClientByIdUseCase:
             id=client_id,
             name="Test Client",
             company="Test Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
 
         mock_repo.find_by_id.return_value = client
@@ -62,8 +62,8 @@ class TestGetClientByIdUseCase:
         client = ClientEntity(
             id=client_id,
             name="Client With Email",
-            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC),
         )
         client._email = None
 

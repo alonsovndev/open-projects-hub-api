@@ -4,7 +4,7 @@ Tests for CreateProjectUseCase.
 Tests project creation including validation and error handling.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -46,8 +46,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_project_repo.save.return_value = created_entity
 
@@ -98,8 +98,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.HIGH,
             start_date=start,
             end_date=end,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_project_repo.save.return_value = created_entity
 
@@ -238,8 +238,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
         mock_project_repo.save.return_value = created_entity
 
