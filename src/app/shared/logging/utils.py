@@ -5,9 +5,13 @@ Provides helpers for:
 - Sensitive data redaction (passwords, tokens, PII)
 - Structured logging with event types
 - Consistent logging patterns across features
+
+NOTE: log_business_event and log_error_event are deprecated.
+Use BusinessLogger and ApplicationLogger instead.
 """
 
 import re
+import warnings
 from typing import Any
 
 
@@ -97,29 +101,23 @@ def log_business_event(
     level: str = "info",
 ) -> None:
     """
+    DEPRECATED: Use BusinessLogger instead.
+
     Log a business event with structured fields.
 
-    Provides a consistent logging pattern for business operations across features.
-    Automatically includes event_type for filtering and searching.
+    This function is deprecated and will be removed in a future version.
+    Use BusinessLogger for better type safety and readability.
 
-    Args:
-        logger: Logger instance (from get_logger(__name__))
-        event_type: Type of business event (e.g., "project.created", "story.updated")
-        message: Human-readable log message
-        entity_id: ID of the entity being operated on (optional)
-        user_id: ID of the user performing the action (optional, auto-included via context)
-        additional_data: Additional structured data to include in log
-        level: Log level (info, warning, error, debug)
-
-    Example:
-        >>> log_business_event(
-        ...     logger=log,
-        ...     event_type="project.created",
-        ...     message="Project created successfully",
-        ...     entity_id="proj-123",
-        ...     additional_data={"project_name": "My Project"},
-        ... )
+    Example replacement:
+        log = BusinessLogger(get_logger(__name__), user_id="user-123")
+        log.event("project.created", entity_id="proj-456",
+                  project_name="My Project")
     """
+    warnings.warn(
+        "log_business_event is deprecated, use BusinessLogger instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     extra_data = {
         "event_type": event_type,
     }
@@ -149,31 +147,23 @@ def log_error_event(
     additional_data: dict[str, Any] | None = None,
 ) -> None:
     """
+    DEPRECATED: Use BusinessLogger or ApplicationLogger instead.
+
     Log an error event with exception details.
 
-    Provides consistent error logging with structured error information.
+    This function is deprecated and will be removed in a future version.
+    Use BusinessLogger.failure() or ApplicationLogger.error() instead.
 
-    Args:
-        logger: Logger instance
-        error_type: Type of error (e.g., "validation.failed", "database.error")
-        message: Human-readable error message
-        error: Exception instance (optional, will include traceback)
-        entity_id: ID of the entity related to the error
-        user_id: ID of the user who encountered the error
-        additional_data: Additional context data
-
-    Example:
-        >>> try:
-        ...     # some operation
-        ... except ValueError as e:
-        ...     log_error_event(
-        ...         logger=log,
-        ...         error_type="validation.failed",
-        ...         message="Invalid project data",
-        ...         error=e,
-        ...         entity_id="proj-123"
-        ...     )
+    Example replacement:
+        log = BusinessLogger(get_logger(__name__), user_id="user-123")
+        log.failure("project.create.failed", error=e,
+                    project_name="My Project")
     """
+    warnings.warn(
+        "log_error_event is deprecated, use BusinessLogger or ApplicationLogger instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     extra_data = {
         "error_type": error_type,
     }
