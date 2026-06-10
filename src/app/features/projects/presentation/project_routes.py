@@ -56,7 +56,7 @@ async def create_project(
         401/403: Unauthorized or forbidden
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(
+    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
         current_user=current_user,
     )
@@ -92,17 +92,19 @@ async def list_projects(
     """
 
     async def execute():
+        user_id = str(current_user["sub"])
         # Validate status if provided
         if status and status not in ["active", "completed", "archived"]:
             raise ValueError("Status must be one of: active, completed, archived")
 
         return await use_case.execute(
+            user_id=user_id,
             limit=limit,
             offset=offset,
             status=status,
         )
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -132,14 +134,15 @@ async def get_project_by_id(
     """
 
     async def execute():
-        result = await use_case.execute(str(project_id))
+        user_id = str(current_user["sub"])
+        result = await use_case.execute(str(project_id), user_id=user_id)
 
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -171,14 +174,15 @@ async def update_project(
     """
 
     async def execute():
-        result = await use_case.execute(project_id=str(project_id), request=payload)
+        user_id = str(current_user["sub"])
+        result = await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
 
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         return result
 
-    return await handler.execute(execute)
+    return await handler.execute(execute)  # type: ignore[no-any-return]
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -205,7 +209,8 @@ async def delete_project(
     """
 
     async def execute():
-        deleted = await use_case.execute(str(project_id))
+        user_id = str(current_user["sub"])
+        deleted = await use_case.execute(project_id=str(project_id), created_by=user_id)
 
         if not deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")

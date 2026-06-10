@@ -4,6 +4,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.mappers.project_mapper import to_project_response
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class ListProjectsUseCase:
@@ -20,6 +21,7 @@ class ListProjectsUseCase:
 
     async def execute(
         self,
+        user_id: str,
         limit: int = 20,
         offset: int = 0,
         status: str | None = None,
@@ -28,6 +30,7 @@ class ListProjectsUseCase:
         Execute list projects use case.
 
         Args:
+            user_id: Current user ID
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
             status: Optional status filter (active, completed, archived)
@@ -35,6 +38,9 @@ class ListProjectsUseCase:
         Returns:
             PaginatedResponse containing pagination metadata and ProjectResponse items
         """
+        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log.info("Listing projects", event_type="projects.list.started", offset=offset, limit=limit, status=status)
+
         total = await self._repository.count(status=status)
         entities_with_clients = await self._repository.find_all(
             limit=limit,
@@ -51,9 +57,9 @@ class ListProjectsUseCase:
             total_stories, completed_stories = story_counts.get(entity.id.value, (0, 0))
             items.append(to_project_response(entity, client_name, total_stories, completed_stories))
 
-        # Calculate page number (1-indexed)
         page = (offset // limit) + 1 if limit > 0 else 1
 
+        log.event("projects.list.success", total=total, returned=len(items))
         return PaginatedResponse(
             total=total,
             page=page,
