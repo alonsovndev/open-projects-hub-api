@@ -9,6 +9,7 @@ from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.features.clients.infrastructure.mappers.client_mapper import ClientMapper
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
+from src.app.shared.logging import TechnicalLogger, get_logger
 
 
 class ClientRepositoryImpl(ClientRepository):
@@ -16,6 +17,7 @@ class ClientRepositoryImpl(ClientRepository):
 
     def __init__(self, db: AsyncSession):
         self.db = db
+        self._log = TechnicalLogger(get_logger(__name__), component="database")
 
     async def save(self, client: ClientEntity) -> ClientEntity:
         """Save a new client entity."""
