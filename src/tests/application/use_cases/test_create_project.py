@@ -4,7 +4,7 @@ Tests for CreateProjectUseCase.
 Tests project creation including validation and error handling.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -46,8 +46,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_project_repo.save.return_value = created_entity
 
@@ -98,8 +98,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.HIGH,
             start_date=start,
             end_date=end,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_project_repo.save.return_value = created_entity
 
@@ -142,8 +142,6 @@ class TestCreateProjectUseCase:
         mock_client.name = "Test Client"
         mock_client_repo.find_by_id.return_value = mock_client
 
-        use_case = CreateProjectUseCase(mock_project_repo, mock_client_repo)
-
         # Execute & Assert - Validation happens at DTO creation
         from pydantic import ValidationError
 
@@ -168,8 +166,6 @@ class TestCreateProjectUseCase:
         mock_client = AsyncMock()
         mock_client.name = "Test Client"
         mock_client_repo.find_by_id.return_value = mock_client
-
-        use_case = CreateProjectUseCase(mock_project_repo, mock_client_repo)
 
         # Execute & Assert - Validation happens at DTO creation
         from pydantic import ValidationError
@@ -242,8 +238,8 @@ class TestCreateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_project_repo.save.return_value = created_entity
 

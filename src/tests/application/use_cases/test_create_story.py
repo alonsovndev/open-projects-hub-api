@@ -4,7 +4,7 @@ Tests for CreateStoryUseCase.
 Tests story creation including validation and error handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -39,8 +39,8 @@ class TestCreateStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.save.return_value = created_entity
 
@@ -78,8 +78,8 @@ class TestCreateStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.HIGH,
             points=5,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.save.return_value = created_entity
 
@@ -107,7 +107,6 @@ class TestCreateStoryUseCase:
     async def test_execute_raises_error_on_empty_title(self):
         """Test that empty title raises ValidationError at DTO level."""
         mock_repo = AsyncMock()
-        use_case = CreateStoryUseCase(mock_repo)
 
         with pytest.raises(ValidationError, match="Story title cannot be empty"):
             CreateStoryRequest(
@@ -121,7 +120,6 @@ class TestCreateStoryUseCase:
     async def test_execute_raises_error_on_invalid_priority(self):
         """Test that invalid priority raises ValidationError at DTO level."""
         mock_repo = AsyncMock()
-        use_case = CreateStoryUseCase(mock_repo)
 
         with pytest.raises(ValidationError, match="Priority must be one of"):
             CreateStoryRequest(
@@ -152,8 +150,8 @@ class TestCreateStoryUseCase:
                 status=StoryStatus.TODO,
                 priority=priority_enum,
                 points=None,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                created_at=datetime.now(tz=timezone.utc),
+                updated_at=datetime.now(tz=timezone.utc),
             )
             mock_repo.save.return_value = created_entity
 
@@ -194,9 +192,6 @@ class TestCreateStoryUseCase:
     @pytest.mark.asyncio
     async def test_execute_validates_points(self):
         """Test that points validation works at DTO level."""
-        mock_repo = AsyncMock()
-        use_case = CreateStoryUseCase(mock_repo)
-
         with pytest.raises(ValidationError, match="Story points cannot be negative"):
             CreateStoryRequest(
                 title="Story",

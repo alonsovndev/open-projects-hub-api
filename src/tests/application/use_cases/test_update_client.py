@@ -1,6 +1,6 @@
 """Tests for UpdateClientUseCase."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -25,16 +25,16 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Old Name",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         updated_client = ClientEntity(
             id=client_id,
             name="New Name",
             company="New Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         mock_repo.find_by_id.return_value = existing_client
@@ -44,7 +44,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(name="New Name", company="New Company")
 
-        result = await use_case.execute(client_id=client_id.value, request=request)
+        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
 
         assert isinstance(result, ClientResponse)
         assert result.name == "New Name"
@@ -60,8 +60,8 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Test Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
         existing_client._email = Email("old@example.com")
 
@@ -74,8 +74,8 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(email="duplicate@example.com")
 
-        with pytest.raises(ValueError, match="Client with email duplicate@example.com already exists"):
-            await use_case.execute(client_id=client_id.value, request=request)
+        with pytest.raises(ValueError, match=r"Client with email duplicate@example.com already exists"):
+            await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
 
         mock_repo.update.assert_not_called()
 
@@ -91,7 +91,7 @@ class TestUpdateClientUseCase:
         request = UpdateClientRequest(name="New Name")
 
         with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
-            await use_case.execute(client_id=client_id, request=request)
+            await use_case.execute(client_id=client_id, request=request, created_by="test-user")
 
     @pytest.mark.asyncio
     async def test_execute_same_email_does_not_check_uniqueness(self):
@@ -102,16 +102,16 @@ class TestUpdateClientUseCase:
         existing_client = ClientEntity(
             id=client_id,
             name="Test Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
         existing_client._email = Email("same@example.com")
 
         updated_client = ClientEntity(
             id=client_id,
             name="Updated Name",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
         )
         updated_client._email = Email("same@example.com")
 
@@ -122,7 +122,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(name="Updated Name")
 
-        result = await use_case.execute(client_id=client_id.value, request=request)
+        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
 
         assert result.name == "Updated Name"
         mock_repo.find_by_email.assert_not_called()
@@ -137,16 +137,16 @@ class TestUpdateClientUseCase:
             id=client_id,
             name="Test Client",
             company="Original Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         updated_client = ClientEntity(
             id=client_id,
             name="Test Client",
             company="Original Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         mock_repo.find_by_id.return_value = existing_client
@@ -156,7 +156,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest()
 
-        result = await use_case.execute(client_id=client_id.value, request=request)
+        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
 
         assert result.name == "Test Client"
         mock_repo.update.assert_called_once()
@@ -164,10 +164,6 @@ class TestUpdateClientUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_empty_name(self):
         """Test that empty name raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
-
-        use_case = UpdateClientUseCase(mock_repo)
-
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError, match="Client name cannot be empty"):

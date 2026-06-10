@@ -4,7 +4,7 @@ Tests for ApproveDraftUseCase.
 Tests draft approval and story conversion.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -40,8 +40,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -55,15 +55,15 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value))
+        result = await use_case.execute(str(draft_id.value), created_by="test-user")
 
         assert result is not None
         assert isinstance(result, StoryResponse)
@@ -81,7 +81,7 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(EntityId.generate().value))
+        result = await use_case.execute(str(EntityId.generate().value), created_by="test-user")
 
         assert result is None
         mock_story_repo.save.assert_not_called()
@@ -104,8 +104,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -119,15 +119,15 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        await use_case.execute(str(draft_id.value))
+        await use_case.execute(str(draft_id.value), created_by="test-user")
 
         assert existing_draft.status == RefinementStatus.APPLIED
 
@@ -149,8 +149,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
         mock_story_repo.save.return_value = None
@@ -158,7 +158,7 @@ class TestApproveDraftUseCase:
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
         with pytest.raises(ValueError, match="Failed to create story from draft"):
-            await use_case.execute(str(draft_id.value))
+            await use_case.execute(str(draft_id.value), created_by="test-user")
 
     @pytest.mark.asyncio
     async def test_execute_creates_story_with_description_and_criteria(self):
@@ -178,8 +178,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -193,15 +193,15 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value))
+        result = await use_case.execute(str(draft_id.value), created_by="test-user")
 
         assert result is not None
         assert "Acceptance Criteria" in result.description
@@ -225,8 +225,8 @@ class TestApproveDraftUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
 
@@ -240,15 +240,15 @@ class TestApproveDraftUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value))
+        result = await use_case.execute(str(draft_id.value), created_by="test-user")
 
         assert result is not None
         assert result.description is None

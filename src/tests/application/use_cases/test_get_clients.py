@@ -1,6 +1,6 @@
 """Tests for GetClientsUseCase."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -22,14 +22,14 @@ class TestGetClientsUseCase:
         client1 = ClientEntity(
             id=EntityId.generate(),
             name="Client One",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
         client2 = ClientEntity(
             id=EntityId.generate(),
             name="Client Two",
-            created_at=datetime(2026, 5, 2, 12, 0, 0),
-            updated_at=datetime(2026, 5, 2, 12, 0, 0),
+            created_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 2, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         mock_repo.find_all.return_value = [client1, client2]
@@ -37,7 +37,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(offset=0, limit=20)
+        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
 
         assert isinstance(result, PaginatedClientsResponse)
         assert len(result.items) == 2
@@ -57,7 +57,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(offset=0, limit=20)
+        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
 
         assert isinstance(result, PaginatedClientsResponse)
         assert len(result.items) == 0
@@ -74,13 +74,13 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result_page1 = await use_case.execute(offset=0, limit=10)
+        result_page1 = await use_case.execute(user_id="test-user", offset=0, limit=10)
         assert result_page1.page == 1
 
-        result_page2 = await use_case.execute(offset=10, limit=10)
+        result_page2 = await use_case.execute(user_id="test-user", offset=10, limit=10)
         assert result_page2.page == 2
 
-        result_page3 = await use_case.execute(offset=20, limit=10)
+        result_page3 = await use_case.execute(user_id="test-user", offset=20, limit=10)
         assert result_page3.page == 3
 
     @pytest.mark.asyncio
@@ -92,7 +92,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute()
+        result = await use_case.execute(user_id="test-user")
 
         assert result.page == 1
         assert result.per_page == 100
@@ -106,8 +106,8 @@ class TestGetClientsUseCase:
         client = ClientEntity(
             id=EntityId.generate(),
             name="Full Client",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
         client._email = None
         client._phone = None
@@ -120,7 +120,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(offset=0, limit=20)
+        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
 
         assert len(result.items) == 1
         assert result.items[0].company == "Test Company"

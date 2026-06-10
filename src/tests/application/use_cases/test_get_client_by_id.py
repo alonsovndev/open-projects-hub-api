@@ -1,6 +1,6 @@
 """Tests for GetClientByIdUseCase."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -25,15 +25,15 @@ class TestGetClientByIdUseCase:
             id=client_id,
             name="Test Client",
             company="Test Company",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
 
         mock_repo.find_by_id.return_value = client
 
         use_case = GetClientByIdUseCase(mock_repo)
 
-        result = await use_case.execute(client_id=client_id.value)
+        result = await use_case.execute(client_id=client_id.value, user_id="test-user")
 
         assert isinstance(result, ClientResponse)
         assert result.name == "Test Client"
@@ -51,7 +51,7 @@ class TestGetClientByIdUseCase:
         client_id = uuid4()
 
         with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
-            await use_case.execute(client_id=client_id)
+            await use_case.execute(client_id=client_id, user_id="test-user")
 
     @pytest.mark.asyncio
     async def test_execute_returns_client_with_email(self):
@@ -62,8 +62,8 @@ class TestGetClientByIdUseCase:
         client = ClientEntity(
             id=client_id,
             name="Client With Email",
-            created_at=datetime(2026, 5, 1, 12, 0, 0),
-            updated_at=datetime(2026, 5, 1, 12, 0, 0),
+            created_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
+            updated_at=datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc),
         )
         client._email = None
 
@@ -71,6 +71,6 @@ class TestGetClientByIdUseCase:
 
         use_case = GetClientByIdUseCase(mock_repo)
 
-        result = await use_case.execute(client_id=client_id.value)
+        result = await use_case.execute(client_id=client_id.value, user_id="test-user")
 
         assert result.name == "Client With Email"

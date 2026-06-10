@@ -4,7 +4,7 @@ Tests for UpdateStoryUseCase.
 Tests story update including validation and error handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -38,8 +38,8 @@ class TestUpdateStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -50,6 +50,7 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             request=request,
+            created_by="test-user",
         )
 
         assert isinstance(result, StoryResponse)
@@ -73,8 +74,8 @@ class TestUpdateStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.LOW,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -91,6 +92,7 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             request=request,
+            created_by="test-user",
         )
 
         assert result.title == "New Title"
@@ -111,6 +113,7 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(uuid4()),
             request=request,
+            created_by="test-user",
         )
 
         assert result is None
@@ -120,16 +123,12 @@ class TestUpdateStoryUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_invalid_status(self):
         """Test that invalid status raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
-
         with pytest.raises(ValidationError, match="Status must be one of"):
             UpdateStoryRequest(status="invalid_status")
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_invalid_priority(self):
         """Test that invalid priority raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
-
         with pytest.raises(ValidationError, match="Priority must be one of"):
             UpdateStoryRequest(priority="invalid_priority")
 
@@ -154,8 +153,8 @@ class TestUpdateStoryUseCase:
                 status=StoryStatus.TODO,
                 priority=StoryPriority.MEDIUM,
                 points=None,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                created_at=datetime.now(tz=timezone.utc),
+                updated_at=datetime.now(tz=timezone.utc),
             )
             mock_repo.find_by_id.return_value = existing_entity
             mock_repo.save.return_value = existing_entity
@@ -166,6 +165,7 @@ class TestUpdateStoryUseCase:
             result = await use_case.execute(
                 story_id=str(story_id),
                 request=request,
+                created_by="test-user",
             )
 
             assert result.status == status_str
@@ -187,8 +187,8 @@ class TestUpdateStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = None
@@ -200,13 +200,12 @@ class TestUpdateStoryUseCase:
             await use_case.execute(
                 story_id=str(story_id),
                 request=request,
+                created_by="test-user",
             )
 
     @pytest.mark.asyncio
     async def test_execute_validates_points(self):
         """Test that points validation works at DTO level."""
-        mock_repo = AsyncMock()
-
         with pytest.raises(ValidationError, match="Story points cannot be negative"):
             UpdateStoryRequest(points=-1)
 

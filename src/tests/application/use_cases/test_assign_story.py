@@ -4,7 +4,7 @@ Tests for AssignStoryUseCase.
 Tests story assignment including validation and error handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -39,8 +39,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -51,9 +51,9 @@ class TestAssignStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=str(user_id.value),
+            created_by="test-user",
         )
 
-        # Assert
         assert isinstance(result, StoryResponse)
         assert result.assigned_to == str(user_id.value)
         assert existing_entity.assigned_to == user_id
@@ -79,8 +79,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.IN_PROGRESS,
             priority=StoryPriority.HIGH,
             points=5,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -91,6 +91,7 @@ class TestAssignStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             user_id=str(new_user.value),
+            created_by="test-user",
         )
 
         # Assert
@@ -110,6 +111,7 @@ class TestAssignStoryUseCase:
         result = await use_case.execute(
             story_id=str(uuid4()),
             user_id=str(uuid4()),
+            created_by="test-user",
         )
 
         # Assert
@@ -134,8 +136,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = None
@@ -147,6 +149,7 @@ class TestAssignStoryUseCase:
             await use_case.execute(
                 story_id=str(story_id),
                 user_id=str(uuid4()),
+                created_by="test-user",
             )
 
     @pytest.mark.asyncio
@@ -167,8 +170,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
         mock_repo.save.return_value = existing_entity
@@ -176,9 +179,10 @@ class TestAssignStoryUseCase:
         use_case = AssignStoryUseCase(mock_repo)
 
         # Execute
-        result = await use_case.execute(
+        await use_case.execute(
             story_id=str(story_id),
             user_id=str(user_id),
+            created_by="test-user",
         )
 
         # Assert
@@ -201,8 +205,8 @@ class TestAssignStoryUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_entity
 
@@ -213,4 +217,5 @@ class TestAssignStoryUseCase:
             await use_case.execute(
                 story_id=str(story_id),
                 user_id="not-a-valid-uuid",
+                created_by="test-user",
             )

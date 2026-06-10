@@ -26,7 +26,7 @@ class TestDeleteProjectUseCase:
         project_id = uuid4()
 
         # Execute
-        result = await use_case.execute(str(project_id))
+        result = await use_case.execute(str(project_id), created_by="test-user")
 
         # Assert
         assert result is True
@@ -43,7 +43,7 @@ class TestDeleteProjectUseCase:
         project_id = uuid4()
 
         # Execute
-        result = await use_case.execute(str(project_id))
+        result = await use_case.execute(str(project_id), created_by="test-user")
 
         # Assert
         assert result is False
@@ -60,7 +60,7 @@ class TestDeleteProjectUseCase:
         project_id = uuid4()
 
         # Execute
-        await use_case.execute(str(project_id))
+        await use_case.execute(str(project_id), created_by="test-user")
 
         # Assert - verify correct UUID was passed to delete
         called_with = mock_repo.delete.call_args[0][0]
@@ -75,6 +75,6 @@ class TestDeleteProjectUseCase:
 
         # Execute & Assert
         with pytest.raises(ValueError):
-            await use_case.execute("not-a-valid-uuid")
+            await use_case.execute("not-a-valid-uuid", created_by="test-user")
 
         mock_repo.delete.assert_not_called()

@@ -22,7 +22,7 @@ class TestDeleteClientUseCase:
 
         client_id = EntityId.generate()
 
-        result = await use_case.execute(client_id=client_id.value)
+        result = await use_case.execute(client_id=client_id.value, created_by="test-user")
 
         assert result is True
         mock_repo.delete.assert_called_once_with(client_id.value)
@@ -38,4 +38,4 @@ class TestDeleteClientUseCase:
         client_id = uuid4()
 
         with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
-            await use_case.execute(client_id=client_id)
+            await use_case.execute(client_id=client_id, created_by="test-user")

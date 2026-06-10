@@ -4,7 +4,7 @@ Tests for GenerateStoriesFromNotesUseCase.
 Tests story generation from raw notes including AI service mocking.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -64,8 +64,8 @@ class TestGenerateStoriesFromNotesUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.save.return_value = saved_draft
 
@@ -114,10 +114,7 @@ class TestGenerateStoriesFromNotesUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_empty_raw_notes(self):
         """Test that empty raw notes raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
         mock_ai_service = AsyncMock()
-
-        use_case = GenerateStoriesFromNotesUseCase(mock_repo, mock_ai_service)
 
         with pytest.raises(ValidationError, match="Raw notes cannot be empty"):
             GenerateStoriesRequest(
@@ -130,10 +127,7 @@ class TestGenerateStoriesFromNotesUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_short_raw_notes(self):
         """Test that raw notes < 20 chars raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
         mock_ai_service = AsyncMock()
-
-        use_case = GenerateStoriesFromNotesUseCase(mock_repo, mock_ai_service)
 
         with pytest.raises(ValidationError, match="Raw notes must be at least 20 characters"):
             GenerateStoriesRequest(
@@ -146,10 +140,7 @@ class TestGenerateStoriesFromNotesUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_empty_project_id(self):
         """Test that empty project_id raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
         mock_ai_service = AsyncMock()
-
-        use_case = GenerateStoriesFromNotesUseCase(mock_repo, mock_ai_service)
 
         with pytest.raises(ValidationError, match="Project ID is required"):
             GenerateStoriesRequest(
@@ -189,8 +180,8 @@ class TestGenerateStoriesFromNotesUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.save.return_value = saved_draft
 

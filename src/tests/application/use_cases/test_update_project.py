@@ -4,7 +4,7 @@ Tests for UpdateProjectUseCase.
 Tests project update including validation and error handling.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -42,8 +42,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -55,6 +55,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert isinstance(result, ProjectResponse)
@@ -82,8 +83,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -99,6 +100,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert result.name == "New Name"
@@ -118,6 +120,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(uuid4()),
             request=request,
+            created_by="test-user",
         )
 
         assert result is None
@@ -144,8 +147,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -160,6 +163,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert result.start_date == new_start
@@ -185,8 +189,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=date(2026, 5, 1),
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
 
@@ -197,6 +201,7 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
+                created_by="test-user",
             )
 
     @pytest.mark.asyncio
@@ -219,8 +224,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = None
@@ -232,6 +237,7 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
+                created_by="test-user",
             )
 
     @pytest.mark.asyncio
@@ -254,8 +260,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Test Client")
         mock_repo.save.return_value = existing_entity
@@ -267,6 +273,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert result.status == "archived"
@@ -275,11 +282,6 @@ class TestUpdateProjectUseCase:
     @pytest.mark.asyncio
     async def test_execute_raises_validation_error_on_invalid_status(self):
         """Test that invalid status raises ValidationError at DTO level."""
-        mock_repo = AsyncMock()
-        mock_client_repo = AsyncMock()
-
-        use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
-
         with pytest.raises(ValidationError, match="Status must be one of"):
             UpdateProjectRequest(status="invalid_status")
 
@@ -304,8 +306,8 @@ class TestUpdateProjectUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = (existing_entity, "Old Client")
 
@@ -318,4 +320,5 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
+                created_by="test-user",
             )

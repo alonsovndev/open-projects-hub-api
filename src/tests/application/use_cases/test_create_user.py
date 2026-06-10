@@ -41,7 +41,7 @@ class TestCreateUserUseCase:
         payload = UserCreateRequest(display_name="New User", email="newuser@example.com", password="SecurePass123")
 
         # Execute
-        result = await use_case.execute(payload)
+        result = await use_case.execute(payload, created_by="test-user")
 
         # Assert
         assert isinstance(result, UserResponse)
@@ -71,7 +71,7 @@ class TestCreateUserUseCase:
 
         # Execute & Assert
         with pytest.raises(UserAlreadyExistsException) as exc_info:
-            await use_case.execute(payload)
+            await use_case.execute(payload, created_by="test-user")
 
         assert "existing@example.com" in str(exc_info.value)
         mock_repo.find_by_email.assert_called_once()
@@ -91,7 +91,7 @@ class TestCreateUserUseCase:
 
         # Execute & Assert
         with pytest.raises(UserAlreadyExistsException) as exc_info:
-            await use_case.execute(payload)
+            await use_case.execute(payload, created_by="test-user")
 
         assert "raceuser@example.com" in str(exc_info.value)
         mock_repo.save.assert_called_once()
@@ -117,7 +117,7 @@ class TestCreateUserUseCase:
         payload = UserCreateRequest(display_name="Test User", email="user@example.com", password="PlainPassword123")
 
         # Execute
-        await use_case.execute(payload)
+        await use_case.execute(payload, created_by="test-user")
 
         # Assert - check that save was called with hashed password
         save_call_args = mock_repo.save.call_args[0][0]
@@ -149,7 +149,7 @@ class TestCreateUserUseCase:
         )
 
         # Execute
-        result = await use_case.execute(payload)
+        result = await use_case.execute(payload, created_by="test-user")
 
         # Assert
         assert result.email == "user@example.com"

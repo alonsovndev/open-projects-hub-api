@@ -4,7 +4,7 @@ Tests for UpdateStoryDraftUseCase.
 Tests draft update including validation and error handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -35,8 +35,8 @@ class TestUpdateStoryDraftUseCase:
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_draft
 
@@ -49,7 +49,7 @@ class TestUpdateStoryDraftUseCase:
             created_by=existing_draft.created_by,
             status=RefinementStatus.DRAFT,
             created_at=existing_draft.created_at,
-            updated_at=datetime.now(),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.save.return_value = updated_draft
 
@@ -63,6 +63,7 @@ class TestUpdateStoryDraftUseCase:
         result = await use_case.execute(
             draft_id=str(draft_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert result is not None
@@ -82,6 +83,7 @@ class TestUpdateStoryDraftUseCase:
         result = await use_case.execute(
             draft_id=str(uuid4()),
             request=request,
+            created_by="test-user",
         )
 
         assert result is None
@@ -91,7 +93,6 @@ class TestUpdateStoryDraftUseCase:
     async def test_execute_raises_error_on_empty_title(self):
         """Test that empty title raises ValidationError at DTO level."""
         mock_repo = AsyncMock()
-        use_case = UpdateStoryDraftUseCase(mock_repo)
 
         with pytest.raises(ValidationError, match="Story title cannot be empty"):
             UpdateStoryDraftRequest(title="")
@@ -102,7 +103,6 @@ class TestUpdateStoryDraftUseCase:
     async def test_execute_raises_error_on_title_too_long(self):
         """Test that title > 500 chars raises ValidationError at DTO level."""
         mock_repo = AsyncMock()
-        use_case = UpdateStoryDraftUseCase(mock_repo)
 
         long_title = "a" * 501
 
@@ -125,8 +125,8 @@ class TestUpdateStoryDraftUseCase:
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
             status=RefinementStatus.DRAFT,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_repo.find_by_id.return_value = existing_draft
         mock_repo.save.return_value = existing_draft
@@ -137,6 +137,7 @@ class TestUpdateStoryDraftUseCase:
         result = await use_case.execute(
             draft_id=str(draft_id.value),
             request=request,
+            created_by="test-user",
         )
 
         assert result is not None

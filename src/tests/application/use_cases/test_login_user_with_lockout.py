@@ -8,6 +8,7 @@ Tests login functionality with lockout behavior:
 - Progressive lockout behavior
 """
 
+import contextlib
 from unittest.mock import AsyncMock
 
 import pytest
@@ -28,8 +29,7 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 @pytest.fixture
 def mock_user_repository():
     """Create mock user repository."""
-    repo = AsyncMock()
-    return repo
+    return AsyncMock()
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ class TestLoginWithLockout:
             request = LoginRequest(email="test@example.com", password="wrongpassword")
 
             # First 5 attempts should raise InvalidCredentialsError
-            for i in range(5):
+            for _ in range(5):
                 with pytest.raises(InvalidCredentialsError):
                     await login_use_case.execute(request)
 
@@ -148,7 +148,7 @@ class TestLoginWithLockout:
     ):
         """Test that locked account cannot login even with correct credentials."""
         # Setup - lock the account
-        for i in range(5):
+        for _ in range(5):
             await login_use_case.lockout_service.record_failed_attempt("test@example.com")
 
         mock_user_repository.find_by_email.return_value = mock_user_entity
@@ -188,7 +188,7 @@ class TestLoginWithLockout:
     async def test_lockout_info_included_in_exception(self, login_use_case, mock_user_repository, mock_user_entity):
         """Test that lockout exception includes remaining time and attempt count."""
         # Setup - lock the account
-        for i in range(5):
+        for _ in range(5):
             await login_use_case.lockout_service.record_failed_attempt("test@example.com")
 
         mock_user_repository.find_by_email.return_value = mock_user_entity
@@ -229,11 +229,9 @@ class TestProgressiveLockoutInLogin:
 
             with freeze_time("2026-05-11 12:00:00"):
                 # 5 failed attempts (triggers lockout)
-                for i in range(5):
-                    try:
+                for _ in range(5):
+                    with contextlib.suppress(InvalidCredentialsError):
                         await login_use_case.execute(request)
-                    except InvalidCredentialsError:
-                        pass
 
                 # Check lockout info
                 info = await login_use_case.lockout_service.get_lockout_info("test@example.com")

@@ -4,7 +4,7 @@ Tests for ListProjectsUseCase.
 Tests project listing with pagination and filtering.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -37,8 +37,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         project2 = ProjectEntity(
@@ -52,8 +52,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         mock_repo.count.return_value = 2
@@ -62,7 +62,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute()
+        result = await use_case.execute(user_id="test-user")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 2
@@ -85,7 +85,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(limit=10, offset=20)
+        result = await use_case.execute(user_id="test-user", limit=10, offset=20)
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 100
@@ -111,8 +111,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         mock_repo.count.return_value = 1
@@ -121,7 +121,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(status="active")
+        result = await use_case.execute(user_id="test-user", status="active")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 1
@@ -140,7 +140,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute()
+        result = await use_case.execute(user_id="test-user")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 0
@@ -156,7 +156,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(limit=50, offset=100, status="completed")
+        result = await use_case.execute(user_id="test-user", limit=50, offset=100, status="completed")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 200
@@ -181,8 +181,8 @@ class TestListProjectsUseCase:
             priority=ProjectPriority.HIGH,
             start_date=None,
             end_date=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         mock_repo.count.return_value = 1
@@ -191,7 +191,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute()
+        result = await use_case.execute(user_id="test-user")
 
         assert isinstance(result, PaginatedResponse)
         assert len(result.items) == 1

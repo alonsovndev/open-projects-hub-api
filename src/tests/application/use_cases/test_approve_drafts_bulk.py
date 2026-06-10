@@ -4,7 +4,7 @@ Tests for ApproveDraftsBulkUseCase.
 Tests bulk draft approval and story conversion.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -41,8 +41,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         draft_2 = StoryDraftEntity(
             id=draft_id_2,
@@ -52,8 +52,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         def find_side_effect(draft_id):
@@ -65,33 +65,6 @@ class TestApproveDraftsBulkUseCase:
 
         mock_draft_repo.find_by_id.side_effect = find_side_effect
 
-        story_1 = StoryEntity(
-            id=EntityId.generate(),
-            title="Draft 1",
-            description="Description 1",
-            project_id=project_id,
-            created_by=created_by,
-            assigned_to=None,
-            status=StoryStatus.TODO,
-            priority=StoryPriority.MEDIUM,
-            points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-        )
-        story_2 = StoryEntity(
-            id=EntityId.generate(),
-            title="Draft 2",
-            description="Description 2",
-            project_id=project_id,
-            created_by=created_by,
-            assigned_to=None,
-            status=StoryStatus.TODO,
-            priority=StoryPriority.MEDIUM,
-            points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-        )
-
         def save_side_effect(entity):
             if isinstance(entity, StoryEntity):
                 return entity
@@ -102,7 +75,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)])
+        result = await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], created_by="test-user")
 
         assert len(result) == 2
         assert isinstance(result[0], StoryResponse)
@@ -118,7 +91,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([])
+        result = await use_case.execute([], created_by="test-user")
 
         assert result == []
         mock_draft_repo.find_by_id.assert_not_called()
@@ -142,8 +115,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         def find_side_effect(draft_id):
@@ -163,15 +136,15 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_story_repo.save.return_value = story_1
         mock_draft_repo.save.return_value = draft_1
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([str(draft_id_1.value), str(missing_draft_id.value)])
+        result = await use_case.execute([str(draft_id_1.value), str(missing_draft_id.value)], created_by="test-user")
 
         assert len(result) == 1
         assert result[0].title == "Draft 1"
@@ -186,7 +159,9 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([str(EntityId.generate().value), str(EntityId.generate().value)])
+        result = await use_case.execute(
+            [str(EntityId.generate().value), str(EntityId.generate().value)], created_by="test-user"
+        )
 
         assert result == []
         mock_story_repo.save.assert_not_called()
@@ -210,8 +185,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         draft_2 = StoryDraftEntity(
             id=draft_id_2,
@@ -221,8 +196,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         def find_side_effect(draft_id):
@@ -244,8 +219,8 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         story_2 = StoryEntity(
             id=EntityId.generate(),
@@ -257,8 +232,8 @@ class TestApproveDraftsBulkUseCase:
             status=StoryStatus.TODO,
             priority=StoryPriority.MEDIUM,
             points=None,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
 
         def save_side_effect(entity):
@@ -269,7 +244,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)])
+        await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], created_by="test-user")
 
         assert draft_1.status == RefinementStatus.APPLIED
         assert draft_2.status == RefinementStatus.APPLIED
@@ -292,8 +267,8 @@ class TestApproveDraftsBulkUseCase:
             project_id=project_id,
             created_by=created_by,
             status=RefinementStatus.REFINED,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
+            updated_at=datetime.now(tz=timezone.utc),
         )
         mock_draft_repo.find_by_id.return_value = draft
         mock_story_repo.save.return_value = None
@@ -301,4 +276,4 @@ class TestApproveDraftsBulkUseCase:
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
         with pytest.raises(ValueError, match="Failed to create story from draft"):
-            await use_case.execute([str(draft_id.value)])
+            await use_case.execute([str(draft_id.value)], created_by="test-user")
