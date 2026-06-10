@@ -10,10 +10,7 @@ from src.app.features.dashboard.application.dtos.dashboard_dto import (
 from src.app.features.dashboard.infrastructure.repositories.dashboard_repository import DashboardRepository
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.shared.logging import get_logger, log_business_event, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class GetDashboardStatsUseCase:
@@ -50,16 +47,12 @@ class GetDashboardStatsUseCase:
         Returns:
             DashboardStatsResponse with statistics
         """
+        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+
         try:
             user_uuid = UUID(user_id)
 
-            log.debug(
-                "Fetching dashboard statistics",
-                extra={
-                    "user_id": user_id,
-                    "event_type": "dashboard.stats.fetch_started",
-                },
-            )
+            log.debug("Fetching dashboard statistics", event_type="dashboard.stats.fetch_started", user_id=user_id)
 
             # Aggregate query optimization: fetch all counts in single database roundtrip
             stats = await self._dashboard_repo.get_aggregated_stats(user_uuid)
@@ -87,20 +80,15 @@ class GetDashboardStatsUseCase:
                 for s in recent_stories_raw
             ]
 
-            log_business_event(
-                logger=log,
-                event_type="dashboard.stats.retrieved",
-                message="Dashboard statistics retrieved successfully",
-                user_id=user_id,
-                additional_data={
-                    "total_projects": stats["total_projects"],
-                    "active_projects": stats["active_projects"],
-                    "total_stories": stats["total_stories"],
-                    "assigned_stories": stats["assigned_stories"],
-                    "completed_stories": stats["completed_stories"],
-                    "recent_projects_count": len(recent_projects),
-                    "recent_stories_count": len(recent_stories),
-                },
+            log.event(
+                "dashboard.stats.retrieved",
+                total_projects=stats["total_projects"],
+                active_projects=stats["active_projects"],
+                total_stories=stats["total_stories"],
+                assigned_stories=stats["assigned_stories"],
+                completed_stories=stats["completed_stories"],
+                recent_projects_count=len(recent_projects),
+                recent_stories_count=len(recent_stories),
             )
 
             return DashboardStatsResponse(
@@ -114,20 +102,8 @@ class GetDashboardStatsUseCase:
             )
 
         except ValueError as e:
-            log_error_event(
-                logger=log,
-                error_type="dashboard.stats.invalid_user_id",
-                message="Invalid user ID format for dashboard stats",
-                error=e,
-                user_id=user_id,
-            )
+            log.failure("dashboard.stats.invalid_user_id", error=e)
             raise
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="dashboard.stats.unexpected_error",
-                message="Unexpected error retrieving dashboard statistics",
-                error=e,
-                user_id=user_id,
-            )
+            log.failure("dashboard.stats.unexpected_error", error=e)
             raise

@@ -11,10 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
-from src.app.shared.logging import get_logger, log_error_event
-
-
-log = get_logger(__name__)
+from src.app.shared.logging import TechnicalLogger, get_logger
 
 
 class DashboardRepository:
@@ -28,6 +25,7 @@ class DashboardRepository:
             session: Database session
         """
         self._session = session
+        self._log = TechnicalLogger(get_logger(__name__), component="database")
 
     async def get_aggregated_stats(self, user_id: UUID | None = None) -> dict:
         """
@@ -94,23 +92,20 @@ class DashboardRepository:
                 "assigned_stories": (row.assigned_stories if user_id else 0) or 0,
             }
 
-            log.debug(
+            self._log.debug(
                 "Dashboard aggregated stats query completed",
-                extra={
-                    "user_id": str(user_id) if user_id else None,
-                    "total_projects": stats["total_projects"],
-                    "total_stories": stats["total_stories"],
-                },
+                user_id=str(user_id) if user_id else None,
+                total_projects=stats["total_projects"],
+                total_stories=stats["total_stories"],
             )
 
             return stats
 
         except Exception as e:
-            log_error_event(
-                logger=log,
-                error_type="dashboard.database.aggregation_failed",
-                message="Failed to retrieve aggregated dashboard statistics",
+            self._log.error(
+                "Failed to retrieve aggregated dashboard statistics",
                 error=e,
+                error_type="dashboard.database.aggregation_failed",
                 user_id=str(user_id) if user_id else None,
             )
             raise
