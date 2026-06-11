@@ -59,11 +59,11 @@ install-dev:
 
 # Run all tests (excluding integration tests by default)
 test:
-	pytest --ignore=src/tests/integration/ -v
+	pytest --ignore=src/tests/integration/ -m "not integration" -v
 
 # Run unit tests only (exclude integration)
 test-unit:
-	pytest --ignore=src/tests/integration/ -v
+	pytest --ignore=src/tests/integration/ -m "not integration" -v
 
 # Run integration tests (require database)
 test-integration:
@@ -141,7 +141,7 @@ pre-commit-install:
 
 # Run development server
 run:
-	uvicorn src.app.app:fastApiApp --reload --host 0.0.0.0 --port 8000
+	uvicorn src.app.app:fastapi_app --reload --host 0.0.0.0 --port 8000
 
 # Seed first admin user (requires DATABASE_URL environment variable)
 seed-admin:

@@ -235,7 +235,7 @@ This file contains repository-specific rules and preferences.
 ## Build, Test, and Run Commands
 
 - Install: `make install`
-- Run API locally: `make run` (uses `uvicorn src.app.app:fastApiApp --reload --port 8000`)
+- Run API locally: `make run` (uses `uvicorn src.app.app:fastapi_app --reload --port 8000`)
 - Unit/default tests (no DB): `make test` or `make test-unit` (both ignore `src/tests/integration/`)
 - DB-backed integration tests: `make test-integration` (requires PostgreSQL)
 - Marker-based E2E tests: `make test-e2e` (runs `pytest -m e2e`)
