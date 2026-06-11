@@ -25,11 +25,9 @@ from src.app.features.projects.application.use_cases.list_projects import ListPr
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
-from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 
 router = APIRouter()
-handler = BaseRouteHandler()
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
@@ -39,46 +37,44 @@ async def create_project(
     use_case: CreateProjectUseCase = Depends(get_create_project_use_case),
 ) -> ProjectResponse:
     """
-    Create a new project (admin only).
+    Create a new project.
 
-    Requires ADMIN role. Created by user from JWT token.
+    Requires ADMIN role. The created_by user is extracted from the JWT token.
 
     Args:
-        payload: CreateProjectRequest with project details
-        current_user: Current authenticated admin user
+        payload: CreateProjectRequest with project details (name, code, client_id, optional fields)
+        current_user: Current authenticated admin user (from JWT)
         use_case: Injected CreateProjectUseCase
 
     Returns:
-        ProjectResponse with created project data
+        ProjectResponse with created project data (id, name, status, timestamps)
 
     Raises:
-        400: Validation failed
+        400: Validation failed (invalid name, dates, etc.)
         401/403: Unauthorized or forbidden
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
-        current_user=current_user,
-    )
+    user_id = str(current_user["sub"])
+    return await use_case.execute(request=payload, created_by=user_id)
 
 
 @router.get("", response_model=PaginatedResponse[ProjectResponse])
 async def list_projects(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    status: str | None = Query(default=None),
+    project_status: str | None = Query(default=None, alias="status"),
     current_user: dict[str, Any] = Depends(get_current_user),
     use_case: ListProjectsUseCase = Depends(get_list_projects_use_case),
 ) -> PaginatedResponse[ProjectResponse]:
     """
-    List projects with pagination.
+    List projects with pagination and optional status filter.
 
-    Requires authentication. Supports filtering by status.
+    Requires authentication.
 
     Args:
         limit: Maximum number of results (1-100, default 20)
         offset: Number of results to skip (default 0)
-        status: Optional status filter (active, completed, archived)
+        project_status: Optional status filter (active, completed, archived)
         current_user: Current authenticated user
         use_case: Injected ListProjectsUseCase
 
@@ -90,21 +86,16 @@ async def list_projects(
         401: Unauthorized
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    if project_status and project_status not in ["active", "completed", "archived"]:
+        raise ValueError("Status must be one of: active, completed, archived")
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        # Validate status if provided
-        if status and status not in ["active", "completed", "archived"]:
-            raise ValueError("Status must be one of: active, completed, archived")
-
-        return await use_case.execute(
-            user_id=user_id,
-            limit=limit,
-            offset=offset,
-            status=status,
-        )
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return await use_case.execute(
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+        status=project_status,
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -132,17 +123,13 @@ async def get_project_by_id(
         404: Project not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(str(project_id), user_id=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(str(project_id), user_id=user_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -153,9 +140,9 @@ async def update_project(
     use_case: UpdateProjectUseCase = Depends(get_update_project_use_case),
 ) -> ProjectResponse:
     """
-    Update project (admin only).
+    Update project.
 
-    Requires ADMIN role. Supports partial updates.
+    Requires ADMIN role. Supports partial updates — only provided fields are changed.
 
     Args:
         project_id: Project UUID
@@ -172,17 +159,13 @@ async def update_project(
         404: Project not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -192,7 +175,7 @@ async def delete_project(
     use_case: DeleteProjectUseCase = Depends(get_delete_project_use_case),
 ) -> None:
     """
-    Delete project (admin only).
+    Delete project.
 
     Requires ADMIN role. Cascade deletes all related stories.
 
@@ -207,12 +190,8 @@ async def delete_project(
         404: Project not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    deleted = await use_case.execute(project_id=str(project_id), created_by=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        deleted = await use_case.execute(project_id=str(project_id), created_by=user_id)
-
-        if not deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-
-    await handler.execute(execute)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")

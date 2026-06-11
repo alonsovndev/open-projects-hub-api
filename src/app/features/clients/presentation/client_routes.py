@@ -24,11 +24,9 @@ from src.app.features.clients.application.use_cases.get_client_by_id import GetC
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
-from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 
 router = APIRouter()
-handler = BaseRouteHandler()
 
 
 @router.post(
@@ -41,11 +39,26 @@ async def create_client(
     current_user: dict[str, Any] = Depends(require_admin),
     use_case: CreateClientUseCase = Depends(get_create_client_use_case),
 ) -> ClientResponse:
-    """Create a new client. Admin only."""
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(request=request, created_by=user_id),
-        current_user=current_user,
-    )
+    """
+    Create a new client.
+
+    Requires ADMIN role. The created_by user is extracted from the JWT token.
+
+    Args:
+        request: CreateClientRequest with client details (name, email, phone, etc.)
+        current_user: Current authenticated admin user (from JWT)
+        use_case: Injected CreateClientUseCase
+
+    Returns:
+        ClientResponse with created client data
+
+    Raises:
+        400: Validation failed (invalid name, email, phone, etc.)
+        401/403: Unauthorized or forbidden
+        500: Internal server error
+    """
+    user_id = str(current_user["sub"])
+    return await use_case.execute(request=request, created_by=user_id)
 
 
 @router.get(
@@ -58,15 +71,26 @@ async def get_clients(
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
 ) -> PaginatedClientsResponse:
-    """Get all clients with pagination. Authenticated users only."""
-    try:
-        user_id = str(current_user["sub"])
-        return await use_case.execute(user_id=user_id, offset=offset, limit=limit)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve clients: {e!s}",
-        ) from e
+    """
+    Get all clients with pagination.
+
+    Requires authentication.
+
+    Args:
+        current_user: Current authenticated user
+        use_case: Injected GetClientsUseCase
+        offset: Number of results to skip (default 0)
+        limit: Maximum number of results (1-100, default 100)
+
+    Returns:
+        PaginatedClientsResponse with client list and pagination metadata
+
+    Raises:
+        401: Unauthorized
+        500: Internal server error
+    """
+    user_id = str(current_user["sub"])
+    return await use_case.execute(user_id=user_id, offset=offset, limit=limit)
 
 
 @router.get(
@@ -78,17 +102,31 @@ async def get_client_by_id(
     current_user: dict[str, Any] = Depends(get_current_user),
     use_case: GetClientByIdUseCase = Depends(get_get_client_by_id_use_case),
 ) -> ClientResponse:
-    """Get a client by ID. Authenticated users only."""
+    """
+    Get a client by ID.
+
+    Requires authentication.
+
+    Args:
+        client_id: Client UUID
+        current_user: Current authenticated user
+        use_case: Injected GetClientByIdUseCase
+
+    Returns:
+        ClientResponse with client data
+
+    Raises:
+        400: Invalid UUID
+        401: Unauthorized
+        404: Client not found
+        500: Internal server error
+    """
+    user_id = str(current_user["sub"])
+
     try:
-        user_id = str(current_user["sub"])
         return await use_case.execute(client_id=client_id, user_id=user_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve client: {e!s}",
-        ) from e
 
 
 @router.put(
@@ -101,14 +139,32 @@ async def update_client(
     current_user: dict[str, Any] = Depends(require_admin),
     use_case: UpdateClientUseCase = Depends(get_update_client_use_case),
 ) -> ClientResponse:
-    """Update a client. Admin only."""
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(client_id=client_id, request=request, created_by=user_id),
-        current_user=current_user,
-        exception_mappings=[
-            ExceptionMapping(ValueError, status.HTTP_404_NOT_FOUND),
-        ],
-    )
+    """
+    Update a client.
+
+    Requires ADMIN role.
+
+    Args:
+        client_id: Client UUID
+        request: UpdateClientRequest with fields to update
+        current_user: Current authenticated admin user
+        use_case: Injected UpdateClientUseCase
+
+    Returns:
+        ClientResponse with updated client data
+
+    Raises:
+        400: Validation failed
+        401/403: Unauthorized or forbidden
+        404: Client not found
+        500: Internal server error
+    """
+    user_id = str(current_user["sub"])
+
+    try:
+        return await use_case.execute(client_id=client_id, request=request, created_by=user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete(
@@ -120,7 +176,23 @@ async def delete_client(
     current_user: dict[str, Any] = Depends(require_admin),
     use_case: DeleteClientUseCase = Depends(get_delete_client_use_case),
 ):
-    """Delete a client. Admin only. Cannot delete if client has projects."""
+    """
+    Delete a client.
+
+    Requires ADMIN role. Cannot delete if the client has associated projects
+    (foreign key constraint).
+
+    Args:
+        client_id: Client UUID
+        current_user: Current authenticated admin user
+        use_case: Injected DeleteClientUseCase
+
+    Raises:
+        400: Cannot delete client with associated projects
+        401/403: Unauthorized or forbidden
+        404: Client not found
+        500: Internal server error
+    """
     user_id = current_user.get("sub")
     if not user_id:
         raise HTTPException(

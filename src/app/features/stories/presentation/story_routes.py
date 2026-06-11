@@ -34,11 +34,9 @@ from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.presentation.auth_dependencies import get_current_user
-from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 
 router = APIRouter()
-handler = BaseRouteHandler()
 
 
 async def _authorize_story_owner_or_admin(story_id: str, current_user: dict[str, Any]) -> None:
@@ -84,24 +82,23 @@ async def create_story(
     Create a new story.
 
     Requires authentication. Anyone can create stories.
+    The created_by user is extracted from the JWT token.
 
     Args:
-        payload: CreateStoryRequest with story details
-        current_user: Current authenticated user
+        payload: CreateStoryRequest with story details (title, description, project_id, etc.)
+        current_user: Current authenticated user (from JWT)
         use_case: Injected CreateStoryUseCase
 
     Returns:
         StoryResponse with created story data
 
     Raises:
-        400: Validation failed
+        400: Validation failed (invalid title, priority, etc.)
         401: Unauthorized
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(request=payload, created_by=user_id),
-        current_user=current_user,
-    )
+    user_id = str(current_user["sub"])
+    return await use_case.execute(request=payload, created_by=user_id)
 
 
 @router.get("", response_model=PaginatedResponse[StoryResponse])
@@ -109,22 +106,22 @@ async def list_stories(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     project_id: str | None = Query(default=None),
-    status: str | None = Query(default=None),
+    story_status: str | None = Query(default=None, alias="status"),
     priority: str | None = Query(default=None),
     assigned_to: str | None = Query(default=None),
     current_user: dict[str, Any] = Depends(get_current_user),
     use_case: ListStoriesUseCase = Depends(get_list_stories_use_case),
 ) -> PaginatedResponse[StoryResponse]:
     """
-    List stories with filters.
+    List stories with optional filters.
 
-    Requires authentication. Supports filtering by project, status, priority, and assignee.
+    Requires authentication.
 
     Args:
         limit: Maximum number of results (1-100, default 20)
         offset: Number of results to skip (default 0)
         project_id: Optional project filter
-        status: Optional status filter (todo, in_progress, done)
+        story_status: Optional status filter (todo, in_progress, done)
         priority: Optional priority filter (low, medium, high)
         assigned_to: Optional assigned user filter
         current_user: Current authenticated user
@@ -138,20 +135,16 @@ async def list_stories(
         401: Unauthorized
         500: Internal server error
     """
-
-    async def execute():
-        user_id = str(current_user["sub"])
-        return await use_case.execute(
-            user_id=user_id,
-            limit=limit,
-            offset=offset,
-            project_id=project_id,
-            status=status,
-            priority=priority,
-            assigned_to=assigned_to,
-        )
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    user_id = str(current_user["sub"])
+    return await use_case.execute(
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+        project_id=project_id,
+        status=story_status,
+        priority=priority,
+        assigned_to=assigned_to,
+    )
 
 
 @router.get("/by-project/{project_id}", response_model=PaginatedResponse[StoryResponse])
@@ -181,17 +174,13 @@ async def get_stories_by_project(
         401: Unauthorized
         500: Internal server error
     """
-
-    async def execute():
-        user_id = str(current_user["sub"])
-        return await use_case.execute(
-            project_id=str(project_id),
-            user_id=user_id,
-            limit=limit,
-            offset=offset,
-        )
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    user_id = str(current_user["sub"])
+    return await use_case.execute(
+        project_id=str(project_id),
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{story_id}", response_model=StoryResponse)
@@ -219,17 +208,13 @@ async def get_story_by_id(
         404: Story not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(str(story_id), user_id=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(str(story_id), user_id=user_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result
 
 
 @router.patch("/{story_id}", response_model=StoryResponse)
@@ -242,8 +227,8 @@ async def update_story(
     """
     Update story.
 
-    Requires authentication and authorization (story owner or admin).
-    Supports partial updates.
+    Requires authentication. Only the story creator or an admin can update.
+    Supports partial updates — only provided fields are changed.
 
     Args:
         story_id: Story UUID
@@ -261,19 +246,15 @@ async def update_story(
         404: Story not found
         500: Internal server error
     """
+    await _authorize_story_owner_or_admin(str(story_id), current_user)
 
-    async def execute():
-        await _authorize_story_owner_or_admin(str(story_id), current_user)
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
 
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result
 
 
 @router.delete("/{story_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -285,7 +266,7 @@ async def delete_story(
     """
     Delete story.
 
-    Requires authentication and authorization (story owner or admin).
+    Requires authentication. Only the story creator or an admin can delete.
 
     Args:
         story_id: Story UUID
@@ -299,17 +280,13 @@ async def delete_story(
         404: Story not found
         500: Internal server error
     """
+    await _authorize_story_owner_or_admin(str(story_id), current_user)
 
-    async def execute():
-        await _authorize_story_owner_or_admin(str(story_id), current_user)
+    user_id = str(current_user["sub"])
+    deleted = await use_case.execute(story_id=str(story_id), created_by=user_id)
 
-        user_id = str(current_user["sub"])
-        deleted = await use_case.execute(story_id=str(story_id), created_by=user_id)
-
-        if not deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-    await handler.execute(execute)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
 
 @router.post("/{story_id}/assign", response_model=StoryResponse)
@@ -326,7 +303,7 @@ async def assign_story(
 
     Args:
         story_id: Story UUID
-        payload: AssignStoryRequest with user ID
+        payload: AssignStoryRequest with user_id to assign
         current_user: Current authenticated user
         use_case: Injected AssignStoryUseCase
 
@@ -339,18 +316,14 @@ async def assign_story(
         404: Story not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(
+        story_id=str(story_id),
+        user_id=payload.user_id,
+        created_by=user_id,
+    )
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(
-            story_id=str(story_id),
-            user_id=payload.user_id,
-            created_by=user_id,
-        )
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result

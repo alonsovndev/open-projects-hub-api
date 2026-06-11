@@ -27,11 +27,9 @@ from src.app.features.refinement.application.use_cases.update_story_draft import
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.presentation.auth_dependencies import require_admin
-from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 
 router = APIRouter(prefix="/refinement")
-handler = BaseRouteHandler()
 
 
 @router.patch("/drafts/{draft_id}")
@@ -42,7 +40,9 @@ async def update_draft(
     use_case: UpdateStoryDraftUseCase = Depends(get_update_draft_use_case),
 ) -> dict[str, str]:
     """
-    Update a story draft (admin only).
+    Update a story draft.
+
+    Requires ADMIN role. Allows editing the description of an existing draft.
 
     Args:
         draft_id: Draft UUID
@@ -51,26 +51,26 @@ async def update_draft(
         use_case: Injected UpdateStoryDraftUseCase
 
     Returns:
-        Dict with draft ID
-    """
+        Dict with draft ID on success
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(
-            draft_id=str(draft_id),
-            request=payload,
-            created_by=user_id,
+    Raises:
+        404: Story draft not found
+        500: Internal server error
+    """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(
+        draft_id=str(draft_id),
+        request=payload,
+        created_by=user_id,
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Story draft not found",
         )
 
-        if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Story draft not found",
-            )
-
-        return {"id": str(result.id.value)}
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return {"id": str(result.id.value)}
 
 
 @router.post("/generate-stories", response_model=GenerateStoriesResponse)
@@ -80,9 +80,9 @@ async def generate_stories(
     use_case: GenerateStoriesFromNotesUseCase = Depends(get_generate_stories_use_case),
 ) -> GenerateStoriesResponse:
     """
-    Generate multiple story drafts from raw discovery notes using AI (admin only).
+    Generate story drafts from raw discovery notes using AI.
 
-    Takes raw notes and generates 3-7 well-structured user stories.
+    Requires ADMIN role. Takes raw notes and generates 3-7 well-structured user stories.
 
     Args:
         payload: GenerateStoriesRequest with project_id and raw_notes
@@ -94,22 +94,19 @@ async def generate_stories(
 
     Raises:
         400: Invalid input
-        500: AI service error
+        502: AI service error
+        500: Internal server error
     """
-
-    async def execute():
-        try:
-            return await use_case.execute(
-                request=payload,
-                created_by=str(current_user["sub"]),
-            )
-        except AIServiceError as e:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"AI service error: {e!s}",
-            ) from e
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    try:
+        return await use_case.execute(
+            request=payload,
+            created_by=str(current_user["sub"]),
+        )
+    except AIServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI service error: {e!s}",
+        ) from e
 
 
 @router.post("/drafts/{draft_id}/approve", response_model=StoryResponse)
@@ -119,9 +116,9 @@ async def approve_draft(
     use_case: ApproveDraftUseCase = Depends(get_approve_draft_use_case),
 ) -> StoryResponse:
     """
-    Approve a draft and convert it to a story (admin only).
+    Approve a draft and convert it to a story.
 
-    Converts the draft into a full story in the backlog
+    Requires ADMIN role. Converts the draft into a full story in the backlog
     and marks the draft as applied.
 
     Args:
@@ -133,23 +130,19 @@ async def approve_draft(
         StoryResponse with created story data
 
     Raises:
-        404: Draft not found
+        404: Story draft not found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    result = await use_case.execute(str(draft_id), created_by=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        result = await use_case.execute(str(draft_id), created_by=user_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Story draft not found",
+        )
 
-        if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Story draft not found",
-            )
-
-        return result
-
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return result
 
 
 @router.post("/approve-drafts", response_model=ApproveDraftsBulkResponse)
@@ -159,36 +152,32 @@ async def approve_drafts_bulk(
     use_case: ApproveDraftsBulkUseCase = Depends(get_approve_drafts_bulk_use_case),
 ) -> ApproveDraftsBulkResponse:
     """
-    Approve multiple drafts and convert them to stories (admin only).
+    Approve multiple drafts and convert them to stories.
 
-    Bulk operation to convert multiple drafts into stories in the backlog.
+    Requires ADMIN role. Bulk operation to approve multiple drafts at once.
 
     Args:
-        payload: ApproveDraftsBulkRequest with draft IDs
+        payload: ApproveDraftsBulkRequest with list of draft IDs
         current_user: Current authenticated admin user
         use_case: Injected ApproveDraftsBulkUseCase
 
     Returns:
-        ApproveDraftsBulkResponse with count and created stories
+        ApproveDraftsBulkResponse with approved count and list of created stories
 
     Raises:
         400: Invalid input or no drafts found
         500: Internal server error
     """
+    user_id = str(current_user["sub"])
+    stories = await use_case.execute(payload.draft_ids, created_by=user_id)
 
-    async def execute():
-        user_id = str(current_user["sub"])
-        stories = await use_case.execute(payload.draft_ids, created_by=user_id)
-
-        if not stories:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No drafts were found to approve",
-            )
-
-        return ApproveDraftsBulkResponse(
-            approved_count=len(stories),
-            stories=[{"id": s.id, "title": s.title} for s in stories],
+    if not stories:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No drafts were found to approve",
         )
 
-    return await handler.execute(execute)  # type: ignore[no-any-return]
+    return ApproveDraftsBulkResponse(
+        approved_count=len(stories),
+        stories=[{"id": s.id, "title": s.title} for s in stories],
+    )

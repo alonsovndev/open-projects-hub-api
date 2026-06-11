@@ -14,30 +14,15 @@ from src.app.composition import (
     get_update_user_profile_use_case,
 )
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.exceptions.user_exception import (
-    UserAlreadyExistsException,
-    UserDoesNotExistException,
-    UserNotFoundException,
-)
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
-from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 
 router = APIRouter()
-handler = BaseRouteHandler()
-
-# Common exception mappings for user routes
-USER_EXCEPTION_MAPPINGS = [
-    ExceptionMapping(UserNotFoundException, status.HTTP_404_NOT_FOUND),
-    ExceptionMapping(UserDoesNotExistException, status.HTTP_404_NOT_FOUND),
-    ExceptionMapping(UserAlreadyExistsException, status.HTTP_409_CONFLICT),
-    ExceptionMapping(ValueError, status.HTTP_400_BAD_REQUEST),
-]
 
 
 # DTOs for new endpoints
@@ -73,7 +58,7 @@ async def get_user_profile(
     """
     Get current user profile.
 
-    Requires authentication. Returns profile for the authenticated user from JWT token.
+    Requires authentication. Returns profile for the authenticated user from the JWT token.
 
     Args:
         current_user: Current authenticated user (from JWT)
@@ -87,11 +72,8 @@ async def get_user_profile(
         404: User not found
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(user_id),
-        current_user=current_user,
-        exception_mappings=USER_EXCEPTION_MAPPINGS,
-    )
+    user_id = str(current_user["sub"])
+    return await use_case.execute(user_id)
 
 
 @router.patch("/me/profile", response_model=UserResponse)
@@ -103,7 +85,7 @@ async def update_user_profile(
     """
     Update current user profile.
 
-    Requires authentication. Only display_name can be updated.
+    Requires authentication. Only the display_name field can be updated.
     Email and role cannot be changed via this endpoint.
 
     Args:
@@ -120,11 +102,8 @@ async def update_user_profile(
         404: User not found
         500: Internal server error
     """
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=lambda user_id: use_case.execute(user_id, payload.display_name),
-        current_user=current_user,
-        exception_mappings=USER_EXCEPTION_MAPPINGS,
-    )
+    user_id = str(current_user["sub"])
+    return await use_case.execute(user_id, payload.display_name)
 
 
 @router.post("/me/password", status_code=status.HTTP_200_OK)
@@ -136,8 +115,8 @@ async def change_password(
     """
     Change user password.
 
-    Requires authentication. Verifies current password before updating to new password.
-    New password must meet complexity requirements (min 8 chars, letter + digit).
+    Requires authentication. Verifies the current password before updating
+    to the new password. New password must meet complexity requirements.
 
     Args:
         payload: ChangePasswordRequest with currentPassword and newPassword
@@ -145,7 +124,7 @@ async def change_password(
         use_case: Injected ChangePasswordUseCase
 
     Returns:
-        Success message
+        Success message confirming password change
 
     Raises:
         400: Validation failed (weak password, incorrect current password)
@@ -153,18 +132,11 @@ async def change_password(
         404: User not found
         500: Internal server error
     """
-
-    async def execute(user_id: str):
-        await use_case.execute(
-            user_id=user_id, current_password=payload.current_password, new_password=payload.new_password
-        )
-        return {"message": "Password changed successfully"}
-
-    return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
-        execute_fn=execute,
-        current_user=current_user,
-        exception_mappings=USER_EXCEPTION_MAPPINGS,
+    user_id = str(current_user["sub"])
+    await use_case.execute(
+        user_id=user_id, current_password=payload.current_password, new_password=payload.new_password
     )
+    return {"message": "Password changed successfully"}
 
 
 # Generic user endpoints
@@ -181,14 +153,18 @@ async def get_user_by_id(
 
     Args:
         user_id: User UUID
-        get_user_use_case: Injected use case (direct injection, no service layer)
+        get_user_use_case: Injected GetUserByIdUseCase
         current_user: Current authenticated user
+
+    Returns:
+        UserResponse with user details (id, email, displayName, role)
+
+    Raises:
+        401: Unauthorized
+        404: User not found
+        500: Internal server error
     """
-
-    async def execute():
-        return await get_user_use_case.execute(str(user_id))
-
-    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)  # type: ignore[no-any-return]
+    return await get_user_use_case.execute(str(user_id))
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -200,15 +176,13 @@ async def create_user(
     """
     Create a new user (admin only).
 
-    Standard REST endpoint: POST /v1/users
     Requires ADMIN role. For public self-registration, use POST /v1/auth/register instead.
-
-    Admins can specify the role ('admin' or 'viewer') when creating users.
-    If role is not specified, defaults to 'viewer'.
+    Admins can specify the role (admin or viewer) when creating users.
+    Defaults to viewer if not specified.
 
     Args:
-        payload: User creation request (email, password, displayName, optional role)
-        create_user_use_case: Injected use case (direct injection, no service layer)
+        payload: UserCreateRequest with email, password, displayName, optional role
+        create_user_use_case: Injected CreateUserUseCase
         current_user: Current authenticated admin user
 
     Returns:
@@ -219,9 +193,5 @@ async def create_user(
         409: Conflict (email already exists)
         422: Validation error (invalid payload)
     """
-
-    async def execute():
-        user_id = str(current_user["sub"])
-        return await create_user_use_case.execute(payload, created_by=user_id)
-
-    return await handler.execute(execute, exception_mappings=USER_EXCEPTION_MAPPINGS)  # type: ignore[no-any-return]
+    user_id = str(current_user["sub"])
+    return await create_user_use_case.execute(payload, created_by=user_id)

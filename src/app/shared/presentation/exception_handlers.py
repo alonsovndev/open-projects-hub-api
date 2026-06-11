@@ -13,6 +13,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError
+from src.app.features.user.application.exceptions.user_exception import (
+    UserAlreadyExistsException,
+    UserDoesNotExistException,
+)
 from src.app.shared.domain.exceptions.domain_exceptions import (
     ConflictError,
     DomainError,
@@ -56,6 +60,29 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
         content={
             "error": "Validation Error",
             "message": message,
+        },
+    )
+
+
+async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+    """
+    Handle ValueError exceptions.
+
+    Returns 400 with error message.
+
+    Args:
+        request: The incoming request
+        exc: The value error exception
+
+    Returns:
+        JSONResponse with 400 status and error message
+    """
+    log.warning(f"Value error: {exc!s}")
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Validation Error",
+            "message": str(exc),
         },
     )
 
@@ -183,6 +210,52 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     )
 
 
+async def user_not_found_error_handler(request: Request, exc: UserDoesNotExistException) -> JSONResponse:
+    """
+    Handle UserDoesNotExistException.
+
+    Returns 404 with user not found message.
+
+    Args:
+        request: The incoming request
+        exc: The user not found exception
+
+    Returns:
+        JSONResponse with 404 status and error message
+    """
+    log.warning(f"User not found: {exc.message}")
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "Not Found",
+            "message": exc.message,
+        },
+    )
+
+
+async def user_already_exists_error_handler(request: Request, exc: UserAlreadyExistsException) -> JSONResponse:
+    """
+    Handle UserAlreadyExistsException.
+
+    Returns 409 with conflict message.
+
+    Args:
+        request: The incoming request
+        exc: The user already exists exception
+
+    Returns:
+        JSONResponse with 409 status and conflict message
+    """
+    log.warning(f"User already exists: {exc.message}")
+    return JSONResponse(
+        status_code=409,
+        content={
+            "error": "Conflict",
+            "message": exc.message,
+        },
+    )
+
+
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Handle all unhandled exceptions.
@@ -231,10 +304,13 @@ def register_exception_handlers(app):
     from slowapi.errors import RateLimitExceeded
 
     app.add_exception_handler(RequestValidationError, request_validation_error_handler)
+    app.add_exception_handler(ValueError, value_error_handler)
     app.add_exception_handler(NotFoundError, not_found_error_handler)
     app.add_exception_handler(ValidationError, validation_error_handler)
     app.add_exception_handler(ConflictError, conflict_error_handler)
     app.add_exception_handler(AccountLockedError, account_locked_error_handler)
     app.add_exception_handler(DomainError, domain_error_handler)
     app.add_exception_handler(Exception, generic_exception_handler)
+    app.add_exception_handler(UserDoesNotExistException, user_not_found_error_handler)
+    app.add_exception_handler(UserAlreadyExistsException, user_already_exists_error_handler)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

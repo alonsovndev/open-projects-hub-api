@@ -1,7 +1,5 @@
-from typing import cast
-
 import jwt
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from src.app.composition import get_login_use_case, get_refresh_token_use_case, get_register_use_case
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
@@ -16,7 +14,6 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCrede
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
-from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 
 router = APIRouter()
@@ -37,26 +34,20 @@ async def login(
     Args:
         request: FastAPI request object (required for rate limiting)
         payload: LoginRequest with email and password
-        login_use_case: Injected LoginUserUseCase (direct injection, no service layer)
+        login_use_case: Injected LoginUserUseCase
 
     Returns:
-        AdminLoginResponse with token and user details
+        AdminLoginResponse with JWT token and user details
 
     Raises:
         401: Invalid credentials
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
-    return cast(
-        "AdminLoginResponse",
-        await BaseRouteHandler.execute(
-            login_use_case.execute,
-            payload=payload,
-            exception_mappings=[
-                ExceptionMapping(InvalidCredentialsError, status.HTTP_401_UNAUTHORIZED),
-            ],
-        ),
-    )
+    try:
+        return await login_use_case.execute(payload=payload)
+    except InvalidCredentialsError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
 
 
 @router.post("/register", response_model=AdminLoginResponse, status_code=status.HTTP_201_CREATED)
@@ -88,17 +79,10 @@ async def register(
         409: Email already exists
         500: Internal server error
     """
-    return cast(
-        "AdminLoginResponse",
-        await BaseRouteHandler.execute(
-            register_use_case.execute,
-            payload=payload,
-            exception_mappings=[
-                ExceptionMapping(UserAlreadyExistsException, status.HTTP_409_CONFLICT),
-                ExceptionMapping(ValueError, status.HTTP_400_BAD_REQUEST, extract_message=False),
-            ],
-        ),
-    )
+    try:
+        return await register_use_case.execute(payload=payload)
+    except UserAlreadyExistsException as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
@@ -131,27 +115,17 @@ async def refresh_token(
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
-    return cast(
-        "RefreshTokenResponse",
-        await BaseRouteHandler.execute(
-            refresh_use_case.execute,
-            payload=payload,
-            exception_mappings=[
-                ExceptionMapping(
-                    jwt.ExpiredSignatureError,
-                    status.HTTP_401_UNAUTHORIZED,
-                    detail="Refresh token has expired",
-                ),
-                ExceptionMapping(
-                    jwt.InvalidTokenError,
-                    status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid refresh token",
-                ),
-                ExceptionMapping(
-                    ValueError,
-                    status.HTTP_401_UNAUTHORIZED,
-                    extract_message=False,
-                ),
-            ],
-        ),
-    )
+    try:
+        return await refresh_use_case.execute(payload=payload)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has expired",
+        ) from None
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        ) from None
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
