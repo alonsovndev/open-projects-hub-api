@@ -33,7 +33,7 @@ class TestExceptionMapping:
             detail="Invalid value",
         )
 
-        assert mapping.exception_type == ValueError
+        assert mapping.exception_type is ValueError
         assert mapping.status_code == 400
         assert mapping.detail == "Invalid value"
         assert mapping.extract_message is True

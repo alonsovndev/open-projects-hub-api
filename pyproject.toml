@@ -90,6 +90,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "S105",    # Possible hardcoded password (test data)
     "S106",    # Possible hardcoded password (test data)
     "PLR2004", # Magic value used in comparison
+    "DTZ005",  # datetime.now() without timezone (acceptable in tests)
 ]
 "alembic/**/*.py" = [
     "E402",    # Module level import not at top

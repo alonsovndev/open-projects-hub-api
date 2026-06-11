@@ -13,7 +13,6 @@ from src.app.composition import (
     get_get_user_profile_use_case,
     get_update_user_profile_use_case,
 )
-from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
 from src.app.features.user.application.exceptions.user_exception import (
     UserAlreadyExistsException,
@@ -25,6 +24,7 @@ from src.app.features.user.application.use_cases.create_user import CreateUserUs
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
+from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 

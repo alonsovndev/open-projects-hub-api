@@ -109,7 +109,7 @@ class TestProjectRepositoryIntegration:
         saved.name = "Updated Name"
         saved.description = "Updated description"
         saved.status = ProjectStatus.COMPLETED
-        updated = await repository.save(saved)
+        await repository.save(saved)
         await db_session.commit()
 
         # Assert

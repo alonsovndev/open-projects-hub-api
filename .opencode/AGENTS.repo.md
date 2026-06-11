@@ -14,6 +14,7 @@ This file contains repository-specific rules and preferences.
 - Cross-feature concerns live under `src/app/shared/` and follow the same layered split; prefer shared modules only for true cross-feature reuse.
 - API routers are centrally wired in `src/app/shared/presentation/router_registry.py` under `/v1/*` prefixes.
 - **Dependency injection** is centralized in `src/app/composition/` - all use cases, repositories, and infrastructure dependencies are exported from `composition/__init__.py`.
+- **`__init__.py` files:** Feature folders under `src/app/features/` use implicit namespace packages (no `__init__.py`). Always use explicit file-path imports. The `composition/` and `shared/` roots retain `__init__.py` for public API exports.
 
 ## Build, Test, and Run Commands
 

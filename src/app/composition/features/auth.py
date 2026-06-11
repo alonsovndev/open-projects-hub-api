@@ -25,11 +25,11 @@ Usage:
 
 from fastapi import Depends
 
+from src.app.composition.infrastructure import get_jwt_handler
 from src.app.composition.repositories import get_user_repository
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
 from src.app.features.auth.application.use_cases.refresh_token import RefreshTokenUseCase
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
-from src.app.features.auth.presentation.auth_dependencies import get_jwt_handler
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 
 

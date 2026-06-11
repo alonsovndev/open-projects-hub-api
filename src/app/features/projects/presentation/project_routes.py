@@ -13,7 +13,6 @@ from src.app.composition import (
     get_project_by_id_use_case,
     get_update_project_use_case,
 )
-from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.projects.application.dtos.project_dto import (
     CreateProjectRequest,
     ProjectResponse,
@@ -25,6 +24,7 @@ from src.app.features.projects.application.use_cases.get_project_by_id import Ge
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 

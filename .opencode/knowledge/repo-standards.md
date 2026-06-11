@@ -178,6 +178,25 @@ from src.app.features.projects.presentation.dependencies import get_create_proje
 
 **Reference:** See `src/app/composition/` for complete composition root implementation.
 
+## Import Conventions
+
+**No `__init__.py` files in `src/app/features/`:**
+
+- This project uses implicit namespace packages (Python 3.3+)
+- All feature folders under `src/app/features/` have no `__init__.py` files
+- Always use explicit file-path imports:
+
+```python
+# ✅ Correct - full path to the module file
+from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
+from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
+
+# ❌ Wrong - no __init__.py means no package-level re-exports
+from src.app.features.projects.application.use_cases import CreateProjectUseCase  # will fail
+```
+
+**Exception:** The `composition/` root and `shared/` root still use `__init__.py` for public API exports.
+
 ## Keep It Lean
 
 - Document only what differs from global standards.

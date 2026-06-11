@@ -17,7 +17,6 @@ from src.app.composition import (
     get_update_story_use_case,
 )
 from src.app.composition.repositories import build_story_repository
-from src.app.features.auth.presentation.auth_dependencies import get_current_user
 from src.app.features.stories.application.dtos.story_dto import (
     AssignStoryRequest,
     CreateStoryRequest,
@@ -34,6 +33,7 @@ from src.app.features.stories.application.use_cases.update_story import UpdateSt
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.presentation.auth_dependencies import get_current_user
 from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 

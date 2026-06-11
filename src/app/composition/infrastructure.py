@@ -22,12 +22,38 @@ Usage:
 """
 
 from collections.abc import AsyncGenerator
+from functools import lru_cache
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.config.app_config import AppConfig
 from src.app.features.refinement.infrastructure.ai.ai_factory import create_ai_service
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.persistence.engine_factory import get_engine
+
+
+@lru_cache(maxsize=1)
+def get_jwt_handler() -> JWTHandler:
+    """
+    Cached singleton factory for JWTHandler.
+
+    Creates a single JWTHandler instance from application config
+    and caches it for the application lifetime.
+    """
+    config = AppConfig.instance()
+    secret_key = config.get_config("jwt.secret_key")
+    algorithm = config.get_config("jwt.algorithm", "HS256")
+    expiration = config.get_config("jwt.access_token_expire_minutes", 1440)
+
+    if not secret_key:
+        raise ValueError("JWT secret_key not configured")
+
+    return JWTHandler(
+        secret_key=secret_key,
+        algorithm=algorithm,
+        expiration_minutes=int(expiration),
+    )
 
 
 async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
@@ -52,7 +78,7 @@ async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
         AsyncSession: SQLAlchemy async session for database operations
     """
     db_conn = get_engine()
-    async with db_conn.get_session() as session:
+    async with db_conn.get_session() as session:  # type: AsyncSession
         yield session
 
 

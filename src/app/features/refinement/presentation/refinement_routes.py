@@ -11,7 +11,6 @@ from src.app.composition import (
     get_generate_stories_use_case,
     get_update_draft_use_case,
 )
-from src.app.features.auth.presentation.auth_dependencies import require_admin
 from src.app.features.refinement.application.dtos.refinement_dto import (
     ApproveDraftsBulkRequest,
     ApproveDraftsBulkResponse,
@@ -27,6 +26,7 @@ from src.app.features.refinement.application.use_cases.generate_stories_from_not
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
+from src.app.shared.presentation.auth_dependencies import require_admin
 from src.app.shared.presentation.base_handler import BaseRouteHandler
 
 

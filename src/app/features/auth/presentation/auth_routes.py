@@ -1,3 +1,5 @@
+from typing import cast
+
 import jwt
 from fastapi import APIRouter, Depends, Request, status
 
@@ -45,12 +47,15 @@ async def login(
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
-    return await BaseRouteHandler.execute(
-        login_use_case.execute,
-        payload=payload,
-        exception_mappings=[
-            ExceptionMapping(InvalidCredentialsError, status.HTTP_401_UNAUTHORIZED),
-        ],
+    return cast(
+        "AdminLoginResponse",
+        await BaseRouteHandler.execute(
+            login_use_case.execute,
+            payload=payload,
+            exception_mappings=[
+                ExceptionMapping(InvalidCredentialsError, status.HTTP_401_UNAUTHORIZED),
+            ],
+        ),
     )
 
 
@@ -83,13 +88,16 @@ async def register(
         409: Email already exists
         500: Internal server error
     """
-    return await BaseRouteHandler.execute(
-        register_use_case.execute,
-        payload=payload,
-        exception_mappings=[
-            ExceptionMapping(UserAlreadyExistsException, status.HTTP_409_CONFLICT),
-            ExceptionMapping(ValueError, status.HTTP_400_BAD_REQUEST, extract_message=False),
-        ],
+    return cast(
+        "AdminLoginResponse",
+        await BaseRouteHandler.execute(
+            register_use_case.execute,
+            payload=payload,
+            exception_mappings=[
+                ExceptionMapping(UserAlreadyExistsException, status.HTTP_409_CONFLICT),
+                ExceptionMapping(ValueError, status.HTTP_400_BAD_REQUEST, extract_message=False),
+            ],
+        ),
     )
 
 
@@ -123,24 +131,27 @@ async def refresh_token(
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
-    return await BaseRouteHandler.execute(
-        refresh_use_case.execute,
-        payload=payload,
-        exception_mappings=[
-            ExceptionMapping(
-                jwt.ExpiredSignatureError,
-                status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token has expired",
-            ),
-            ExceptionMapping(
-                jwt.InvalidTokenError,
-                status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            ),
-            ExceptionMapping(
-                ValueError,
-                status.HTTP_401_UNAUTHORIZED,
-                extract_message=False,
-            ),
-        ],
+    return cast(
+        "RefreshTokenResponse",
+        await BaseRouteHandler.execute(
+            refresh_use_case.execute,
+            payload=payload,
+            exception_mappings=[
+                ExceptionMapping(
+                    jwt.ExpiredSignatureError,
+                    status.HTTP_401_UNAUTHORIZED,
+                    detail="Refresh token has expired",
+                ),
+                ExceptionMapping(
+                    jwt.InvalidTokenError,
+                    status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid refresh token",
+                ),
+                ExceptionMapping(
+                    ValueError,
+                    status.HTTP_401_UNAUTHORIZED,
+                    extract_message=False,
+                ),
+            ],
+        ),
     )

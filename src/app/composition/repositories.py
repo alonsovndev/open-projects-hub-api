@@ -34,7 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.composition.infrastructure import get_database_session
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
-from src.app.features.clients.infrastructure.repositories import ClientRepositoryImpl
+from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
 from src.app.features.user.domain.repositories.user_repository import UserRepository
@@ -97,7 +97,7 @@ def build_story_repository(session: AsyncSession) -> StoryRepository:
     """
     Plain factory for StoryRepository (no FastAPI Depends dependency).
 
-    Use this outside of FastAPI DI resolution (e.g., in auth_dependencies.py's
+    Use this outside of FastAPI DI resolution (e.g., in shared/presentation/auth_dependencies.py's
     create_story_owner_or_admin_dependency factory, or in route handler closures
     that need inline repository access).
 

@@ -1,4 +1,12 @@
-from functools import lru_cache
+"""
+Authentication and authorization dependencies for FastAPI routes.
+
+This module provides reusable dependency functions for:
+- JWT token validation and user extraction
+- Role-based access control (RBAC)
+- Resource-level authorization (ownership checks)
+"""
+
 from typing import Any
 
 import jwt
@@ -6,36 +14,14 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.app.composition import get_database_session
-from src.app.composition.repositories import build_story_repository
-from src.app.config.app_config import AppConfig
+from src.app.composition.infrastructure import get_jwt_handler
 from src.app.features.auth.domain.exceptions.auth_exceptions import UnauthorizedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
-from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.application.authorization.story_authorization_service import StoryAuthorizationService
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
 security = HTTPBearer()
-
-
-@lru_cache(maxsize=1)
-def get_jwt_handler() -> JWTHandler:
-    """
-    Dependency to get JWTHandler instance.
-    Creates a cached singleton instance from config.
-    """
-    config = AppConfig.instance()
-    secret_key = config.get_config("jwt.secret_key")
-    algorithm = config.get_config("jwt.algorithm", "HS256")
-    expiration = config.get_config("jwt.access_token_expire_minutes", 1440)
-
-    if not secret_key:
-        raise ValueError("JWT secret_key not configured")
-
-    return JWTHandler(
-        secret_key=secret_key,
-        algorithm=algorithm,
-        expiration_minutes=int(expiration),
-    )
 
 
 async def get_current_user(
@@ -104,8 +90,13 @@ def create_story_owner_or_admin_dependency(story_id: str):
     """
     Factory function to create a story owner/admin check dependency.
 
+    This factory pattern is used because the story_id comes from path parameters
+    and needs to be available at dependency resolution time. FastAPI's Depends()
+    doesn't work with closures that need runtime path parameters, so we manually
+    consume the database session generator.
+
     Args:
-        story_id: Story UUID as string
+        story_id: Story UUID as string from path parameter
 
     Returns:
         Dependency function that validates authorization
@@ -122,40 +113,44 @@ def create_story_owner_or_admin_dependency(story_id: str):
             HTTPException: 404 if story not found
             HTTPException: 400 if story_id is invalid
         """
-
-        # Admin bypass - admins can modify any story
-        user_role = current_user.get("role")
-        if user_role == UserRole.ADMIN.value:
-            return current_user
-
-        # Regular user - check ownership
         try:
-            # Parse story ID
-            story_entity_id = EntityId.from_string(story_id)
+            user_id: str = current_user.get("sub")  # type: ignore[assignment]
+            user_role: str = current_user.get("role")  # type: ignore[assignment]
 
+            # Use authorization service to check permissions
             async for session in get_database_session():
-                story_repo = build_story_repository(session)
-                # Convert EntityId to UUID for repository call
-                story = await story_repo.find_by_id(story_entity_id.value)
+                is_authorized, error_detail = await StoryAuthorizationService.is_story_owner_or_admin(
+                    session=session,
+                    story_id=story_id,
+                    user_id=user_id,
+                    user_role=user_role,
+                )
 
-                if not story:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-                # Check if current user is the creator
-                user_id = current_user.get("sub")
-                if story.created_by.value != user_id:
+                if not is_authorized:
+                    # Determine status code based on error type
+                    if error_detail == "Story not found":
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=error_detail,
+                        )
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Not authorized to modify this story. Only the creator or an admin can modify stories.",
+                        detail=error_detail,
                     )
 
                 return current_user
 
-            # Should not reach here, but satisfy mypy
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database session error")
+            # Should not reach here, but satisfy type checker
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database session error",
+            )
 
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid story ID format") from e
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid story ID format",
+            ) from e
         except HTTPException:
             raise
 

@@ -12,7 +12,6 @@ from src.app.composition import (
     get_get_clients_use_case,
     get_update_client_use_case,
 )
-from src.app.features.auth.presentation.auth_dependencies import get_current_user, require_admin
 from src.app.features.clients.application.dtos.client_dto import (
     ClientResponse,
     CreateClientRequest,
@@ -24,7 +23,8 @@ from src.app.features.clients.application.use_cases.delete_client import DeleteC
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
-from src.app.shared.presentation.base_handler import BaseRouteHandler
+from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.shared.presentation.base_handler import BaseRouteHandler, ExceptionMapping
 
 
 router = APIRouter()
@@ -105,6 +105,9 @@ async def update_client(
     return await handler.execute_with_payload_extraction(  # type: ignore[no-any-return]
         execute_fn=lambda user_id: use_case.execute(client_id=client_id, request=request, created_by=user_id),
         current_user=current_user,
+        exception_mappings=[
+            ExceptionMapping(ValueError, status.HTTP_404_NOT_FOUND),
+        ],
     )
 
 
