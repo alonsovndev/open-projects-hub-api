@@ -57,10 +57,7 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     log.warning(f"Request validation error: {message}", extra={"validation_errors": errors})
     return JSONResponse(
         status_code=422,
-        content={
-            "error": "Validation Error",
-            "message": message,
-        },
+        content={"detail": message},
     )
 
 
@@ -80,10 +77,7 @@ async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse
     log.warning(f"Value error: {exc!s}")
     return JSONResponse(
         status_code=400,
-        content={
-            "error": "Validation Error",
-            "message": str(exc),
-        },
+        content={"detail": str(exc)},
     )
 
 
@@ -103,12 +97,7 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
     log.warning(f"Resource not found: {exc.message}")
     return JSONResponse(
         status_code=404,
-        content={
-            "error": "Not Found",
-            "message": exc.message,
-            "resource": exc.resource,
-            "identifier": exc.identifier,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -128,10 +117,7 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
     log.warning(f"Validation error: {exc.message}")
     return JSONResponse(
         status_code=400,
-        content={
-            "error": "Validation Error",
-            "message": exc.message,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -151,10 +137,7 @@ async def conflict_error_handler(request: Request, exc: ConflictError) -> JSONRe
     log.warning(f"Conflict error: {exc.message}")
     return JSONResponse(
         status_code=409,
-        content={
-            "error": "Conflict",
-            "message": exc.message,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -177,12 +160,7 @@ async def account_locked_error_handler(request: Request, exc: AccountLockedError
     )
     return JSONResponse(
         status_code=429,
-        content={
-            "error": "Account Locked",
-            "message": exc.message,
-            "remaining_seconds": exc.remaining_seconds,
-            "failed_attempts": exc.failed_attempts,
-        },
+        content={"detail": exc.message},
         headers={"Retry-After": str(exc.remaining_seconds)},
     )
 
@@ -203,10 +181,7 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     log.error(f"Domain error: {exc.message}")
     return JSONResponse(
         status_code=422,
-        content={
-            "error": "Domain Error",
-            "message": exc.message,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -226,10 +201,7 @@ async def user_not_found_error_handler(request: Request, exc: UserDoesNotExistEx
     log.warning(f"User not found: {exc.message}")
     return JSONResponse(
         status_code=404,
-        content={
-            "error": "Not Found",
-            "message": exc.message,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -249,10 +221,7 @@ async def user_already_exists_error_handler(request: Request, exc: UserAlreadyEx
     log.warning(f"User already exists: {exc.message}")
     return JSONResponse(
         status_code=409,
-        content={
-            "error": "Conflict",
-            "message": exc.message,
-        },
+        content={"detail": exc.message},
     )
 
 
@@ -276,19 +245,12 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     if ENV in ("prod", "production"):
         return JSONResponse(
             status_code=500,
-            content={
-                "error": "Internal Server Error",
-                "message": "An unexpected error occurred. Please try again later.",
-            },
+            content={"detail": "An unexpected error occurred. Please try again later."},
         )
     # In dev/local, provide more details for debugging
     return JSONResponse(
         status_code=500,
-        content={
-            "error": "Internal Server Error",
-            "message": str(exc),
-            "type": exc.__class__.__name__,
-        },
+        content={"detail": str(exc)},
     )
 
 
