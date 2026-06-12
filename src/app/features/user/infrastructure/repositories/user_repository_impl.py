@@ -42,7 +42,7 @@ class UserRepositoryImpl(UserRepository):
             return map_model_to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("postgresql", error=db_error, operation="find_by_id", table="users")
+            self._log.connection_error("database", error=db_error, operation="find_by_id", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -64,7 +64,7 @@ class UserRepositoryImpl(UserRepository):
             return map_model_to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("postgresql", error=db_error, operation="find_by_email", table="users")
+            self._log.connection_error("database", error=db_error, operation="find_by_email", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -127,7 +127,7 @@ class UserRepositoryImpl(UserRepository):
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("postgresql", error=db_error, operation="save", table="users")
+            self._log.connection_error("database", error=db_error, operation="save", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -164,7 +164,7 @@ class UserRepositoryImpl(UserRepository):
             return [map_model_to_entity(model) for model in models]
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("postgresql", error=db_error, operation="find_all", table="users")
+            self._log.connection_error("database", error=db_error, operation="find_all", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -191,7 +191,7 @@ class UserRepositoryImpl(UserRepository):
             return bool(int(result.scalar_one()))
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("postgresql", error=db_error, operation="exists", table="users")
+            self._log.connection_error("database", error=db_error, operation="exists", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -248,7 +248,7 @@ class UserRepositoryImpl(UserRepository):
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("postgresql", error=db_error, operation="update", table="users")
+            self._log.connection_error("database", error=db_error, operation="update", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:
@@ -289,7 +289,7 @@ class UserRepositoryImpl(UserRepository):
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("postgresql", error=db_error, operation="delete", table="users")
+            self._log.connection_error("database", error=db_error, operation="delete", table="users")
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
         except Exception as e:

@@ -61,7 +61,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return None
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_by_id", table="projects")
+            self._log.connection_error("database", error=e, operation="find_by_id", table="projects")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -104,7 +104,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return [(ProjectMapper.to_entity(model), client_name) for model, client_name in rows]
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_all", table="projects")
+            self._log.connection_error("database", error=e, operation="find_all", table="projects")
             raise
         except SQLAlchemyError as e:
             self._log.error("Database error while fetching projects", error=e, operation="find_all", table="projects")
@@ -150,7 +150,7 @@ class ProjectRepositoryImpl(ProjectRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="save", table="projects")
+            self._log.connection_error("database", error=e, operation="save", table="projects")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -192,7 +192,7 @@ class ProjectRepositoryImpl(ProjectRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="delete", table="projects")
+            self._log.connection_error("database", error=e, operation="delete", table="projects")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -224,7 +224,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return int(result.scalar_one())
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="count", table="projects")
+            self._log.connection_error("database", error=e, operation="count", table="projects")
             raise
         except SQLAlchemyError as e:
             self._log.error("Database error while counting projects", error=e, operation="count", table="projects")
@@ -249,7 +249,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return result.scalar_one_or_none() is not None
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="exists", table="projects")
+            self._log.connection_error("database", error=e, operation="exists", table="projects")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -293,7 +293,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return (total, completed)
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="get_story_counts", table="stories")
+            self._log.connection_error("database", error=e, operation="get_story_counts", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -347,7 +347,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             return counts
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="get_story_counts_batch", table="stories")
+            self._log.connection_error("database", error=e, operation="get_story_counts_batch", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error(
