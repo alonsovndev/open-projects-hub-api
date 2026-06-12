@@ -1,10 +1,10 @@
 """Mapper between Client entity and Client model."""
 
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
-from src.app.features.clients.domain.value_objects.email import Email
-from src.app.features.clients.domain.value_objects.phone_number import PhoneNumber
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.value_objects.phone_number import PhoneNumber
 
 
 class ClientMapper:

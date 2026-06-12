@@ -1,14 +1,14 @@
 """Unit tests for ClientEntity."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
 
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
-from src.app.features.clients.domain.value_objects.email import Email
-from src.app.features.clients.domain.value_objects.phone_number import PhoneNumber
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.value_objects.phone_number import PhoneNumber
 
 
 class TestClientEntityCreation:
@@ -17,7 +17,7 @@ class TestClientEntityCreation:
     def test_create_client_with_required_fields(self):
         """Test creating client with only required fields."""
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 21, 12, 0, 0)
+            mock_now = datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             client = ClientEntity.create(name="Test Client")
@@ -109,7 +109,7 @@ class TestClientEntityUpdate:
         client = ClientEntity.create(name="Old Name")
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 21, 12, 0, 0)
+            mock_now = datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             client.update_details(name="New Name")

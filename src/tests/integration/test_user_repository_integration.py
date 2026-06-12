@@ -14,8 +14,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 

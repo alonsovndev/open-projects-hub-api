@@ -6,7 +6,7 @@ import jwt
 
 from src.app.features.auth.application.dtos.auth_dto import RefreshTokenRequest, RefreshTokenResponse
 from src.app.features.user.domain.repositories.user_repository import UserRepository
-from src.app.features.user.domain.value_objects.email import Email
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
 from src.app.shared.logging import BusinessLogger, get_logger

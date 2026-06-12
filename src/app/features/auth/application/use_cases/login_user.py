@@ -1,7 +1,7 @@
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, InvalidCredentialsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
-from src.app.features.user.domain.value_objects.email import Email
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import get_account_lockout_service
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler

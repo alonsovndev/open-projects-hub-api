@@ -11,8 +11,8 @@ import pytest
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 

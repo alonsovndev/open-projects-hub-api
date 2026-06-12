@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.infrastructure.mappers.user_model_mapper import map_model_to_entity
 from src.app.features.user.infrastructure.models.user_model import UserModel
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import TechnicalLogger, get_logger
 

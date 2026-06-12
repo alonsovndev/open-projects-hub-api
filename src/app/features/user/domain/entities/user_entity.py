@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.entities.base_entity import BaseEntity
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 

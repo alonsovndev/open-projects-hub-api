@@ -1,4 +1,4 @@
-"""Phone number value object for client domain."""
+"""Shared PhoneNumber value object."""
 
 import re
 from dataclasses import dataclass

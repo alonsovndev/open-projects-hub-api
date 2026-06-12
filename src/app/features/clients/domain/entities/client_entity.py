@@ -3,10 +3,10 @@
 from datetime import datetime
 
 from src.app.features.clients.domain.validators.client_validators import ClientValidators
-from src.app.features.clients.domain.value_objects.email import Email
-from src.app.features.clients.domain.value_objects.phone_number import PhoneNumber
 from src.app.shared.domain.entities.base_entity import BaseEntity
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.app.shared.domain.value_objects.phone_number import PhoneNumber
 
 
 class ClientEntity(BaseEntity):

@@ -12,8 +12,8 @@ from src.app.features.user.application.dtos.user_dto import UserResponse
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 

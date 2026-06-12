@@ -9,7 +9,7 @@ import pytest
 
 from src.app.features.auth.application.use_cases.refresh_token import RefreshTokenRequest, RefreshTokenUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity, UserRole
-from src.app.features.user.domain.value_objects.email import Email
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
