@@ -8,7 +8,9 @@
   },
   "instructions": [
     "./AGENTS.md",
-    "./.opencode/knowledge/repo-standards.md"
+    "./.opencode/knowledge/repo-standards.md",
+    "./.opencode/knowledge/quick-reference.md",
+    "./.opencode/knowledge/common-tasks.md"
   ],
   "mcp": {
     "context7": {
