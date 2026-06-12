@@ -41,7 +41,7 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def save(self, project: ProjectEntity) -> ProjectEntity | None:
+    async def save(self, project: ProjectEntity) -> ProjectEntity:
         """
         Save or update a project.
 
@@ -49,7 +49,7 @@ class ProjectRepository(ABC):
             project: ProjectEntity to save
 
         Returns:
-            Saved ProjectEntity if successful, None otherwise
+            Saved ProjectEntity
         """
 
     @abstractmethod

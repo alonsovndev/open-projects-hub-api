@@ -110,7 +110,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             self._log.error("Database error while fetching projects", error=e, operation="find_all", table="projects")
             raise
 
-    async def save(self, project: ProjectEntity) -> ProjectEntity | None:
+    async def save(self, project: ProjectEntity) -> ProjectEntity:
         """
         Save or update a project.
 
