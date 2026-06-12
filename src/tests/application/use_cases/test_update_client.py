@@ -9,7 +9,8 @@ import pytest
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, UpdateClientRequest
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
-from src.app.features.clients.domain.value_objects.email import Email
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError, ClientNotFoundError
+from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -74,7 +75,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(email="duplicate@example.com")
 
-        with pytest.raises(ValueError, match=r"Client with email duplicate@example.com already exists"):
+        with pytest.raises(ClientEmailExistsError, match=r"Client with email duplicate@example.com already exists"):
             await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
 
         mock_repo.update.assert_not_called()
@@ -90,7 +91,7 @@ class TestUpdateClientUseCase:
         client_id = uuid4()
         request = UpdateClientRequest(name="New Name")
 
-        with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
+        with pytest.raises(ClientNotFoundError, match=f"Client not found: {client_id}"):
             await use_case.execute(client_id=client_id, request=request, created_by="test-user")
 
     @pytest.mark.asyncio

@@ -10,6 +10,7 @@ from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, PaginatedClientsResponse
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
@@ -235,7 +236,7 @@ class TestGetClientByIdEndpoint:
         """Test getting non-existent client returns 404."""
         with patch(
             "src.app.features.clients.application.use_cases.get_client_by_id.GetClientByIdUseCase.execute",
-            new=AsyncMock(side_effect=ValueError("Client not found: 550e8400-e29b-41d4-a716-446655440999")),
+            new=AsyncMock(side_effect=ClientNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.get(
                 "/v1/clients/550e8400-e29b-41d4-a716-446655440999",
@@ -297,7 +298,7 @@ class TestUpdateClientEndpoint:
         """Test updating non-existent client returns 404."""
         with patch(
             "src.app.features.clients.application.use_cases.update_client.UpdateClientUseCase.execute",
-            new=AsyncMock(side_effect=ValueError("Client not found: 550e8400-e29b-41d4-a716-446655440999")),
+            new=AsyncMock(side_effect=ClientNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.put(
                 "/v1/clients/550e8400-e29b-41d4-a716-446655440999",
@@ -347,7 +348,7 @@ class TestDeleteClientEndpoint:
         """Test deleting non-existent client returns 404."""
         with patch(
             "src.app.features.clients.application.use_cases.delete_client.DeleteClientUseCase.execute",
-            new=AsyncMock(side_effect=ValueError("Client not found: 550e8400-e29b-41d4-a716-446655440999")),
+            new=AsyncMock(side_effect=ClientNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.delete(
                 "/v1/clients/550e8400-e29b-41d4-a716-446655440999",

@@ -4,9 +4,10 @@ from uuid import UUID
 
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, UpdateClientRequest
 from src.app.features.clients.application.mappers.client_mapper import to_client_response
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError, ClientNotFoundError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
-from src.app.features.clients.domain.value_objects.email import Email
-from src.app.features.clients.domain.value_objects.phone_number import PhoneNumber
+from src.app.shared.domain.value_objects.email import Email
+from src.app.shared.domain.value_objects.phone_number import PhoneNumber
 from src.app.shared.logging import BusinessLogger, get_logger, mask_email
 
 
@@ -25,7 +26,7 @@ class UpdateClientUseCase:
 
             if client is None:
                 log.failure("client.update.not_found", entity_id=str(client_id))
-                raise ValueError(f"Client not found: {client_id}")
+                raise ClientNotFoundError(str(client_id))
 
             # Track changes for audit trail
             changes = {}
@@ -42,7 +43,7 @@ class UpdateClientUseCase:
                 existing_client = await self.client_repository.find_by_email(request.email)
                 if existing_client:
                     log.failure("client.update.email_exists", entity_id=str(client_id), email=mask_email(request.email))
-                    raise ValueError(f"Client with email {request.email} already exists")
+                    raise ClientEmailExistsError(request.email)
 
             client.update_details(
                 name=request.name,
@@ -59,7 +60,7 @@ class UpdateClientUseCase:
 
             return to_client_response(updated_client)
 
-        except ValueError:
+        except (ClientNotFoundError, ClientEmailExistsError, ValueError):
             raise
         except Exception as e:
             log.failure("client.update.unexpected_error", error=e, entity_id=str(client_id))

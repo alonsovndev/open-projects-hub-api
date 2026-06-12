@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from src.app.features.clients.application.use_cases.delete_client import DeleteClientUseCase
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -37,5 +38,5 @@ class TestDeleteClientUseCase:
 
         client_id = uuid4()
 
-        with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
+        with pytest.raises(ClientNotFoundError, match=f"Client not found: {client_id}"):
             await use_case.execute(client_id=client_id, created_by="test-user")

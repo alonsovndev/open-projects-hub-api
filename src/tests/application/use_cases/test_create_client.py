@@ -8,6 +8,7 @@ import pytest
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, CreateClientRequest
 from src.app.features.clients.application.use_cases.create_client import CreateClientUseCase
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -98,7 +99,7 @@ class TestCreateClientUseCase:
             email="duplicate@example.com",
         )
 
-        with pytest.raises(ValueError, match=r"Client with email duplicate@example.com already exists"):
+        with pytest.raises(ClientEmailExistsError, match=r"Client with email duplicate@example.com already exists"):
             await use_case.execute(request=request, created_by="test-user")
 
         mock_repo.save.assert_not_called()

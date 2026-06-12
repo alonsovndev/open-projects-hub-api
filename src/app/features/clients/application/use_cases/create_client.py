@@ -3,6 +3,7 @@
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, CreateClientRequest
 from src.app.features.clients.application.mappers.client_mapper import to_client_response
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.shared.logging import BusinessLogger, get_logger, mask_email
 
@@ -25,7 +26,7 @@ class CreateClientUseCase:
                     log.failure(
                         "client.create.email_exists", entity_id=str(existing_client.id), email=mask_email(request.email)
                     )
-                    raise ValueError(f"Client with email {request.email} already exists")
+                    raise ClientEmailExistsError(request.email)
 
             client = ClientEntity.create(
                 name=request.name,
@@ -48,7 +49,7 @@ class CreateClientUseCase:
 
             return to_client_response(saved_client)
 
-        except ValueError:
+        except (ValueError, ClientEmailExistsError):
             raise
         except Exception as e:
             log.failure(

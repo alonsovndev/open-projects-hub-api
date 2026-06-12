@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 
 from src.app.composition import (
     get_create_client_use_case,
@@ -23,6 +24,7 @@ from src.app.features.clients.application.use_cases.delete_client import DeleteC
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError, ClientNotFoundError
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
 
 
@@ -58,7 +60,11 @@ async def create_client(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    return await use_case.execute(request=request, created_by=user_id)
+
+    try:
+        return await use_case.execute(request=request, created_by=user_id)
+    except ClientEmailExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
 
 @router.get(
@@ -125,7 +131,7 @@ async def get_client_by_id(
 
     try:
         return await use_case.execute(client_id=client_id, user_id=user_id)
-    except ValueError as e:
+    except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
@@ -163,8 +169,10 @@ async def update_client(
 
     try:
         return await use_case.execute(client_id=client_id, request=request, created_by=user_id)
-    except ValueError as e:
+    except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except ClientEmailExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
 
 @router.delete(
@@ -193,25 +201,14 @@ async def delete_client(
         404: Client not found
         500: Internal server error
     """
-    user_id = current_user.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-        )
+    user_id = str(current_user["sub"])
 
     try:
         await use_case.execute(client_id=client_id, created_by=user_id)
-    except ValueError as e:
+    except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        # Database will raise error if client has projects (RESTRICT constraint)
-        if "violates foreign key constraint" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete client with associated projects",
-            ) from e
+    except IntegrityError:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete client: {e!s}",
-        ) from e
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete client with associated projects",
+        ) from None

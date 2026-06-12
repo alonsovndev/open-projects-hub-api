@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.shared.logging import BusinessLogger, get_logger
 
@@ -34,13 +35,13 @@ class DeleteClientUseCase:
 
             if not deleted:
                 log.failure("client.delete.not_found", entity_id=str(client_id))
-                raise ValueError(f"Client not found: {client_id}")
+                raise ClientNotFoundError(str(client_id))
 
             log.event("client.deleted", entity_id=str(client_id))
 
             return True
 
-        except ValueError:
+        except (ClientNotFoundError, ValueError):
             raise
         except Exception as e:
             log.failure("client.delete.unexpected_error", error=e, entity_id=str(client_id))

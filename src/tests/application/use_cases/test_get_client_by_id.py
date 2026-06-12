@@ -9,6 +9,7 @@ import pytest
 from src.app.features.clients.application.dtos.client_dto import ClientResponse
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
+from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -50,7 +51,7 @@ class TestGetClientByIdUseCase:
 
         client_id = uuid4()
 
-        with pytest.raises(ValueError, match=f"Client not found: {client_id}"):
+        with pytest.raises(ClientNotFoundError, match=f"Client not found: {client_id}"):
             await use_case.execute(client_id=client_id, user_id="test-user")
 
     @pytest.mark.asyncio
