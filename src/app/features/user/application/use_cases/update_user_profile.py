@@ -6,7 +6,9 @@ Only allows updating display_name. Email and role cannot be changed via this end
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
+from src.app.features.user.application.mappers.user_dto_mapper import map_entity_to_dto_user
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger, mask_email
 
@@ -40,22 +42,7 @@ class UpdateUserProfileUseCase:
 
         try:
             # Validate display name
-            if not display_name or display_name.strip() == "":
-                log.warning(
-                    "Empty display name validation failed",
-                    event_type="user.profile.update.validation_failed",
-                    user_id=user_id,
-                )
-                raise ValueError("Display name cannot be empty")
-
-            if len(display_name) > 255:
-                log.warning(
-                    "Display name exceeds max length",
-                    event_type="user.profile.update.validation_failed",
-                    user_id=user_id,
-                    display_name_length=len(display_name),
-                )
-                raise ValueError("Display name must not exceed 255 characters")
+            UserValidators.validate_display_name(display_name)
 
             # Find user
             user_entity = await self.user_repository.find_by_id(EntityId.from_string(user_id))
@@ -80,12 +67,7 @@ class UpdateUserProfileUseCase:
                 log.failure("user.profile.update.save_failed")
                 raise ValueError("Failed to update user profile")
 
-            response = UserResponse(
-                id=str(updated_entity.id.value),
-                email=str(updated_entity.email.value),
-                display_name=updated_entity.display_name,
-                role=updated_entity.role.value,
-            )
+            response = map_entity_to_dto_user(updated_entity)
 
             log.event(
                 "user.profile.updated",

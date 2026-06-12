@@ -4,10 +4,9 @@ ChangePasswordUseCase - Change user password with verification.
 Requires current password verification before updating to new password.
 """
 
-import re
-
 from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import BusinessLogger, get_logger
@@ -40,7 +39,7 @@ class ChangePasswordUseCase:
 
         try:
             # Validate new password
-            self._validate_password(new_password)
+            UserValidators.validate_password(new_password)
 
             # Find user
             user_entity = await self.user_repository.find_by_id(EntityId.from_string(user_id))
@@ -80,22 +79,3 @@ class ChangePasswordUseCase:
         except Exception as e:
             log.failure("user.password.change.unexpected_error", error=e)
             raise
-
-    def _validate_password(self, password: str) -> None:
-        """
-        Validate password complexity requirements.
-
-        Args:
-            password: Password to validate
-
-        Raises:
-            ValueError: If password doesn't meet requirements
-        """
-        if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters")
-
-        if not re.search(r"[a-zA-Z]", password):
-            raise ValueError("Password must contain at least one letter")
-
-        if not re.search(r"\d", password):
-            raise ValueError("Password must contain at least one digit")

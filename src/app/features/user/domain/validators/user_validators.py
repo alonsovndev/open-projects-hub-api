@@ -9,7 +9,7 @@ class UserValidators:
     # Validation constants
     MIN_PASSWORD_LENGTH = 8
     MIN_DISPLAY_NAME_LENGTH = 1
-    MAX_DISPLAY_NAME_LENGTH = 100
+    MAX_DISPLAY_NAME_LENGTH = 255
 
     @staticmethod
     def validate_password(password: str) -> None:

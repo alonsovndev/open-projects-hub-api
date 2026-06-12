@@ -141,7 +141,7 @@ class TestUpdateUserProfileEndpoint:
 
         with patch(
             "src.app.features.user.application.use_cases.update_user_profile.UpdateUserProfileUseCase.execute",
-            new=AsyncMock(side_effect=ValueError("Display name must not exceed 255 characters")),
+            new=AsyncMock(side_effect=ValueError("Display name cannot exceed 255 characters")),
         ):
             response = client.patch(
                 "/v1/users/me/profile",

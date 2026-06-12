@@ -1,6 +1,9 @@
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.dtos.user_dto_mapper import map_create_request_to_entity, map_entity_to_dto_user
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
+from src.app.features.user.application.mappers.user_dto_mapper import (
+    map_create_request_to_entity,
+    map_entity_to_dto_user,
+)
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import BusinessLogger, get_logger

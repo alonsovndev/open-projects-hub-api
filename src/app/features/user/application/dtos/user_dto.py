@@ -60,3 +60,26 @@ class UserCreateRequest(BaseModel):
         """Validate password meets complexity requirements."""
         UserValidators.validate_password(password)
         return password
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request model for updating user profile."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    display_name: str
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request model for changing password."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    current_password: str
+    new_password: str

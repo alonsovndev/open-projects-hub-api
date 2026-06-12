@@ -3,8 +3,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 from fastapi.params import Depends
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from src.app.composition import (
     get_change_password_use_case,
@@ -13,7 +11,12 @@ from src.app.composition import (
     get_get_user_profile_use_case,
     get_update_user_profile_use_case,
 )
-from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
+from src.app.features.user.application.dtos.user_dto import (
+    ChangePasswordRequest,
+    UpdateProfileRequest,
+    UserCreateRequest,
+    UserResponse,
+)
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
@@ -23,30 +26,6 @@ from src.app.shared.presentation.auth_dependencies import get_current_user, requ
 
 
 router = APIRouter()
-
-
-# DTOs for new endpoints
-class UpdateProfileRequest(BaseModel):
-    """Request model for updating user profile."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    display_name: str
-
-
-class ChangePasswordRequest(BaseModel):
-    """Request model for changing password."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    current_password: str
-    new_password: str
 
 
 # Profile endpoints (must come before /{user_id} to avoid path conflicts)

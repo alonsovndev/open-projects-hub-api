@@ -89,7 +89,7 @@ class TestUpdateUserProfileUseCase:
 
         long_name = "a" * 256  # Max 255 chars
 
-        with pytest.raises(ValueError, match="Display name must not exceed 255 characters"):
+        with pytest.raises(ValueError, match="Display name cannot exceed 255 characters"):
             await use_case.execute(str(user_entity.id.value), display_name=long_name)
 
         mock_repo.update.assert_not_awaited()

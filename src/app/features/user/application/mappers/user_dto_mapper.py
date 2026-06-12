@@ -1,7 +1,5 @@
 from uuid import uuid4
 
-from pydantic import BaseModel
-
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.email import Email
@@ -9,7 +7,7 @@ from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
-def map_entity_to_dto_user(user_entity: BaseModel | UserEntity) -> UserResponse:
+def map_entity_to_dto_user(user_entity: UserEntity) -> UserResponse:
     """
     Convert a User Entity to a User DTO (Data Transfer Object).
     """
