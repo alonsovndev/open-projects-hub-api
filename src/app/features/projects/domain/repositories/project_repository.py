@@ -77,6 +77,18 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
+    async def exists(self, project_id: UUID) -> bool:
+        """
+        Check if a project exists by ID.
+
+        Args:
+            project_id: Project UUID
+
+        Returns:
+            True if the project exists, False otherwise
+        """
+
+    @abstractmethod
     async def get_story_counts(self, project_id: UUID) -> tuple[int, int]:
         """
         Get total and completed story counts for a project.

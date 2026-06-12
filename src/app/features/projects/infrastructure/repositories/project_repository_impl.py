@@ -230,6 +230,36 @@ class ProjectRepositoryImpl(ProjectRepository):
             self._log.error("Database error while counting projects", error=e, operation="count", table="projects")
             raise
 
+    async def exists(self, project_id: UUID) -> bool:
+        """
+        Check if a project exists by ID.
+
+        Args:
+            project_id: Project UUID
+
+        Returns:
+            True if the project exists, False otherwise
+
+        Raises:
+            SQLAlchemyError: If database error occurs
+        """
+        try:
+            stmt = select(ProjectModel.id).where(ProjectModel.id == project_id).limit(1)
+            result = await self._session.execute(stmt)
+            return result.scalar_one_or_none() is not None
+
+        except OperationalError as e:
+            self._log.connection_error("postgresql", error=e, operation="exists", table="projects")
+            raise
+        except SQLAlchemyError as e:
+            self._log.error(
+                f"Database error while checking project existence {project_id}",
+                error=e,
+                operation="exists",
+                table="projects",
+            )
+            raise
+
     async def get_story_counts(self, project_id: UUID) -> tuple[int, int]:
         """
         Get total and completed story counts for a project.
