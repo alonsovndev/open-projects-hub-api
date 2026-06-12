@@ -193,7 +193,7 @@ class TestProjectRepositoryIntegration:
 
         # Assert
         assert len(results) >= 2
-        names = {p.name for p in results}
+        names = {entity.name for entity, _ in results}
         assert "Project 1" in names
         assert "Project 2" in names
 
@@ -228,8 +228,8 @@ class TestProjectRepositoryIntegration:
         assert len(page1) == 2
         assert len(page2) == 2
         # Verify different results
-        page1_names = {p.name for p in page1}
-        page2_names = {p.name for p in page2}
+        page1_names = {entity.name for entity, _ in page1}
+        page2_names = {entity.name for entity, _ in page2}
         assert len(page1_names & page2_names) == 0  # No overlap
 
     async def test_find_all_with_status_filter(self, db_session: AsyncSession):
@@ -269,8 +269,8 @@ class TestProjectRepositoryIntegration:
         completed_results = await repository.find_all(status="completed", limit=100)
 
         # Assert
-        active_names = {p.name for p in active_results}
-        completed_names = {p.name for p in completed_results}
+        active_names = {entity.name for entity, _ in active_results}
+        completed_names = {entity.name for entity, _ in completed_results}
 
         assert "Active Project" in active_names
         assert "Active Project" not in completed_names
