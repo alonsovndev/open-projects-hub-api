@@ -118,7 +118,7 @@ class AppConfig:
             )
 
         # Validate database password
-        db_password = self.get_config("postgres.password")
+        db_password = self.get_config("persistence.postgres.password")
         if not db_password or db_password.startswith("${"):
             raise RuntimeError(
                 "Production configuration error: Database password must be set. "
@@ -126,7 +126,7 @@ class AppConfig:
             )
 
         # Validate database host
-        db_host = self.get_config("postgres.host")
+        db_host = self.get_config("persistence.postgres.host")
         if not db_host or db_host.startswith("${"):
             raise RuntimeError(
                 "Production configuration error: Database host must be set. Set POSTGRES_HOST environment variable."

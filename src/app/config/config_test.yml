@@ -7,18 +7,6 @@ jwt:
   algorithm: HS256
   access_token_expire_minutes: 1440
 
-postgres:
-  username: open-projects-hub-admin
-  password: !ENV ${POSTGRES_PASSWORD}
-  host: test-host
-  port: 5432
-  dbname: open-projects-hub-db
-  echo: true
-  pool_size: 10
-  max_over_flow: 10
-  pool_timeout: 30
-  pool_pre_ping: true
-
 persistence:
   driver: in-memory
 

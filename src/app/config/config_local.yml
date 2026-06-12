@@ -23,18 +23,6 @@ cors:
   - Content-Type
   - Accept
 
-postgres:
-  username: open-projects-hub-admin
-  password: !ENV ${POSTGRES_PASSWORD}
-  host: localhost
-  port: 5432
-  dbname: open-projects-hub-db
-  echo: true
-  pool_size: 10
-  max_over_flow: 10
-  pool_timeout: 30
-  pool_pre_ping: true
-
 persistence:
   driver: postgresql
   postgres:
