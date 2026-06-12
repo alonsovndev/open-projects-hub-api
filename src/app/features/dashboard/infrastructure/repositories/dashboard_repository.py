@@ -1,21 +1,21 @@
-"""
-Dashboard repository for optimized aggregated queries.
-
-Provides single aggregated queries for dashboard statistics to minimize database round trips.
-"""
+"""Dashboard repository for optimized aggregated queries."""
 
 from uuid import UUID
 
 from sqlalchemy import case, func, select
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.features.dashboard.domain.repositories.dashboard_repository import DashboardRepository
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
+from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.shared.logging import TechnicalLogger, get_logger
 
 
-class DashboardRepository:
-    """Repository for dashboard-specific queries."""
+class DashboardRepositoryImpl(DashboardRepository):
+    """SQLAlchemy implementation of DashboardRepository."""
 
     def __init__(self, session: AsyncSession):
         """
@@ -37,19 +37,17 @@ class DashboardRepository:
             user_id: Optional user ID for user-specific stats
 
         Returns:
-            Dictionary with all dashboard count statistics:
-            - total_projects: int
-            - active_projects: int
-            - total_stories: int
-            - assigned_stories: int (if user_id provided, otherwise 0)
-            - completed_stories: int
+            Dictionary with all dashboard count statistics
+
+        Raises:
+            SQLAlchemyError: If database error occurs
         """
         try:
             # Project counts subquery
             project_stats = (
                 select(
                     func.count(ProjectModel.id).label("total_projects"),
-                    func.sum(case((ProjectModel.status == "active", 1), else_=0)).label("active_projects"),
+                    func.sum(case((ProjectModel.status == ProjectStatus.ACTIVE, 1), else_=0)).label("active_projects"),
                 )
                 .select_from(ProjectModel)
                 .subquery()
@@ -58,7 +56,7 @@ class DashboardRepository:
             # Story counts subquery
             story_counts_cols = [
                 func.count(StoryModel.id).label("total_stories"),
-                func.sum(case((StoryModel.status == "done", 1), else_=0)).label("completed_stories"),
+                func.sum(case((StoryModel.status == StoryStatus.DONE, 1), else_=0)).label("completed_stories"),
             ]
 
             if user_id:
@@ -101,11 +99,14 @@ class DashboardRepository:
 
             return stats
 
-        except Exception as e:
+        except OperationalError as e:
+            self._log.connection_error("database", error=e, operation="get_aggregated_stats", table="projects,stories")
+            raise
+        except SQLAlchemyError as e:
             self._log.error(
                 "Failed to retrieve aggregated dashboard statistics",
                 error=e,
-                error_type="dashboard.database.aggregation_failed",
+                operation="get_aggregated_stats",
                 user_id=str(user_id) if user_id else None,
             )
             raise

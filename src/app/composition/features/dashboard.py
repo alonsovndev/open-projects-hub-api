@@ -28,12 +28,13 @@ Usage:
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.composition.features.projects import get_project_repository
 from src.app.composition.infrastructure import get_database_session
 from src.app.composition.repositories import get_story_repository
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
-from src.app.features.dashboard.infrastructure.repositories.dashboard_repository import DashboardRepository
+from src.app.features.dashboard.domain.repositories.dashboard_repository import DashboardRepository
+from src.app.features.dashboard.infrastructure.repositories.dashboard_repository import DashboardRepositoryImpl
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
-from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 
 
@@ -41,22 +42,8 @@ from src.app.features.stories.domain.repositories.story_repository import StoryR
 async def get_dashboard_repository(
     session: AsyncSession = Depends(get_database_session),
 ) -> DashboardRepository:
-    """Dashboard repository factory (feature-specific)."""
-    return DashboardRepository(session)
-
-
-async def get_project_repository(
-    session: AsyncSession = Depends(get_database_session),
-) -> ProjectRepository:
-    """
-    Project repository factory (feature-specific for dashboard).
-
-    Note: Projects feature has its own project repository factory.
-    This is duplicated here because dashboard queries projects differently
-    (read-only aggregate queries vs full CRUD).
-    """
-
-    return ProjectRepositoryImpl(session)
+    """Dashboard repository factory."""
+    return DashboardRepositoryImpl(session)
 
 
 # Use case factories
@@ -65,9 +52,5 @@ async def get_dashboard_stats_use_case(
     project_repo: ProjectRepository = Depends(get_project_repository),
     story_repo: StoryRepository = Depends(get_story_repository),
 ) -> GetDashboardStatsUseCase:
-    """
-    GetDashboardStatsUseCase factory.
-
-    Depends on multiple repositories for aggregated dashboard data.
-    """
+    """GetDashboardStatsUseCase factory."""
     return GetDashboardStatsUseCase(dashboard_repo, project_repo, story_repo)

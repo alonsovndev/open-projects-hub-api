@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.app.composition import get_dashboard_stats_use_case
 from src.app.features.dashboard.application.dtos.dashboard_dto import DashboardStatsResponse
 from src.app.features.dashboard.application.use_cases.get_dashboard_stats import GetDashboardStatsUseCase
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.presentation.auth_dependencies import get_current_user
 
 
@@ -31,6 +32,7 @@ async def get_dashboard_stats(
         DashboardStatsResponse with statistics
 
     Raises:
+        400: Validation failed
         401: Unauthorized
         500: Internal server error
     """
@@ -39,4 +41,7 @@ async def get_dashboard_stats(
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    return await use_case.execute(user_id)
+    try:
+        return await use_case.execute(user_id)
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
