@@ -61,18 +61,20 @@ The API implements multiple layers of security to protect user data and prevent 
 
 ## Authentication
 
-See [Authentication Security](./authentication.md) for details.
-
 **Summary:**
 - **Method:** JWT (JSON Web Tokens)
 - **Algorithm:** HS256 (HMAC with SHA-256)
-- **Token Expiry:** 24 hours
+- **Access Token Expiry:** 15 minutes
+- **Refresh Token Expiry:** 7 days
+- **Token Rotation:** Single-use refresh tokens (old token revoked after use)
 - **Password Hashing:** bcrypt (12 rounds)
 - **Secret Validation:** Minimum 32 characters, rejects known weak secrets
 
 **Key Files:**
 - `src/app/shared/infrastructure/security/jwt_handler.py`
 - `src/app/shared/infrastructure/security/password_handler.py`
+
+**For authentication flow details, see:** [API Authentication Guide](../api/authentication.md)
 
 ## Authorization
 
@@ -91,29 +93,19 @@ See [Phase 2 Next Steps](../implementation/phase2-next-steps.md#5-add-super_admi
 
 ## Rate Limiting
 
-See [Rate Limiting](./rate-limiting.md) for details.
-
 **Summary:**
 - **Library:** slowapi
 - **Key:** Client IP address
-- **Login Endpoint:** 5 requests per 15 minutes
-- **Other Endpoints:** 100 requests per minute
+- **Login Endpoint:** 10 requests per 1 minute
+- **Register Endpoint:** 5 requests per 1 minute
+- **Refresh Token Endpoint:** 10 requests per 15 minutes
+- **Other Endpoints:** 100 requests per 1 minute
 - **Response:** HTTP 429 with `Retry-After` header
 
-**Configuration:**
-```python
-# src/app/shared/infrastructure/rate_limit/rate_limiter.py
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["100/minute"]
-)
+**Key Files:**
+- `src/app/shared/infrastructure/rate_limit/rate_limiter.py`
 
-# src/app/features/presentation/web/routes/auth_routes.py
-@router.post("/login")
-@limiter.limit("5/15minutes")
-async def login(...):
-    ...
-```
+**For detailed rate limiting strategy, see:** [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md)
 
 ## Password Security
 
@@ -225,8 +217,8 @@ def validate_secret_key(cls, secret_key: str) -> None:
 
 ### Token Expiry
 
-- **Access Token:** 24 hours (configurable)
-- **Refresh Token:** Not yet implemented (planned: 30 days)
+- **Access Token:** 15 minutes
+- **Refresh Token:** 7 days (single-use, rotated on each refresh)
 
 ### Token Validation
 
@@ -411,9 +403,9 @@ log.warning("invalid_token", ip=ip_address, reason=reason)
 
 - ⏸️ XSS → Content Security Policy headers
 - ⏸️ CSRF → CSRF tokens (if using cookies)
-- ⏸️ Clickjacking → X-Frame-Options header
-- ⏸️ Man-in-the-Middle → HTTPS only, HSTS header
-- ⏸️ Session Fixation → Token refresh/rotation
+- ⏸️ Clickjacking → X-Frame-Options header (partially addressed)
+- ⏸️ Man-in-the-Middle → HTTPS only, HSTS header (production requirement)
+- ✅ Session Fixation → Token refresh/rotation (implemented with single-use refresh tokens)
 
 ## Incident Response
 
@@ -498,19 +490,17 @@ Recommended tools:
 
 ### For Developers
 
-See [Security Best Practices](./best-practices.md) for detailed guidelines.
-
 **Summary:**
-1. Never log sensitive data
-2. Validate all inputs at API boundary
-3. Use parameterized queries only
-4. Hash passwords asynchronously
-5. Validate JWT secrets at startup
+1. Never log sensitive data (passwords, tokens, API keys)
+2. Validate all inputs at API boundary using Pydantic
+3. Use parameterized queries only (SQLAlchemy ORM)
+4. Hash passwords asynchronously with bcrypt
+5. Validate JWT secrets at startup (minimum 32 characters)
 6. Implement rate limiting on sensitive endpoints
-7. Keep dependencies updated
-8. Review security implications of changes
-9. Write security tests
-10. Follow principle of least privilege
+7. Keep dependencies updated regularly
+8. Review security implications of code changes
+9. Write security-focused tests
+10. Follow principle of least privilege for authorization
 
 ### For Deployment
 
@@ -535,11 +525,11 @@ See [Security Best Practices](./best-practices.md) for detailed guidelines.
 
 ## Security Roadmap
 
-### Phase 2 (Planned)
-- Refresh token implementation
-- Token revocation/blacklist
-- Enhanced health checks with security status
-- Role-based authorization decorator
+### Phase 2 (Completed)
+- ✅ Refresh token implementation (single-use rotation)
+- ✅ Token revocation (refresh tokens are single-use)
+- ⏸️ Enhanced health checks with security status
+- ⏸️ Fine-grained authorization decorators
 
 ### Phase 3 (Future)
 - Two-factor authentication (2FA)
@@ -560,12 +550,12 @@ See [Security Best Practices](./best-practices.md) for detailed guidelines.
 ---
 
 **See Also:**
-- [Authentication Security](./authentication.md)
-- [Rate Limiting](./rate-limiting.md)
-- [Security Best Practices](./best-practices.md)
-- [API Documentation](../api/README.md)
+- [API Authentication Guide](../api/authentication.md) - Authentication flows and JWT usage
+- [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md) - Rate limiting configuration
+- [API Documentation](../api/README.md) - Complete API reference
+- [Engineering Standards](../engineering/README.md) - Architecture and design principles
 
 ---
 
-**Last Updated:** April 30, 2026  
-**Security Version:** 1.0.0
+**Last Updated:** June 11, 2026  
+**Security Version:** 1.1.0

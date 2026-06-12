@@ -11,7 +11,7 @@ make install
 
 ### 2. Run Database
 ```bash
-docker-compose up postgres -d
+docker compose up postgres -d
 ```
 
 ### 3. Run Migrations
@@ -67,7 +67,6 @@ git commit -m "feat(scope): description"
 ### Documentation
 
 - **[Complete Guide](docs/CODE_QUALITY.md)** - Comprehensive documentation
-- **[Quick Start](docs/QUICK_START_CODE_QUALITY.md)** - Essential commands
 - **[Setup Summary](docs/SETUP_SUMMARY.md)** - Installation overview
 
 ### Available Commands

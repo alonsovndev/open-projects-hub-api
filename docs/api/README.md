@@ -218,7 +218,7 @@ The `GET /v1/projects` endpoint supports:
 
 ### Swagger UI
 
-Visit `http://localhost:8000/docs` for interactive API documentation.
+Visit `http://localhost:8000/docs` for interactive API documentation (available in `local` and `container` environments only).
 
 Features:
 - Try endpoints directly from your browser
@@ -226,9 +226,11 @@ Features:
 - Authorize with JWT token
 - View all available endpoints
 
+**Note:** API documentation is disabled in non-local/container environments for security. Set `APP_ENV=local` or `APP_ENV=container` to enable.
+
 ### ReDoc
 
-Visit `http://localhost:8000/redoc` for alternative documentation format.
+Visit `http://localhost:8000/redoc` for alternative documentation format (also disabled in production environments).
 
 ## Code Examples
 
@@ -293,8 +295,8 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 
 ## Detailed Endpoint Documentation
 
-- [Authentication Endpoints](./authentication.md) - Login, register, refresh
-- [User Management Endpoints](./users.md) - Profile, admin user creation
+- [API Contract](./api-contract.md) - Complete endpoint reference
+- [Authentication Guide](./authentication.md) - Login, register, refresh flows
 - [Error Reference](./errors.md) - All error codes and responses
 
 ## API Versioning
@@ -307,12 +309,12 @@ Breaking changes will result in a new version. Non-breaking changes (new fields,
 
 ## Architecture
 
-For architectural decisions and design patterns, see the [ADR index](../adr/README.md):
+For architectural decisions and design patterns, see:
 
-- [ADR-001](../adr/ADR-001-cross-feature-queries-for-performance.md) - Cross-Feature Queries for Performance
-- [ADR-002](../adr/ADR-002-centralized-validation-pattern.md) - Centralized Validation Pattern
-- [ADR-003](../adr/ADR-003-dto-based-use-cases.md) - DTO-Based Use Cases
-- [ADR-004](../adr/ADR-004-dependency-inversion-for-repositories.md) - Dependency Inversion for Repositories
+- [Clean Architecture](../engineering/clean-architecture.md) - Layered architecture and dependency rules
+- [Composition Root](../engineering/composition-root.md) - Centralized dependency injection
+- [DDD Patterns](../engineering/ddd-patterns.md) - Domain-driven design implementation
+- [Design Principles](../engineering/design-principles.md) - SOLID and other principles
 
 ## Support & Feedback
 

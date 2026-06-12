@@ -90,12 +90,15 @@ Admin Name: Main Admin
 If using Docker Compose with the default `compose.yml`:
 
 ```bash
-# Get DATABASE_URL from docker-compose
-DATABASE_URL="postgresql+asyncpg://appuser:apppassword@localhost:5432/open_projects_hub_db" \
+# Get DATABASE_URL from compose.yml environment variables
+# Default username: open-projects-hub-admin, database: open-projects-hub-db
+DATABASE_URL="postgresql+asyncpg://open-projects-hub-admin:YOUR_POSTGRES_PASSWORD@localhost:5432/open-projects-hub-db" \
 ADMIN_EMAIL="admin@mycompany.com" \
 ADMIN_PASSWORD="SecureAdmin123!" \
 make seed-admin
 ```
+
+**Note:** Replace `YOUR_POSTGRES_PASSWORD` with the `POSTGRES_PASSWORD` value from your `.env` file.
 
 ### Idempotent Behavior
 

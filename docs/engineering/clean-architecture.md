@@ -89,10 +89,10 @@ class UserEntity:
 ```
 
 **Key Files:**
-- `src/app/features/domain/entities/user_entity.py`
-- `src/app/features/domain/value_objects/email.py`
-- `src/app/features/domain/value_objects/user_role.py`
-- `src/app/features/domain/repositories/user_repository.py` (interface)
+- `src/app/features/user/domain/entities/user_entity.py`
+- `src/app/features/user/domain/value_objects/email.py`
+- `src/app/features/user/domain/value_objects/user_role.py`
+- `src/app/features/user/domain/repositories/user_repository.py` (interface)
 
 ### 2. Application Layer (`src/app/features/application/`)
 
@@ -136,10 +136,10 @@ class CreateUserUseCase:
 ```
 
 **Key Files:**
-- `src/app/features/application/use_cases/create_user.py`
-- `src/app/features/application/use_cases/login_user.py`
-- `src/app/features/application/dtos/user_dto.py`
-- `src/app/features/application/dtos/auth_dto.py`
+- `src/app/features/user/application/use_cases/create_user.py`
+- `src/app/features/auth/application/use_cases/login_user.py`
+- `src/app/features/user/application/dtos/user_dto.py`
+- `src/app/features/auth/application/dtos/auth_dto.py`
 
 ### 3. Infrastructure Layer (`src/app/features/infrastructure/`, `src/app/shared/infrastructure/`)
 
@@ -186,11 +186,11 @@ class UserRepositoryImpl(UserRepository):  # Implements domain interface
 ```
 
 **Key Files:**
-- `src/app/features/infrastructure/repository/user_repository_impl.py`
+- `src/app/features/user/infrastructure/repositories/user_repository_impl.py`
 - `src/app/shared/infrastructure/security/jwt_handler.py`
 - `src/app/shared/infrastructure/security/password_handler.py`
-- `src/app/shared/infrastructure/database/database.py`
-- `src/app/shared/infrastructure/config/app_config.py`
+- `src/app/shared/persistence/engine_factory.py`
+- `src/app/config/app_config.py`
 
 ### 4. Presentation Layer (`src/app/features/presentation/`)
 
@@ -221,10 +221,10 @@ async def register_user(
 ```
 
 **Key Files:**
-- `src/app/features/presentation/web/routes/auth_routes.py`
-- `src/app/features/presentation/web/routes/user_routes.py`
-- `src/app/features/presentation/web/dependencies.py`
-- `src/app/features/presentation/web/auth_dependencies.py`
+- `src/app/features/auth/presentation/auth_routes.py`
+- `src/app/features/user/presentation/user_routes.py`
+- `src/app/composition/` - Centralized dependency injection
+- `src/app/shared/presentation/exception_handlers.py`
 
 ## Dependency Flow
 
@@ -287,31 +287,59 @@ class UserRepositoryImpl(UserRepository):  # Concrete implementation
 ```
 src/app/
 ├── app.py                          # FastAPI app setup
+├── main.py                         # ASGI entrypoint for deployment
+├── composition/                     # Centralized dependency injection
+│   ├── __init__.py                 # Public API (40+ exports)
+│   ├── infrastructure.py           # Database, AI service
+│   ├── repositories.py             # Shared repositories
+│   └── features/                   # Feature-specific DI factories
+│       ├── auth.py
+│       ├── clients.py
+│       ├── dashboard.py
+│       ├── projects.py
+│       ├── refinement.py
+│       ├── stories.py
+│       └── users.py
+├── config/                         # Configuration loading
+│   ├── app_config.py               # Config singleton
+│   ├── config_local.yml
+│   ├── config_dev.yml
+│   ├── config_container.yml
+│   └── config_prod.yml
 ├── shared/
 │   ├── domain/
 │   │   └── value_objects/          # Shared value objects (EntityId, etc.)
 │   ├── infrastructure/
-│   │   ├── config/                 # Configuration loading
 │   │   ├── database/               # Database engine, sessions
-│   │   ├── models/                 # SQLAlchemy models
+│   │   ├── models/                 # SQLAlchemy base models
 │   │   ├── security/               # JWT, password hashing
 │   │   └── rate_limit/             # Rate limiting
+│   ├── logging/                    # Structured logging utilities
+│   ├── persistence/                # Database engine factory
+│   ├── presentation/               # Router registry, middleware
 │   └── utils/                      # Shared utilities
-├── features/
-│   ├── domain/
-│   │   ├── entities/               # UserEntity, etc.
-│   │   ├── value_objects/          # Email, UserRole, etc.
-│   │   └── repositories/           # Repository interfaces
-│   ├── application/
-│   │   ├── use_cases/              # CreateUserUseCase, LoginUserUseCase
-│   │   └── dtos/                   # Application DTOs
-│   ├── infrastructure/
-│   │   └── repository/             # UserRepositoryImpl
-│   └── presentation/
-│       └── web/
-│           ├── routes/             # Auth routes, user routes
-│           ├── dependencies.py     # DI setup
-│           └── auth_dependencies.py # Auth middleware
+└── features/                       # Feature modules (no __init__.py)
+    ├── auth/                       # Authentication
+    │   ├── application/            # Use cases, DTOs
+    │   ├── domain/                 # Entities, value objects
+    │   ├── infrastructure/         # Repositories, models
+    │   └── presentation/           # Routes, dependencies
+    ├── user/                       # User management
+    ├── clients/                    # Client management
+    ├── projects/                   # Project management
+    ├── stories/                    # Story management
+    ├── refinement/                 # AI refinement
+    └── dashboard/                  # Dashboard stats
+```
+
+**Note:** Feature folders use **implicit namespace packages** (no `__init__.py` files). Always use explicit file-path imports:
+
+```python
+# ✅ Correct
+from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
+
+# ❌ Wrong - will fail due to no __init__.py
+from src.app.features.projects.application.use_cases import CreateProjectUseCase
 ```
 
 ## Benefits of Clean Architecture
@@ -478,8 +506,8 @@ class UserResponse:
 **See Also:**
 - [DDD Patterns](./ddd-patterns.md)
 - [Design Principles](./design-principles.md)
-- [Dependency Injection](./dependency-injection.md)
+- [Composition Root](./composition-root.md)
 
 ---
 
-**Last Updated:** April 30, 2026
+**Last Updated:** June 11, 2026

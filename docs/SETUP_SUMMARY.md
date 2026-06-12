@@ -42,17 +42,16 @@
 
 ### Documentation
 
-6. **`docs/CODE_QUALITY.md`** - Comprehensive documentation
+6. **`docs/CODE_QUALITY.md`** - Comprehensive code quality guide
    - Detailed guide for all tools
    - Configuration explanations
    - Usage examples
    - IDE integration
    - Troubleshooting
 
-7. **`docs/QUICK_START_CODE_QUALITY.md`** - Quick reference guide
-   - Essential commands
-   - Development workflow
-   - Quick fixes
+7. ~~**`docs/QUICK_START_CODE_QUALITY.md`**~~ - Quick reference (deprecated)
+
+   **Note:** Quick start information is now in the main [`docs/CODE_QUALITY.md`](./CODE_QUALITY.md) guide.
 
 8. **`src/tests/examples/test_sample_fastapi.py`** - Sample tests
    - Unit test examples
@@ -232,8 +231,7 @@ The workflow runs automatically on:
 ## 📚 Next Steps
 
 1. **Read the documentation**
-   - Full guide: `docs/CODE_QUALITY.md`
-   - Quick start: `docs/QUICK_START_CODE_QUALITY.md`
+   - Full guide: [`docs/CODE_QUALITY.md`](./CODE_QUALITY.md)
 
 2. **Configure your IDE**
    - VS Code: Install Ruff extension
