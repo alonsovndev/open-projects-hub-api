@@ -18,14 +18,6 @@ class UnauthorizedError(AuthenticationError):
         super().__init__(self.message)
 
 
-class InsufficientPermissionsError(AuthenticationError):
-    """Raised when user lacks required permissions."""
-
-    def __init__(self, message: str = "Insufficient permissions"):
-        self.message = message
-        super().__init__(self.message)
-
-
 class AccountLockedError(AuthenticationError):
     """Raised when account is temporarily locked due to failed login attempts."""
 

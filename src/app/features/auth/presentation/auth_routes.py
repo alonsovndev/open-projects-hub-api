@@ -2,13 +2,14 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from src.app.composition import get_login_use_case, get_refresh_token_use_case, get_register_use_case
-from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
-from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.auth.application.use_cases.refresh_token import (
+from src.app.features.auth.application.dtos.auth_dto import (
+    AdminLoginResponse,
+    LoginRequest,
     RefreshTokenRequest,
     RefreshTokenResponse,
-    RefreshTokenUseCase,
 )
+from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
+from src.app.features.auth.application.use_cases.refresh_token import RefreshTokenUseCase
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest

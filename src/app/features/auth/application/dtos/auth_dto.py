@@ -16,6 +16,29 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshTokenRequest(BaseModel):
+    """Request model for token refresh."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    """Response model for token refresh."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    access_token: str
+    refresh_token: str
+
+
 class UserDetail(BaseModel):
     """Nested user details in login response."""
 

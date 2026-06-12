@@ -10,12 +10,12 @@ Following API spec requirements:
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
-from src.app.features.user.application.dtos.user_dto_mapper import map_create_request_to_entity
 from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
+from src.app.features.user.application.mappers.user_dto_mapper import map_create_request_to_entity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import ApplicationLogger, get_logger
+from src.app.shared.logging import BusinessLogger, get_logger
 
 
 class RegisterUserUseCase:
@@ -44,7 +44,7 @@ class RegisterUserUseCase:
             UserAlreadyExistsException: If email already exists
             ValueError: If validation fails
         """
-        log = ApplicationLogger(get_logger(__name__), component="auth")
+        log = BusinessLogger(get_logger(__name__), user_id=str(payload.email))
 
         try:
             password_hash = await PasswordHandler.hash_password(payload.password)

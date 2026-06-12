@@ -5,7 +5,7 @@ from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import get_account_lockout_service
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import ApplicationLogger, get_logger, mask_email
+from src.app.shared.logging import BusinessLogger, get_logger, mask_email
 
 
 class LoginUserUseCase:
@@ -37,9 +37,8 @@ class LoginUserUseCase:
             AccountLockedError: If account is temporarily locked
             InvalidCredentialsError: If credentials are invalid
         """
-        log = ApplicationLogger(get_logger(__name__), component="auth")
         email_lower = str(payload.email).lower().strip()
-
+        log = BusinessLogger(get_logger(__name__), user_id=email_lower)
         is_locked = await self.lockout_service.is_locked_out(email_lower)
         if is_locked:
             lockout_info = await self.lockout_service.get_lockout_info(email_lower)

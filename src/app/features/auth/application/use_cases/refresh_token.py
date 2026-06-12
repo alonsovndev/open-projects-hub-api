@@ -3,37 +3,13 @@ RefreshTokenUseCase - Refresh access token using refresh token.
 """
 
 import jwt
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
+from src.app.features.auth.application.dtos.auth_dto import RefreshTokenRequest, RefreshTokenResponse
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
 from src.app.shared.logging import BusinessLogger, get_logger
-
-
-class RefreshTokenRequest(BaseModel):
-    """Request model for token refresh."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    refresh_token: str
-
-
-class RefreshTokenResponse(BaseModel):
-    """Response model for token refresh."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    access_token: str
-    refresh_token: str
 
 
 class RefreshTokenUseCase:
