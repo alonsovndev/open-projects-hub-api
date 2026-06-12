@@ -1,6 +1,6 @@
 """Project entity - domain model for projects."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from src.app.features.projects.domain.validators.project_validators import ProjectValidators
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
@@ -221,7 +221,7 @@ class ProjectEntity(BaseEntity):
         Raises:
             ValueError: If validation fails
         """
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         return cls(
             id=EntityId.generate(),
             name=name,

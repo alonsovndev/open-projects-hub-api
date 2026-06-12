@@ -23,7 +23,10 @@ from src.app.features.projects.application.use_cases.delete_project import Delet
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
+from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
 
 
@@ -55,7 +58,12 @@ async def create_project(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    return await use_case.execute(request=payload, created_by=user_id)
+    try:
+        return await use_case.execute(request=payload, created_by=user_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.get("", response_model=PaginatedResponse[ProjectResponse])
@@ -87,8 +95,12 @@ async def list_projects(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    if project_status and project_status not in ["active", "completed", "archived"]:
-        raise ValueError("Status must be one of: active, completed, archived")
+    valid_statuses = [status.value for status in ProjectStatus]
+    if project_status and project_status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Status must be one of: {', '.join(valid_statuses)}",
+        )
 
     return await use_case.execute(
         user_id=user_id,
@@ -160,12 +172,14 @@ async def update_project(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    result = await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
-
-    if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-
-    return result
+    try:
+        return await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
+    except ProjectNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

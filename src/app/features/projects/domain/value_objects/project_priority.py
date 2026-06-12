@@ -1,9 +1,9 @@
 """Project priority value object."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ProjectPriority(str, Enum):
+class ProjectPriority(StrEnum):
     """Project priority enumeration."""
 
     LOW = "low"

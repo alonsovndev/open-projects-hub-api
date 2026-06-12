@@ -1,12 +1,13 @@
 """Unit tests for ProjectEntity."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import patch
 
 import pytest
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -19,7 +20,7 @@ class TestProjectEntityCreation:
         client_id = EntityId.generate()
 
         with patch("src.app.features.projects.domain.entities.project_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 9, 12, 0, 0)
+            mock_now = datetime(2026, 5, 9, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             project = ProjectEntity.create(
@@ -68,7 +69,7 @@ class TestProjectEntityCreation:
         created_by = EntityId.generate()
         client_id = EntityId.generate()
 
-        with pytest.raises(ValueError, match="Project name cannot be empty"):
+        with pytest.raises(ValidationError, match="Project name cannot be empty"):
             ProjectEntity.create(
                 name="",
                 code="TEST",
@@ -77,11 +78,11 @@ class TestProjectEntityCreation:
             )
 
     def test_create_project_whitespace_name_raises_error(self):
-        """Test creating project with whitespace-only name raises ValueError."""
+        """Test creating project with whitespace-only name raises ValidationError."""
         created_by = EntityId.generate()
         client_id = EntityId.generate()
 
-        with pytest.raises(ValueError, match="Project name cannot be empty"):
+        with pytest.raises(ValidationError, match="Project name cannot be empty"):
             ProjectEntity.create(
                 name="   ",
                 code="TEST",
@@ -90,12 +91,12 @@ class TestProjectEntityCreation:
             )
 
     def test_create_project_name_too_long_raises_error(self):
-        """Test creating project with name > 255 chars raises ValueError."""
+        """Test creating project with name > 255 chars raises ValidationError."""
         created_by = EntityId.generate()
         client_id = EntityId.generate()
         long_name = "a" * 256
 
-        with pytest.raises(ValueError, match="Project name cannot exceed 255 characters"):
+        with pytest.raises(ValidationError, match="Project name cannot exceed 255 characters"):
             ProjectEntity.create(
                 name=long_name,
                 code="TEST",
@@ -104,13 +105,13 @@ class TestProjectEntityCreation:
             )
 
     def test_create_project_end_before_start_raises_error(self):
-        """Test creating project with end date before start date raises ValueError."""
+        """Test creating project with end date before start date raises ValidationError."""
         created_by = EntityId.generate()
         client_id = EntityId.generate()
         start = date(2026, 12, 31)
         end = date(2026, 5, 1)
 
-        with pytest.raises(ValueError, match="End date cannot be before start date"):
+        with pytest.raises(ValidationError, match="End date cannot be before start date"):
             ProjectEntity.create(
                 name="Invalid Project",
                 code="TEST",
@@ -134,7 +135,7 @@ class TestProjectEntityUpdate:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             project.update_details(name="New Name")
@@ -186,7 +187,7 @@ class TestProjectEntityUpdate:
         assert project.end_date == new_end
 
     def test_update_project_empty_name_raises_error(self):
-        """Test updating with empty name raises ValueError."""
+        """Test updating with empty name raises ValidationError."""
         project = ProjectEntity.create(
             name="Project",
             code="TEST",
@@ -194,11 +195,11 @@ class TestProjectEntityUpdate:
             client_id=EntityId.generate(),
         )
 
-        with pytest.raises(ValueError, match="Project name cannot be empty"):
+        with pytest.raises(ValidationError, match="Project name cannot be empty"):
             project.update_details(name="")
 
     def test_update_project_invalid_dates_raises_error(self):
-        """Test updating with invalid dates raises ValueError."""
+        """Test updating with invalid dates raises ValidationError."""
         project = ProjectEntity.create(
             name="Project",
             code="TEST",
@@ -207,7 +208,7 @@ class TestProjectEntityUpdate:
             start_date=date(2026, 5, 1),
         )
 
-        with pytest.raises(ValueError, match="End date cannot be before start date"):
+        with pytest.raises(ValidationError, match="End date cannot be before start date"):
             project.update_details(end_date=date(2026, 4, 1))
 
 
@@ -224,7 +225,7 @@ class TestProjectEntityStatusTransitions:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             project.archive()
@@ -242,7 +243,7 @@ class TestProjectEntityStatusTransitions:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             project.complete()
@@ -261,7 +262,7 @@ class TestProjectEntityStatusTransitions:
         project.archive()
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             project.reactivate()

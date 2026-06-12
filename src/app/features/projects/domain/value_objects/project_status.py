@@ -1,9 +1,9 @@
 """Project status value object."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ProjectStatus(str, Enum):
+class ProjectStatus(StrEnum):
     """Project status enumeration."""
 
     ACTIVE = "active"

@@ -8,6 +8,7 @@ from pydantic.alias_generators import to_camel
 from src.app.features.projects.domain.validators.project_validators import ProjectValidators
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 
 
 class ProjectResponse(BaseModel):
@@ -72,7 +73,7 @@ class CreateProjectRequest(BaseModel):
         if priority is not None:
             valid_priorities = [p.value for p in ProjectPriority]
             if priority not in valid_priorities:
-                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+                raise ValidationError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return priority
 
     @model_validator(mode="after")
@@ -123,7 +124,7 @@ class UpdateProjectRequest(BaseModel):
         if status is not None:
             valid_statuses = [s.value for s in ProjectStatus]
             if status not in valid_statuses:
-                raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+                raise ValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         return status
 
     @field_validator("priority")
@@ -133,7 +134,7 @@ class UpdateProjectRequest(BaseModel):
         if priority is not None:
             valid_priorities = [p.value for p in ProjectPriority]
             if priority not in valid_priorities:
-                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+                raise ValidationError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return priority
 
     @model_validator(mode="after")

@@ -9,13 +9,14 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse, UpdateProjectRequest
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -109,7 +110,7 @@ class TestUpdateProjectUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_returns_none_when_project_not_found(self):
-        """Test that non-existent project returns None."""
+        """Test that non-existent project raises ProjectNotFoundError."""
         mock_repo = AsyncMock()
         mock_client_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
@@ -117,13 +118,13 @@ class TestUpdateProjectUseCase:
         use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
 
         request = UpdateProjectRequest(name="New Name")
-        result = await use_case.execute(
-            project_id=str(uuid4()),
-            request=request,
-            created_by="test-user",
-        )
+        with pytest.raises(ProjectNotFoundError, match="Project not found"):
+            await use_case.execute(
+                project_id=str(uuid4()),
+                request=request,
+                created_by="test-user",
+            )
 
-        assert result is None
         mock_repo.find_by_id.assert_called_once()
         mock_repo.save.assert_not_called()
 
@@ -171,7 +172,7 @@ class TestUpdateProjectUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_invalid_dates(self):
-        """Test that invalid dates raise ValueError."""
+        """Test that invalid dates raise ValidationError."""
         mock_repo = AsyncMock()
         mock_client_repo = AsyncMock()
         project_id = EntityId.generate()
@@ -197,7 +198,7 @@ class TestUpdateProjectUseCase:
         use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
 
         request = UpdateProjectRequest(end_date=date(2026, 4, 1))
-        with pytest.raises(ValueError, match="End date cannot be before start date"):
+        with pytest.raises(ValidationError, match="End date cannot be before start date"):
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
@@ -206,7 +207,7 @@ class TestUpdateProjectUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_save_fails(self):
-        """Test that save failure raises ValueError."""
+        """Test that save failure raises RuntimeError."""
         mock_repo = AsyncMock()
         mock_client_repo = AsyncMock()
         project_id = EntityId.generate()
@@ -233,7 +234,7 @@ class TestUpdateProjectUseCase:
         use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
 
         request = UpdateProjectRequest(name="New Name")
-        with pytest.raises(ValueError, match="Failed to update project"):
+        with pytest.raises(RuntimeError, match="Failed to update project"):
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
@@ -316,7 +317,7 @@ class TestUpdateProjectUseCase:
         use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
 
         request = UpdateProjectRequest(client_id=str(new_client_id.value))
-        with pytest.raises(ValueError, match="Client not found"):
+        with pytest.raises(NotFoundError, match=r"Client.*not found"):
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,

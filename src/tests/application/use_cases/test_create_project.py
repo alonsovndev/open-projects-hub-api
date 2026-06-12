@@ -15,6 +15,7 @@ from src.app.features.projects.application.use_cases.create_project import Creat
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -142,9 +143,6 @@ class TestCreateProjectUseCase:
         mock_client.name = "Test Client"
         mock_client_repo.find_by_id.return_value = mock_client
 
-        # Execute & Assert - Validation happens at DTO creation
-        from pydantic import ValidationError
-
         with pytest.raises(ValidationError, match="Project name cannot be empty"):
             CreateProjectRequest(
                 name="",
@@ -166,9 +164,6 @@ class TestCreateProjectUseCase:
         mock_client = AsyncMock()
         mock_client.name = "Test Client"
         mock_client_repo.find_by_id.return_value = mock_client
-
-        # Execute & Assert - Validation happens at DTO creation
-        from pydantic import ValidationError
 
         with pytest.raises(ValidationError, match="End date cannot be before start date"):
             CreateProjectRequest(
@@ -205,7 +200,7 @@ class TestCreateProjectUseCase:
         )
 
         # Execute & Assert
-        with pytest.raises(ValueError, match="Failed to create project"):
+        with pytest.raises(RuntimeError, match="Failed to create project"):
             await use_case.execute(
                 request=request,
                 created_by=str(uuid4()),
@@ -266,7 +261,7 @@ class TestCreateProjectUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_client_not_found(self):
-        """Test that non-existent client raises ValueError."""
+        """Test that non-existent client raises NotFoundError."""
         # Setup
         mock_project_repo = AsyncMock()
         mock_client_repo = AsyncMock()
@@ -281,7 +276,7 @@ class TestCreateProjectUseCase:
         )
 
         # Execute & Assert
-        with pytest.raises(ValueError, match="Client not found"):
+        with pytest.raises(NotFoundError, match=r"Client.*not found"):
             await use_case.execute(
                 request=request,
                 created_by=str(uuid4()),
