@@ -1,13 +1,13 @@
 """Story draft SQLAlchemy model."""
 
-from sqlalchemy import ARRAY, Column, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import ARRAY, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
-from src.app.shared.persistence.base_model import Base
+from src.app.shared.persistence.base_model import BaseModel
 
 
-class StoryDraftModel(Base):
+class StoryDraftModel(BaseModel):
     """
     SQLAlchemy model for story_drafts table.
 
@@ -17,7 +17,6 @@ class StoryDraftModel(Base):
 
     __tablename__ = "story_drafts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True)
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     acceptance_criteria = Column(ARRAY(Text), nullable=False, default=list)
@@ -32,8 +31,6 @@ class StoryDraftModel(Base):
     refined_title = Column(String(500), nullable=True)
     refined_description = Column(Text, nullable=True)
     refined_criteria = Column(ARRAY(Text), nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Composite indexes for common query patterns
     __table_args__ = (

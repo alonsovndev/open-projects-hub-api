@@ -1,14 +1,14 @@
 """SQLAlchemy model for stories table."""
 
-from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Column, Enum as SQLEnum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.persistence.base_model import Base
+from src.app.shared.persistence.base_model import BaseModel
 
 
-class StoryModel(Base):
+class StoryModel(BaseModel):
     """
     SQLAlchemy model for stories table.
 
@@ -17,7 +17,6 @@ class StoryModel(Base):
 
     __tablename__ = "stories"
 
-    id = Column(UUID(as_uuid=True), primary_key=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -34,8 +33,6 @@ class StoryModel(Base):
         default=StoryPriority.MEDIUM.value,
     )
     points = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Composite indexes for common query patterns
     __table_args__ = (
