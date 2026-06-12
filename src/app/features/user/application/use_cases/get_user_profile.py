@@ -5,8 +5,8 @@ Returns user details (email, display_name, role) for authenticated user.
 """
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.mappers.user_dto_mapper import map_entity_to_dto_user
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger
@@ -33,7 +33,7 @@ class GetUserProfileUseCase:
             UserResponse with user profile data
 
         Raises:
-            UserNotFoundException: If user doesn't exist
+            UserNotFoundError: If user doesn't exist
         """
         log = BusinessLogger(get_logger(__name__), user_id=user_id)
 
@@ -42,14 +42,14 @@ class GetUserProfileUseCase:
 
             if user_entity is None:
                 log.failure("user.profile.not_found", entity_id=user_id)
-                raise UserNotFoundException(user_id)
+                raise UserNotFoundError(user_id)
 
             response = map_entity_to_dto_user(user_entity)
 
             log.event("user.profile.retrieved", entity_id=user_id)
             return response
 
-        except UserNotFoundException:
+        except UserNotFoundError:
             raise
         except Exception as e:
             log.failure("user.profile.unexpected_error", error=e, entity_id=user_id)

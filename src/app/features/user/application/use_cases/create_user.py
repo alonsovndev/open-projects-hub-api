@@ -1,9 +1,9 @@
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.user.application.mappers.user_dto_mapper import (
     map_create_request_to_entity,
     map_entity_to_dto_user,
 )
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import BusinessLogger, get_logger
@@ -29,7 +29,7 @@ class CreateUserUseCase:
                     event_type="user.create.email_exists",
                     email=str(new_user_entity.email),
                 )
-                raise UserAlreadyExistsException(str(new_user_entity.email))
+                raise UserAlreadyExistsError(str(new_user_entity.email))
 
             created_user = await self.user_repository.save(new_user_entity)
 
@@ -40,14 +40,14 @@ class CreateUserUseCase:
                     event_type="user.create.race_condition",
                     email=str(new_user_entity.email),
                 )
-                raise UserAlreadyExistsException(str(new_user_entity.email))
+                raise UserAlreadyExistsError(str(new_user_entity.email))
 
             response_dto = map_entity_to_dto_user(created_user)
 
             log.info("User created successfully", event_type="user.create.success", user_id=str(created_user.id))
             return response_dto
 
-        except (ValueError, UserAlreadyExistsException):
+        except (ValueError, UserAlreadyExistsError):
             raise
         except Exception as e:
             log.error("Unexpected error in CreateUserUseCase", error=e, error_type="user.create.unexpected_error")

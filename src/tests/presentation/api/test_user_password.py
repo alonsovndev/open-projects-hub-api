@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
@@ -129,7 +129,7 @@ class TestChangePasswordEndpoint:
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
-            new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef")),
+            new=AsyncMock(side_effect=UserNotFoundError("12345678-90ab-cdef-1234-567890abcdef")),
         ):
             response = client.post(
                 "/v1/users/me/password",

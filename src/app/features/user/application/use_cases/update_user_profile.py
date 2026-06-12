@@ -5,8 +5,8 @@ Only allows updating display_name. Email and role cannot be changed via this end
 """
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.mappers.user_dto_mapper import map_entity_to_dto_user
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -35,7 +35,7 @@ class UpdateUserProfileUseCase:
             UserResponse with updated profile data
 
         Raises:
-            UserNotFoundException: If user doesn't exist
+            UserNotFoundError: If user doesn't exist
             ValueError: If validation fails
         """
         log = BusinessLogger(get_logger(__name__), user_id=user_id)
@@ -53,7 +53,7 @@ class UpdateUserProfileUseCase:
                     event_type="user.profile.update.user_not_found",
                     user_id=user_id,
                 )
-                raise UserNotFoundException(user_id)
+                raise UserNotFoundError(user_id)
 
             old_display_name = user_entity.display_name
 
@@ -77,7 +77,7 @@ class UpdateUserProfileUseCase:
             )
             return response
 
-        except (UserNotFoundException, ValueError):
+        except (UserNotFoundError, ValueError):
             raise
         except Exception as e:
             log.failure("user.profile.update.unexpected_error", error=e)

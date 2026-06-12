@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -70,7 +70,7 @@ class TestCreateUserUseCase:
         payload = UserCreateRequest(display_name="New User", email="existing@example.com", password="SecurePass123")
 
         # Execute & Assert
-        with pytest.raises(UserAlreadyExistsException) as exc_info:
+        with pytest.raises(UserAlreadyExistsError) as exc_info:
             await use_case.execute(payload, created_by="test-user")
 
         assert "existing@example.com" in str(exc_info.value)
@@ -90,7 +90,7 @@ class TestCreateUserUseCase:
         payload = UserCreateRequest(display_name="Race User", email="raceuser@example.com", password="SecurePass123")
 
         # Execute & Assert
-        with pytest.raises(UserAlreadyExistsException) as exc_info:
+        with pytest.raises(UserAlreadyExistsError) as exc_info:
             await use_case.execute(payload, created_by="test-user")
 
         assert "raceuser@example.com" in str(exc_info.value)

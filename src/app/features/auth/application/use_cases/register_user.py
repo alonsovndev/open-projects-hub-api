@@ -10,8 +10,8 @@ Following API spec requirements:
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.user.application.mappers.user_dto_mapper import map_create_request_to_entity
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
@@ -41,7 +41,7 @@ class RegisterUserUseCase:
             AdminLoginResponse with JWT token and user details
 
         Raises:
-            UserAlreadyExistsException: If email already exists
+            UserAlreadyExistsError: If email already exists
             ValueError: If validation fails
         """
         log = BusinessLogger(get_logger(__name__), user_id=str(payload.email))
@@ -60,7 +60,7 @@ class RegisterUserUseCase:
                     event_type="auth.register.email_exists",
                     email=str(new_user_entity.email),
                 )
-                raise UserAlreadyExistsException(str(new_user_entity.email))
+                raise UserAlreadyExistsError(str(new_user_entity.email))
 
             created_user = await self.user_repository.save(new_user_entity)
 
@@ -71,7 +71,7 @@ class RegisterUserUseCase:
                     event_type="auth.register.race_condition",
                     email=str(new_user_entity.email),
                 )
-                raise UserAlreadyExistsException(str(new_user_entity.email))
+                raise UserAlreadyExistsError(str(new_user_entity.email))
 
             token = self.jwt_handler.create_access_token(
                 user_id=str(created_user.id.value), email=str(created_user.email.value), role=created_user.role.value
@@ -88,7 +88,7 @@ class RegisterUserUseCase:
             )
             return response
 
-        except (ValueError, UserAlreadyExistsException):
+        except (ValueError, UserAlreadyExistsError):
             raise
         except Exception as e:
             log.error("Unexpected error in RegisterUserUseCase", error=e, error_type="auth.register.unexpected_error")

@@ -14,8 +14,8 @@ import pytest
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
 from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -89,7 +89,7 @@ class TestRegisterUserUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_email_exists(self, jwt_handler):
-        """Test that duplicate email raises UserAlreadyExistsException."""
+        """Test that duplicate email raises UserAlreadyExistsError."""
         existing_user = UserEntity(
             id=EntityId.generate(),
             email=Email("existing@example.com"),
@@ -105,7 +105,7 @@ class TestRegisterUserUseCase:
 
         payload = UserCreateRequest(display_name="New User", email="existing@example.com", password="SecurePass123")
 
-        with pytest.raises(UserAlreadyExistsException) as exc_info:
+        with pytest.raises(UserAlreadyExistsError) as exc_info:
             await use_case.execute(payload)
 
         assert "existing@example.com" in str(exc_info.value)

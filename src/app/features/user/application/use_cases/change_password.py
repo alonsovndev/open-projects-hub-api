@@ -4,7 +4,7 @@ ChangePasswordUseCase - Change user password with verification.
 Requires current password verification before updating to new password.
 """
 
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -32,7 +32,7 @@ class ChangePasswordUseCase:
             new_password: New password (min 8 chars, letter + digit)
 
         Raises:
-            UserNotFoundException: If user doesn't exist
+            UserNotFoundError: If user doesn't exist
             ValueError: If validation fails or current password incorrect
         """
         log = BusinessLogger(get_logger(__name__), user_id=user_id)
@@ -50,7 +50,7 @@ class ChangePasswordUseCase:
                     event_type="user.password.change.user_not_found",
                     user_id=user_id,
                 )
-                raise UserNotFoundException(user_id)
+                raise UserNotFoundError(user_id)
 
             # Verify current password
             is_valid = await PasswordHandler.verify_password(current_password, user_entity.password_hash)
@@ -74,7 +74,7 @@ class ChangePasswordUseCase:
 
             log.event("user.password.changed")
 
-        except (UserNotFoundException, ValueError):
+        except (UserNotFoundError, ValueError):
             raise
         except Exception as e:
             log.failure("user.password.change.unexpected_error", error=e)

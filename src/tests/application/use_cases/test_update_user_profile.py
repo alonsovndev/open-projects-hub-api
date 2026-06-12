@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -57,7 +57,7 @@ class TestUpdateUserProfileUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_not_found_for_nonexistent_user(self):
-        """Test that execute raises UserNotFoundException when user doesn't exist."""
+        """Test that execute raises UserNotFoundError when user doesn't exist."""
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
 
@@ -65,7 +65,7 @@ class TestUpdateUserProfileUseCase:
 
         user_id = str(EntityId.generate().value)
 
-        with pytest.raises(UserNotFoundException):
+        with pytest.raises(UserNotFoundError):
             await use_case.execute(user_id, display_name="New Name")
 
         mock_repo.find_by_id.assert_awaited_once()

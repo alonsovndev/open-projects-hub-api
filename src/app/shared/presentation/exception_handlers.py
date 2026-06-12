@@ -13,10 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError
-from src.app.features.user.application.exceptions.user_exception import (
-    UserAlreadyExistsException,
-    UserDoesNotExistException,
-)
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.app.shared.domain.exceptions.domain_exceptions import (
     ConflictError,
     DomainError,
@@ -185,9 +182,9 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     )
 
 
-async def user_not_found_error_handler(request: Request, exc: UserDoesNotExistException) -> JSONResponse:
+async def user_not_found_error_handler(request: Request, exc: UserNotFoundError) -> JSONResponse:
     """
-    Handle UserDoesNotExistException.
+    Handle UserNotFoundError.
 
     Returns 404 with user not found message.
 
@@ -198,16 +195,16 @@ async def user_not_found_error_handler(request: Request, exc: UserDoesNotExistEx
     Returns:
         JSONResponse with 404 status and error message
     """
-    log.warning(f"User not found: {exc.message}")
+    log.warning(f"User not found: {exc}")
     return JSONResponse(
         status_code=404,
-        content={"detail": exc.message},
+        content={"detail": str(exc)},
     )
 
 
-async def user_already_exists_error_handler(request: Request, exc: UserAlreadyExistsException) -> JSONResponse:
+async def user_already_exists_error_handler(request: Request, exc: UserAlreadyExistsError) -> JSONResponse:
     """
-    Handle UserAlreadyExistsException.
+    Handle UserAlreadyExistsError.
 
     Returns 409 with conflict message.
 
@@ -218,10 +215,10 @@ async def user_already_exists_error_handler(request: Request, exc: UserAlreadyEx
     Returns:
         JSONResponse with 409 status and conflict message
     """
-    log.warning(f"User already exists: {exc.message}")
+    log.warning(f"User already exists: {exc}")
     return JSONResponse(
         status_code=409,
-        content={"detail": exc.message},
+        content={"detail": str(exc)},
     )
 
 
@@ -273,6 +270,6 @@ def register_exception_handlers(app):
     app.add_exception_handler(AccountLockedError, account_locked_error_handler)
     app.add_exception_handler(DomainError, domain_error_handler)
     app.add_exception_handler(Exception, generic_exception_handler)
-    app.add_exception_handler(UserDoesNotExistException, user_not_found_error_handler)
-    app.add_exception_handler(UserAlreadyExistsException, user_already_exists_error_handler)
+    app.add_exception_handler(UserNotFoundError, user_not_found_error_handler)
+    app.add_exception_handler(UserAlreadyExistsError, user_already_exists_error_handler)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

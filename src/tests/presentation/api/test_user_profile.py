@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
@@ -80,7 +80,7 @@ class TestGetUserProfileEndpoint:
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.get_user_profile.GetUserProfileUseCase.execute",
-            new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef")),
+            new=AsyncMock(side_effect=UserNotFoundError("12345678-90ab-cdef-1234-567890abcdef")),
         ):
             response = client.get("/v1/users/me/profile", headers={"Authorization": f"Bearer {viewer_token}"})
 
@@ -156,7 +156,7 @@ class TestUpdateUserProfileEndpoint:
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.update_user_profile.UpdateUserProfileUseCase.execute",
-            new=AsyncMock(side_effect=UserNotFoundException("12345678-90ab-cdef-1234-567890abcdef")),
+            new=AsyncMock(side_effect=UserNotFoundError("12345678-90ab-cdef-1234-567890abcdef")),
         ):
             response = client.patch(
                 "/v1/users/me/profile",

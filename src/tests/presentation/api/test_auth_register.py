@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.app.app import fastapi_app
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ class TestRegisterEndpoint:
         """Test registration with existing email returns 409 Conflict."""
         with patch(
             "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
-            new=AsyncMock(side_effect=UserAlreadyExistsException("Email already registered")),
+            new=AsyncMock(side_effect=UserAlreadyExistsError("Email already registered")),
         ):
             response = client.post(
                 "/v1/auth/register",

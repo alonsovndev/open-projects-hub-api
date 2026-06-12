@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.app.features.user.application.exceptions.user_exception import UserNotFoundException
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -83,7 +83,7 @@ class TestChangePasswordUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_not_found_for_nonexistent_user(self):
-        """Test that execute raises UserNotFoundException when user doesn't exist."""
+        """Test that execute raises UserNotFoundError when user doesn't exist."""
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
 
@@ -91,7 +91,7 @@ class TestChangePasswordUseCase:
 
         user_id = str(EntityId.generate().value)
 
-        with pytest.raises(UserNotFoundException):
+        with pytest.raises(UserNotFoundError):
             await use_case.execute(user_id=user_id, current_password="OldPass123", new_password="NewPass456")
 
         mock_repo.save.assert_not_awaited()

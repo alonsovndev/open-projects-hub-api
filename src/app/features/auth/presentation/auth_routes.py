@@ -13,7 +13,7 @@ from src.app.features.auth.application.use_cases.refresh_token import RefreshTok
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
-from src.app.features.user.application.exceptions.user_exception import UserAlreadyExistsException
+from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 
 
@@ -82,7 +82,7 @@ async def register(
     """
     try:
         return await register_use_case.execute(payload=payload)
-    except UserAlreadyExistsException as e:
+    except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
 

@@ -1,5 +1,5 @@
-from src.app.features.user.application.exceptions.user_exception import UserDoesNotExistException
 from src.app.features.user.application.mappers.user_dto_mapper import UserResponse, map_entity_to_dto_user
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger
@@ -17,6 +17,6 @@ class GetUserByIdUseCase:
 
         if not existing_user:
             log.failure("user.not_found", entity_id=user_id)
-            raise UserDoesNotExistException(user_id)
+            raise UserNotFoundError(user_id)
 
         return map_entity_to_dto_user(existing_user)
