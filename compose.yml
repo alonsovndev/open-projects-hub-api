@@ -10,10 +10,10 @@ services:
     env_file:
     - .env
     environment:
-      APP_ENV: docker
+      APP_ENV: container
     ports:
     - 8080:8080
-    command: [./start.sh]
+    # command inherited from Dockerfile ENTRYPOINT
     networks:
     - open_projects_hub_network
 
