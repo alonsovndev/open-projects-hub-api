@@ -13,12 +13,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.app.config.app_config import AppConfig
+
+# DO NOT REMOVE - Model imports required for Alembic autogenerate
+from src.app.features.clients.infrastructure.models.client_model import ClientModel
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel
+from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
+from src.app.features.stories.infrastructure.models.story_model import StoryModel
+from src.app.features.user.infrastructure.models.user_model import UserModel
 from src.app.shared.persistence.base_model import Base
 
-
-# DO NOT REMOVE
-# from src.app.features.projects.infrastructure.models.project_model import ProjectModel
-# from src.app.features.stories.infrastructure.models.story_model import StoryModel
 
 # end DO NOT REMOVE
 
