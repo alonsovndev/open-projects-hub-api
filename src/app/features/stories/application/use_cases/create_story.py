@@ -33,53 +33,34 @@ class CreateStoryUseCase:
             StoryResponse with created story data
 
         Raises:
-            ValueError: If validation fails
+            ValidationError: If validation fails
         """
         log = BusinessLogger(get_logger(__name__), user_id=created_by)
 
-        try:
-            # Validate priority enum early to provide clear user feedback
-            story_priority = None
-            if request.priority:
-                try:
-                    story_priority = StoryPriority(request.priority.lower())
-                except ValueError as e:
-                    log.failure(
-                        "story.create.invalid_priority",
-                        error=e,
-                        priority=request.priority,
-                        project_id=request.project_id,
-                    )
-                    raise ValueError(f"Invalid priority '{request.priority}'. Must be: low, medium, high") from e
+        story_priority = StoryPriority(request.priority) if request.priority else None
 
-            entity = StoryEntity.create(
-                title=request.title,
-                project_id=EntityId.from_string(request.project_id),
-                created_by=EntityId.from_string(created_by),
-                description=request.description,
-                priority=story_priority,
-                points=request.points,
-            )
+        entity = StoryEntity.create(
+            title=request.title,
+            project_id=EntityId.from_string(request.project_id),
+            created_by=EntityId.from_string(created_by),
+            description=request.description,
+            priority=story_priority,
+            points=request.points,
+        )
 
-            saved_entity = await self._repository.save(entity)
+        saved_entity = await self._repository.save(entity)
 
-            if not saved_entity:
-                log.failure("story.create.save_failed", story_title=request.title, project_id=request.project_id)
-                raise ValueError("Failed to create story")
+        if not saved_entity:
+            log.failure("story.create.save_failed", story_title=request.title, project_id=request.project_id)
+            raise RuntimeError("Failed to create story")
 
-            log.event(
-                "story.created",
-                entity_id=str(saved_entity.id),
-                story_title=saved_entity.title,
-                project_id=str(saved_entity.project_id),
-                priority=saved_entity.priority.value if saved_entity.priority else None,
-                points=saved_entity.points,
-            )
+        log.event(
+            "story.created",
+            entity_id=str(saved_entity.id),
+            story_title=saved_entity.title,
+            project_id=str(saved_entity.project_id),
+            priority=saved_entity.priority.value if saved_entity.priority else None,
+            points=saved_entity.points,
+        )
 
-            return to_story_response(saved_entity)
-
-        except ValueError:
-            raise
-        except Exception as e:
-            log.failure("story.create.unexpected_error", error=e)
-            raise
+        return to_story_response(saved_entity)

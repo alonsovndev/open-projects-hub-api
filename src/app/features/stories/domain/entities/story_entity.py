@@ -1,6 +1,6 @@
 """Story entity - domain model for user stories."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.app.features.stories.domain.validators.story_validators import StoryValidators
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -198,7 +198,7 @@ class StoryEntity(BaseEntity):
         Raises:
             ValueError: If validation fails
         """
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         return cls(
             id=EntityId.generate(),
             title=title,

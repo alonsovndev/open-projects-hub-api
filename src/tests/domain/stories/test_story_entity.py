@@ -1,6 +1,6 @@
 """Unit tests for StoryEntity."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -8,6 +8,7 @@ import pytest
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -20,7 +21,7 @@ class TestStoryEntityCreation:
         created_by = EntityId.generate()
 
         with patch("src.app.features.stories.domain.entities.story_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 9, 12, 0, 0)
+            mock_now = datetime(2026, 5, 9, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story = StoryEntity.create(
@@ -65,7 +66,7 @@ class TestStoryEntityCreation:
 
     def test_create_story_empty_title_raises_error(self):
         """Test creating story with empty title raises ValueError."""
-        with pytest.raises(ValueError, match="Story title cannot be empty"):
+        with pytest.raises(ValidationError, match="Story title cannot be empty"):
             StoryEntity.create(
                 title="",
                 project_id=EntityId.generate(),
@@ -74,7 +75,7 @@ class TestStoryEntityCreation:
 
     def test_create_story_whitespace_title_raises_error(self):
         """Test creating story with whitespace-only title raises ValueError."""
-        with pytest.raises(ValueError, match="Story title cannot be empty"):
+        with pytest.raises(ValidationError, match="Story title cannot be empty"):
             StoryEntity.create(
                 title="   ",
                 project_id=EntityId.generate(),
@@ -85,7 +86,7 @@ class TestStoryEntityCreation:
         """Test creating story with title > 255 chars raises ValueError."""
         long_title = "a" * 256
 
-        with pytest.raises(ValueError, match="Story title cannot exceed 255 characters"):
+        with pytest.raises(ValidationError, match="Story title cannot exceed 255 characters"):
             StoryEntity.create(
                 title=long_title,
                 project_id=EntityId.generate(),
@@ -94,7 +95,7 @@ class TestStoryEntityCreation:
 
     def test_create_story_negative_points_raises_error(self):
         """Test creating story with negative points raises ValueError."""
-        with pytest.raises(ValueError, match="Story points cannot be negative"):
+        with pytest.raises(ValidationError, match="Story points cannot be negative"):
             StoryEntity.create(
                 title="Invalid Story",
                 project_id=EntityId.generate(),
@@ -104,7 +105,7 @@ class TestStoryEntityCreation:
 
     def test_create_story_points_too_high_raises_error(self):
         """Test creating story with points > 100 raises ValueError."""
-        with pytest.raises(ValueError, match="Story points cannot exceed 100"):
+        with pytest.raises(ValidationError, match="Story points cannot exceed 100"):
             StoryEntity.create(
                 title="Invalid Story",
                 project_id=EntityId.generate(),
@@ -125,7 +126,7 @@ class TestStoryEntityUpdate:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story.update_details(title="New Title")
@@ -189,7 +190,7 @@ class TestStoryEntityUpdate:
             created_by=EntityId.generate(),
         )
 
-        with pytest.raises(ValueError, match="Story title cannot be empty"):
+        with pytest.raises(ValidationError, match="Story title cannot be empty"):
             story.update_details(title="")
 
     def test_update_story_invalid_points_raises_error(self):
@@ -200,7 +201,7 @@ class TestStoryEntityUpdate:
             created_by=EntityId.generate(),
         )
 
-        with pytest.raises(ValueError, match="Story points cannot be negative"):
+        with pytest.raises(ValidationError, match="Story points cannot be negative"):
             story.update_details(points=-5)
 
 
@@ -217,7 +218,7 @@ class TestStoryEntityStatusTransitions:
         user_id = EntityId.generate()
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story.assign_to(user_id)
@@ -247,7 +248,7 @@ class TestStoryEntityStatusTransitions:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story.start()
@@ -264,7 +265,7 @@ class TestStoryEntityStatusTransitions:
         )
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story.complete()
@@ -282,7 +283,7 @@ class TestStoryEntityStatusTransitions:
         story.complete()
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
-            mock_now = datetime(2026, 5, 10, 12, 0, 0)
+            mock_now = datetime(2026, 5, 10, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
             story.reopen()

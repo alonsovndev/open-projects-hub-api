@@ -1,5 +1,7 @@
 """Shared validation logic for story domain."""
 
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
+
 
 class StoryValidators:
     """Centralized validation rules for story entities and DTOs."""
@@ -18,12 +20,12 @@ class StoryValidators:
             title: Story title to validate
 
         Raises:
-            ValueError: If title is invalid
+            ValidationError: If title is invalid
         """
         if not title or not title.strip():
-            raise ValueError("Story title cannot be empty")
+            raise ValidationError("Story title cannot be empty")
         if len(title) > StoryValidators.MAX_TITLE_LENGTH:
-            raise ValueError(f"Story title cannot exceed {StoryValidators.MAX_TITLE_LENGTH} characters")
+            raise ValidationError(f"Story title cannot exceed {StoryValidators.MAX_TITLE_LENGTH} characters")
 
     @staticmethod
     def validate_points(points: int | None) -> None:
@@ -34,9 +36,9 @@ class StoryValidators:
             points: Story points to validate
 
         Raises:
-            ValueError: If points are invalid
+            ValidationError: If points are invalid
         """
         if points is not None and points < StoryValidators.MIN_POINTS:
-            raise ValueError("Story points cannot be negative")
+            raise ValidationError("Story points cannot be negative")
         if points is not None and points > StoryValidators.MAX_POINTS:
-            raise ValueError(f"Story points cannot exceed {StoryValidators.MAX_POINTS}")
+            raise ValidationError(f"Story points cannot exceed {StoryValidators.MAX_POINTS}")

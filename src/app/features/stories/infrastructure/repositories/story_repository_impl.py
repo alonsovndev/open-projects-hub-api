@@ -50,7 +50,7 @@ class StoryRepositoryImpl(StoryRepository):
             return None
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_by_id", table="stories")
+            self._log.connection_error("database", error=e, operation="find_by_id", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -105,7 +105,7 @@ class StoryRepositoryImpl(StoryRepository):
             return [StoryMapper.to_entity(model) for model in models]
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_all", table="stories")
+            self._log.connection_error("database", error=e, operation="find_all", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error("Database error while fetching stories", error=e, operation="find_all", table="stories")
@@ -142,7 +142,7 @@ class StoryRepositoryImpl(StoryRepository):
         """
         return await self.find_all(assigned_to=user_id)
 
-    async def save(self, story: StoryEntity) -> StoryEntity | None:
+    async def save(self, story: StoryEntity) -> StoryEntity:
         """
         Save or update a story.
 
@@ -184,7 +184,7 @@ class StoryRepositoryImpl(StoryRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="save", table="stories")
+            self._log.connection_error("database", error=e, operation="save", table="stories")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -226,7 +226,7 @@ class StoryRepositoryImpl(StoryRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="delete", table="stories")
+            self._log.connection_error("database", error=e, operation="delete", table="stories")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -255,7 +255,7 @@ class StoryRepositoryImpl(StoryRepository):
             return bool(int(result.scalar_one()))
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="exists", table="stories")
+            self._log.connection_error("database", error=e, operation="exists", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -306,7 +306,7 @@ class StoryRepositoryImpl(StoryRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="update", table="stories")
+            self._log.connection_error("database", error=e, operation="update", table="stories")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -353,7 +353,7 @@ class StoryRepositoryImpl(StoryRepository):
             return int(result.scalar_one())
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="count", table="stories")
+            self._log.connection_error("database", error=e, operation="count", table="stories")
             raise
         except SQLAlchemyError as e:
             self._log.error("Database error while counting stories", error=e, operation="count", table="stories")

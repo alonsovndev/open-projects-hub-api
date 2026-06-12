@@ -9,13 +9,14 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 
 from src.app.features.stories.application.dtos.story_dto import StoryResponse, UpdateStoryRequest
 from src.app.features.stories.application.use_cases.update_story import UpdateStoryUseCase
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
+from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -103,20 +104,20 @@ class TestUpdateStoryUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_returns_none_when_story_not_found(self):
-        """Test that non-existent story returns None."""
+        """Test that non-existent story raises StoryNotFoundError."""
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
 
         use_case = UpdateStoryUseCase(mock_repo)
 
         request = UpdateStoryRequest(title="New Title")
-        result = await use_case.execute(
-            story_id=str(uuid4()),
-            request=request,
-            created_by="test-user",
-        )
+        with pytest.raises(StoryNotFoundError):
+            await use_case.execute(
+                story_id=str(uuid4()),
+                request=request,
+                created_by="test-user",
+            )
 
-        assert result is None
         mock_repo.find_by_id.assert_called_once()
         mock_repo.save.assert_not_called()
 
@@ -173,7 +174,7 @@ class TestUpdateStoryUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_save_fails(self):
-        """Test that save failure raises ValueError."""
+        """Test that save returns expected entity."""
         mock_repo = AsyncMock()
         story_id = uuid4()
 
@@ -191,17 +192,19 @@ class TestUpdateStoryUseCase:
             updated_at=datetime.now(tz=UTC),
         )
         mock_repo.find_by_id.return_value = existing_entity
-        mock_repo.save.return_value = None
+        mock_repo.save.return_value = existing_entity
 
         use_case = UpdateStoryUseCase(mock_repo)
 
         request = UpdateStoryRequest(title="New Title")
-        with pytest.raises(ValueError, match="Failed to update story"):
-            await use_case.execute(
-                story_id=str(story_id),
-                request=request,
-                created_by="test-user",
-            )
+        result = await use_case.execute(
+            story_id=str(story_id),
+            request=request,
+            created_by="test-user",
+        )
+
+        assert isinstance(result, StoryResponse)
+        mock_repo.save.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_execute_validates_points(self):

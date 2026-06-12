@@ -1,9 +1,9 @@
 """Story priority value object."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class StoryPriority(str, Enum):
+class StoryPriority(StrEnum):
     """Story priority enumeration."""
 
     LOW = "low"
@@ -14,7 +14,3 @@ class StoryPriority(str, Enum):
     def default(cls) -> "StoryPriority":
         """Get default priority."""
         return cls.MEDIUM
-
-    def __str__(self) -> str:
-        """Return string value."""
-        return self.value

@@ -30,8 +30,10 @@ from src.app.features.stories.application.use_cases.get_stories_by_project impor
 from src.app.features.stories.application.use_cases.get_story_by_id import GetStoryByIdUseCase
 from src.app.features.stories.application.use_cases.list_stories import ListStoriesUseCase
 from src.app.features.stories.application.use_cases.update_story import UpdateStoryUseCase
+from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.presentation.auth_dependencies import get_current_user
 
@@ -98,7 +100,10 @@ async def create_story(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    return await use_case.execute(request=payload, created_by=user_id)
+    try:
+        return await use_case.execute(request=payload, created_by=user_id)
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.get("", response_model=PaginatedResponse[StoryResponse])
@@ -209,12 +214,10 @@ async def get_story_by_id(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    result = await use_case.execute(str(story_id), user_id=user_id)
-
-    if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-    return result
+    try:
+        return await use_case.execute(str(story_id), user_id=user_id)
+    except StoryNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.patch("/{story_id}", response_model=StoryResponse)
@@ -249,12 +252,12 @@ async def update_story(
     await _authorize_story_owner_or_admin(str(story_id), current_user)
 
     user_id = str(current_user["sub"])
-    result = await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
-
-    if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-    return result
+    try:
+        return await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
+    except StoryNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.delete("/{story_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -283,10 +286,10 @@ async def delete_story(
     await _authorize_story_owner_or_admin(str(story_id), current_user)
 
     user_id = str(current_user["sub"])
-    deleted = await use_case.execute(story_id=str(story_id), created_by=user_id)
-
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+    try:
+        await use_case.execute(story_id=str(story_id), created_by=user_id)
+    except StoryNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post("/{story_id}/assign", response_model=StoryResponse)
@@ -317,13 +320,11 @@ async def assign_story(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    result = await use_case.execute(
-        story_id=str(story_id),
-        user_id=payload.user_id,
-        created_by=user_id,
-    )
-
-    if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
-
-    return result
+    try:
+        return await use_case.execute(
+            story_id=str(story_id),
+            user_id=payload.user_id,
+            created_by=user_id,
+        )
+    except StoryNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

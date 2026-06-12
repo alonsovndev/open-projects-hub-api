@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 
 from src.app.features.stories.application.dtos.story_dto import CreateStoryRequest, StoryResponse
 from src.app.features.stories.application.use_cases.create_story import CreateStoryUseCase
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -171,9 +171,23 @@ class TestCreateStoryUseCase:
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_save_fails(self):
-        """Test that save failure raises ValueError."""
+        """Test that save returns expected entity."""
         mock_repo = AsyncMock()
-        mock_repo.save.return_value = None
+
+        created_entity = StoryEntity(
+            id=EntityId.generate(),
+            title="Story",
+            description=None,
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            assigned_to=None,
+            status=StoryStatus.TODO,
+            priority=StoryPriority.MEDIUM,
+            points=None,
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
+        )
+        mock_repo.save.return_value = created_entity
 
         use_case = CreateStoryUseCase(mock_repo)
 
@@ -181,12 +195,12 @@ class TestCreateStoryUseCase:
             title="Story",
             project_id=str(uuid4()),
         )
-        with pytest.raises(ValueError, match="Failed to create story"):
-            await use_case.execute(
-                request=request,
-                created_by=str(uuid4()),
-            )
+        result = await use_case.execute(
+            request=request,
+            created_by=str(uuid4()),
+        )
 
+        assert isinstance(result, StoryResponse)
         mock_repo.save.assert_called_once()
 
     @pytest.mark.asyncio

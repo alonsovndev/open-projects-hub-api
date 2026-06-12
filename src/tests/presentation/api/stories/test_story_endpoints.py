@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
+from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
@@ -180,7 +181,7 @@ class TestGetStoryByIdEndpoint:
         """Test getting non-existent story returns 404."""
         with patch(
             "src.app.features.stories.application.use_cases.get_story_by_id.GetStoryByIdUseCase.execute",
-            new=AsyncMock(return_value=None),
+            new=AsyncMock(side_effect=StoryNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.get(
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999",
@@ -226,7 +227,7 @@ class TestUpdateStoryEndpoint:
         """Test updating non-existent story returns 404."""
         with patch(
             "src.app.features.stories.application.use_cases.update_story.UpdateStoryUseCase.execute",
-            new=AsyncMock(return_value=None),
+            new=AsyncMock(side_effect=StoryNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.patch(
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999",
@@ -257,7 +258,7 @@ class TestDeleteStoryEndpoint:
         """Test deleting non-existent story returns 404."""
         with patch(
             "src.app.features.stories.application.use_cases.delete_story.DeleteStoryUseCase.execute",
-            new=AsyncMock(return_value=False),
+            new=AsyncMock(side_effect=StoryNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.delete(
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999",
@@ -329,7 +330,7 @@ class TestAssignStoryEndpoint:
         """Test assigning non-existent story returns 404."""
         with patch(
             "src.app.features.stories.application.use_cases.assign_story.AssignStoryUseCase.execute",
-            new=AsyncMock(return_value=None),
+            new=AsyncMock(side_effect=StoryNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.post(
                 "/v1/stories/550e8400-e29b-41d4-a716-446655440999/assign",

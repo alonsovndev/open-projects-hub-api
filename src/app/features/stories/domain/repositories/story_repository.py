@@ -1,12 +1,10 @@
 """Story repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 from uuid import UUID
 
-
-if TYPE_CHECKING:
-    from src.app.features.stories.domain.entities.story_entity import StoryEntity
+from src.app.features.stories.domain.entities.story_entity import StoryEntity
 
 
 class StoryRepository(ABC):
@@ -81,7 +79,7 @@ class StoryRepository(ABC):
         """
 
     @abstractmethod
-    async def save(self, story: "StoryEntity") -> Optional["StoryEntity"]:
+    async def save(self, story: "StoryEntity") -> "StoryEntity":
         """
         Save or update a story.
 
@@ -89,7 +87,7 @@ class StoryRepository(ABC):
             story: StoryEntity to save
 
         Returns:
-            Saved StoryEntity if successful, None otherwise
+            Saved StoryEntity
         """
 
     @abstractmethod

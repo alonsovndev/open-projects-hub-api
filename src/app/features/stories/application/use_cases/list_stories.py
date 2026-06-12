@@ -5,7 +5,10 @@ from uuid import UUID
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
+from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.logging import BusinessLogger, get_logger
 
 
@@ -47,15 +50,15 @@ class ListStoriesUseCase:
             PaginatedResponse containing pagination metadata and StoryResponse items
 
         Raises:
-            ValueError: If validation fails
+            ValidationError: If validation fails
         """
         # Validate status enum early to provide clear user feedback
-        if status and status not in ["todo", "in_progress", "done"]:
-            raise ValueError("Status must be one of: todo, in_progress, done")
+        if status and status not in [s.value for s in StoryStatus]:
+            raise ValidationError(f"Status must be one of: {', '.join(s.value for s in StoryStatus)}")
 
         # Validate priority enum early to provide clear user feedback
-        if priority and priority not in ["low", "medium", "high"]:
-            raise ValueError("Priority must be one of: low, medium, high")
+        if priority and priority not in [p.value for p in StoryPriority]:
+            raise ValidationError(f"Priority must be one of: {', '.join(p.value for p in StoryPriority)}")
 
         log = BusinessLogger(get_logger(__name__), user_id=user_id)
         log.info(

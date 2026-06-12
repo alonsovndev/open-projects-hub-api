@@ -6,6 +6,7 @@ from pydantic.alias_generators import to_camel
 from src.app.features.stories.domain.validators.story_validators import StoryValidators
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 
 
 class CreateStoryRequest(BaseModel):
@@ -36,7 +37,7 @@ class CreateStoryRequest(BaseModel):
         if priority is not None:
             valid_priorities = [p.value for p in StoryPriority]
             if priority not in valid_priorities:
-                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+                raise ValidationError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return priority
 
     @field_validator("points")
@@ -77,7 +78,7 @@ class UpdateStoryRequest(BaseModel):
         if status is not None:
             valid_statuses = [s.value for s in StoryStatus]
             if status not in valid_statuses:
-                raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+                raise ValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         return status
 
     @field_validator("priority")
@@ -87,7 +88,7 @@ class UpdateStoryRequest(BaseModel):
         if priority is not None:
             valid_priorities = [p.value for p in StoryPriority]
             if priority not in valid_priorities:
-                raise ValueError(f"Priority must be one of: {', '.join(valid_priorities)}")
+                raise ValidationError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return priority
 
     @field_validator("points")
