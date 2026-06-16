@@ -39,7 +39,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             return None
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_by_id", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="find_by_id", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -68,7 +68,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             return [StoryDraftMapper.to_entity(m) for m in models]
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_by_project", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="find_by_project", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -103,7 +103,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             return [StoryDraftMapper.to_entity(m) for m in models]
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="find_active_by_user", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="find_active_by_user", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             self._log.error(
@@ -143,7 +143,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="save", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="save", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -172,7 +172,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
 
         except OperationalError as e:
             await self._session.rollback()
-            self._log.connection_error("postgresql", error=e, operation="delete", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="delete", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             await self._session.rollback()
@@ -189,7 +189,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             return result.scalar() or 0
 
         except OperationalError as e:
-            self._log.connection_error("postgresql", error=e, operation="count_by_project", table="story_drafts")
+            self._log.connection_error("database", error=e, operation="count_by_project", table="story_drafts")
             raise
         except SQLAlchemyError as e:
             self._log.error(

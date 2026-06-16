@@ -1,12 +1,10 @@
 """Approve multiple drafts use case - bulk convert drafts to stories."""
 
-from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.application.mappers.draft_to_story import draft_to_story_entity
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
-from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger
 
@@ -65,7 +63,11 @@ class ApproveDraftsBulkUseCase:
                 )
                 continue
 
-            story = await self._create_story_from_draft(draft)
+            story_entity = draft_to_story_entity(draft)
+            story = await self._story_repository.save(story_entity)
+
+            if not story:
+                raise ValueError("Failed to create story from draft")
 
             # Mark draft as applied to prevent duplicate story creation
             draft.mark_applied()
@@ -91,42 +93,3 @@ class ApproveDraftsBulkUseCase:
             log.warning("No drafts were approved in bulk operation", event_type="refinement.bulk_approve.no_results")
 
         return created_stories
-
-    async def _create_story_from_draft(self, draft: StoryDraftEntity) -> StoryEntity:
-        """
-        Create a story entity from a draft.
-
-        Args:
-            draft: Story draft entity
-
-        Returns:
-            Created StoryEntity
-        """
-        # Merge description and acceptance criteria into structured description
-        description_parts = []
-
-        if draft.description:
-            description_parts.append(draft.description)
-
-        if draft.acceptance_criteria:
-            description_parts.append("\n\n**Acceptance Criteria:**")
-            for criterion in draft.acceptance_criteria:
-                description_parts.append(f"- {criterion}")
-
-        full_description = "\n".join(description_parts) if description_parts else None
-
-        story = StoryEntity.create(
-            title=draft.title,
-            project_id=draft.project_id,
-            created_by=draft.created_by,
-            description=full_description,
-            priority=StoryPriority.MEDIUM,
-            points=None,
-        )
-
-        saved_story = await self._story_repository.save(story)
-
-        if not saved_story:
-            raise ValueError("Failed to create story from draft")
-
-        return saved_story

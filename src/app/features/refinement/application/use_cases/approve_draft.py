@@ -1,12 +1,11 @@
 """Approve draft use case - convert draft to story."""
 
-from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.application.mappers.draft_to_story import draft_to_story_entity
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
-from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger
 
@@ -29,7 +28,7 @@ class ApproveDraftUseCase:
         self._draft_repository = draft_repository
         self._story_repository = story_repository
 
-    async def execute(self, draft_id: str, created_by: str) -> StoryResponse | None:
+    async def execute(self, draft_id: str, created_by: str) -> StoryResponse:
         """
         Execute approve draft use case.
 
@@ -40,9 +39,10 @@ class ApproveDraftUseCase:
             created_by: User ID approving the draft
 
         Returns:
-            StoryResponse with created story data, or None if draft not found
+            StoryResponse with created story data
 
         Raises:
+            StoryDraftNotFoundError: If the draft is not found
             ValueError: If draft validation fails
         """
         log = BusinessLogger(get_logger(__name__), user_id=created_by)
@@ -53,9 +53,13 @@ class ApproveDraftUseCase:
 
             if not draft:
                 log.failure("refinement.approve.not_found", entity_id=draft_id)
-                return None
+                raise StoryDraftNotFoundError(draft_id)
 
-            story = await self._create_story_from_draft(draft)
+            story_entity = draft_to_story_entity(draft)
+            story = await self._story_repository.save(story_entity)
+
+            if not story:
+                raise ValueError("Failed to create story from draft")
 
             # Mark draft as applied to prevent duplicate story creation
             draft.mark_applied()
@@ -71,45 +75,8 @@ class ApproveDraftUseCase:
 
             return to_story_response(story)
 
+        except StoryDraftNotFoundError:
+            raise
         except Exception as e:
             log.failure("refinement.approve.failed", error=e, entity_id=draft_id)
             raise
-
-    async def _create_story_from_draft(self, draft: StoryDraftEntity) -> StoryEntity:
-        """
-        Create a story entity from a draft.
-
-        Args:
-            draft: Story draft entity
-
-        Returns:
-            Created StoryEntity
-        """
-        # Merge description and acceptance criteria into structured description
-        description_parts = []
-
-        if draft.description:
-            description_parts.append(draft.description)
-
-        if draft.acceptance_criteria:
-            description_parts.append("\n\n**Acceptance Criteria:**")
-            for criterion in draft.acceptance_criteria:
-                description_parts.append(f"- {criterion}")
-
-        full_description = "\n".join(description_parts) if description_parts else None
-
-        story = StoryEntity.create(
-            title=draft.title,
-            project_id=draft.project_id,
-            created_by=draft.created_by,
-            description=full_description,
-            priority=StoryPriority.MEDIUM,
-            points=None,
-        )
-
-        saved_story = await self._story_repository.save(story)
-
-        if not saved_story:
-            raise ValueError("Failed to create story from draft")
-
-        return saved_story

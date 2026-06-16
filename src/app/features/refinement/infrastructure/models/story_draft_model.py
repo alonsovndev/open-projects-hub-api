@@ -3,7 +3,7 @@
 from sqlalchemy import ARRAY, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.shared.persistence.base_model import BaseModel
 
 
@@ -25,12 +25,8 @@ class StoryDraftModel(BaseModel):
     status = Column(
         String(20),
         nullable=False,
-        default=RefinementStatus.DRAFT.value,
+        default=DraftStatus.DRAFT.value,
     )
-    # Refined content from AI
-    refined_title = Column(String(500), nullable=True)
-    refined_description = Column(Text, nullable=True)
-    refined_criteria = Column(ARRAY(Text), nullable=True)
 
     # Composite indexes for common query patterns
     __table_args__ = (

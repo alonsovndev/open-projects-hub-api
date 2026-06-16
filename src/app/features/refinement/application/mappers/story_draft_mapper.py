@@ -27,5 +27,4 @@ def to_generated_story_response(
         title=generated_story.title,
         description=generated_story.description,
         acceptance_criteria=generated_story.acceptance_criteria,
-        confidence=generated_story.confidence,
     )

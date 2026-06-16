@@ -34,6 +34,7 @@ def create_ai_service() -> AIService:
     if provider == "mock":
         log.info("Using MockAIService for story refinement (explicit config)")
         return MockAIService()
+
     if provider == "gemini" and is_valid_key(gemini_key):
         log.info(f"Using Gemini service for story refinement (model: {gemini_model})")
         return GeminiService(api_key=gemini_key, model=gemini_model)

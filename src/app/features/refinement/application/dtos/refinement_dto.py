@@ -66,7 +66,6 @@ class GeneratedStoryResponse(BaseModel):
     title: str
     description: str
     acceptance_criteria: list[str]
-    confidence: float
 
 
 class GenerateStoriesResponse(BaseModel):
@@ -100,6 +99,18 @@ class ApproveDraftsBulkRequest(BaseModel):
         return draft_ids
 
 
+class BulkApprovedStory(BaseModel):
+    """Lightweight reference to a story created from bulk draft approval."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    title: str
+
+
 class ApproveDraftsBulkResponse(BaseModel):
     """Response model for bulk approve operation."""
 
@@ -109,4 +120,4 @@ class ApproveDraftsBulkResponse(BaseModel):
     )
 
     approved_count: int
-    stories: list[dict]  # List of created story IDs and titles
+    stories: list[BulkApprovedStory]

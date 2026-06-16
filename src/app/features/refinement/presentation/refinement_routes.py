@@ -14,6 +14,7 @@ from src.app.composition import (
 from src.app.features.refinement.application.dtos.refinement_dto import (
     ApproveDraftsBulkRequest,
     ApproveDraftsBulkResponse,
+    BulkApprovedStory,
     GenerateStoriesRequest,
     GenerateStoriesResponse,
     UpdateStoryDraftRequest,
@@ -24,6 +25,7 @@ from src.app.features.refinement.application.use_cases.generate_stories_from_not
     GenerateStoriesFromNotesUseCase,
 )
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.presentation.auth_dependencies import require_admin
@@ -58,19 +60,19 @@ async def update_draft(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    result = await use_case.execute(
-        draft_id=str(draft_id),
-        request=payload,
-        created_by=user_id,
-    )
+    try:
+        result = await use_case.execute(
+            draft_id=str(draft_id),
+            request=payload,
+            created_by=user_id,
+        )
+        return {"id": str(result.id.value)}
 
-    if not result:
+    except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Story draft not found",
-        )
-
-    return {"id": str(result.id.value)}
+            detail=str(e),
+        ) from e
 
 
 @router.post("/generate-stories", response_model=GenerateStoriesResponse)
@@ -134,15 +136,13 @@ async def approve_draft(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    result = await use_case.execute(str(draft_id), created_by=user_id)
-
-    if not result:
+    try:
+        return await use_case.execute(str(draft_id), created_by=user_id)
+    except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Story draft not found",
-        )
-
-    return result
+            detail=str(e),
+        ) from e
 
 
 @router.post("/approve-drafts", response_model=ApproveDraftsBulkResponse)
@@ -179,5 +179,5 @@ async def approve_drafts_bulk(
 
     return ApproveDraftsBulkResponse(
         approved_count=len(stories),
-        stories=[{"id": s.id, "title": s.title} for s in stories],
+        stories=[BulkApprovedStory(id=s.id, title=s.title) for s in stories],
     )

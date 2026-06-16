@@ -2,6 +2,7 @@
 
 from src.app.features.refinement.application.dtos.refinement_dto import UpdateStoryDraftRequest
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import BusinessLogger, get_logger
@@ -24,7 +25,7 @@ class UpdateStoryDraftUseCase:
         draft_id: str,
         request: UpdateStoryDraftRequest,
         created_by: str,
-    ) -> StoryDraftEntity | None:
+    ) -> StoryDraftEntity:
         """
         Execute update story draft use case.
 
@@ -34,7 +35,10 @@ class UpdateStoryDraftUseCase:
             created_by: User ID performing the update
 
         Returns:
-            StoryDraftEntity if updated, None if not found
+            Updated StoryDraftEntity
+
+        Raises:
+            StoryDraftNotFoundError: If the draft is not found
         """
         log = BusinessLogger(get_logger(__name__), user_id=created_by)
 
@@ -43,7 +47,7 @@ class UpdateStoryDraftUseCase:
 
         if not draft:
             log.failure("refinement.draft.update.not_found", entity_id=draft_id)
-            return None
+            raise StoryDraftNotFoundError(draft_id)
 
         draft.update_draft(
             title=request.title,

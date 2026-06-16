@@ -1,19 +1,21 @@
-"""Story draft entity - domain model for AI refinement drafts."""
+"""Story draft entity - domain model for AI-generated story drafts awaiting approval."""
 
 from datetime import datetime
 
+from dateutil.tz import UTC
+
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.shared.domain.entities.base_entity import BaseEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 class StoryDraftEntity(BaseEntity):
     """
-    Story draft entity representing a user story being refined with AI.
+    Story draft entity representing an AI-generated user story pending approval.
 
-    Drafts go through a lifecycle: draft -> refining -> refined -> applied.
-    AI suggestions are attached to help improve the story quality.
+    Drafts have a simple lifecycle: DRAFT → APPLIED.
+    AI generates the final content in one pass — there is no separate refinement step.
     """
 
     def __init__(
@@ -24,10 +26,7 @@ class StoryDraftEntity(BaseEntity):
         acceptance_criteria: list[str],
         project_id: EntityId,
         created_by: EntityId,
-        status: RefinementStatus,
-        refined_title: str | None = None,
-        refined_description: str | None = None,
-        refined_criteria: list[str] | None = None,
+        status: DraftStatus,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -36,21 +35,18 @@ class StoryDraftEntity(BaseEntity):
 
         Args:
             id: Unique draft identifier
-            title: Raw story title from user
-            description: Raw story description
-            acceptance_criteria: List of acceptance criteria
+            title: AI-generated story title
+            description: AI-generated story description
+            acceptance_criteria: AI-generated acceptance criteria
             project_id: Associated project ID
             created_by: User ID of creator
-            status: Current refinement status
-            refined_title: AI-refined title (if refined)
-            refined_description: AI-refined description (if refined)
-            refined_criteria: AI-refined acceptance criteria (if refined)
+            status: Current draft status (DRAFT or APPLIED)
             created_at: Creation timestamp
             updated_at: Last update timestamp
         """
         RefinementValidators.validate_title(title)
 
-        now = datetime.now()
+        now = datetime.now(UTC)
         super().__init__(
             id=id,
             created_at=created_at or now,
@@ -63,18 +59,15 @@ class StoryDraftEntity(BaseEntity):
         self._project_id = project_id
         self._created_by = created_by
         self._status = status
-        self._refined_title = refined_title
-        self._refined_description = refined_description
-        self._refined_criteria = refined_criteria
 
     @property
     def title(self) -> str:
-        """Get raw story title."""
+        """Get story title."""
         return self._title
 
     @property
     def description(self) -> str | None:
-        """Get raw story description."""
+        """Get story description."""
         return self._description
 
     @property
@@ -93,53 +86,13 @@ class StoryDraftEntity(BaseEntity):
         return self._created_by
 
     @property
-    def status(self) -> RefinementStatus:
-        """Get refinement status."""
+    def status(self) -> DraftStatus:
+        """Get draft status."""
         return self._status
 
-    @property
-    def refined_title(self) -> str | None:
-        """Get AI-refined title."""
-        return self._refined_title
-
-    @property
-    def refined_description(self) -> str | None:
-        """Get AI-refined description."""
-        return self._refined_description
-
-    @property
-    def refined_criteria(self) -> list[str] | None:
-        """Get AI-refined acceptance criteria."""
-        return self._refined_criteria
-
-    def start_refinement(self) -> None:
-        """Mark draft as being refined."""
-        self._status = RefinementStatus.REFINING
-        self.mark_as_updated()
-
-    def apply_refinement(
-        self,
-        refined_title: str,
-        refined_description: str | None = None,
-        refined_criteria: list[str] | None = None,
-    ) -> None:
-        """
-        Apply AI refinement results to the draft.
-
-        Args:
-            refined_title: AI-refined title
-            refined_description: AI-refined description
-            refined_criteria: AI-refined acceptance criteria
-        """
-        self._refined_title = refined_title
-        self._refined_description = refined_description
-        self._refined_criteria = refined_criteria
-        self._status = RefinementStatus.REFINED
-        self.mark_as_updated()
-
     def mark_applied(self) -> None:
-        """Mark the refined story as applied (converted to real story)."""
-        self._status = RefinementStatus.APPLIED
+        """Mark the draft as applied (converted to a real story)."""
+        self._status = DraftStatus.APPLIED
         self.mark_as_updated()
 
     def update_draft(
@@ -149,10 +102,10 @@ class StoryDraftEntity(BaseEntity):
         acceptance_criteria: list[str] | None = None,
     ) -> None:
         """
-        Update draft fields.
+        Update draft fields. Only modifies fields that are explicitly provided.
 
         Args:
-            title: New title
+            title: New title (validated if provided)
             description: New description
             acceptance_criteria: New acceptance criteria
         """
@@ -165,13 +118,6 @@ class StoryDraftEntity(BaseEntity):
 
         if acceptance_criteria is not None:
             self._acceptance_criteria = acceptance_criteria
-
-        # Reset refinement status if draft is modified
-        if self._status == RefinementStatus.REFINED:
-            self._status = RefinementStatus.DRAFT
-            self._refined_title = None
-            self._refined_description = None
-            self._refined_criteria = None
 
         self.mark_as_updated()
 
@@ -204,5 +150,5 @@ class StoryDraftEntity(BaseEntity):
             acceptance_criteria=acceptance_criteria or [],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.default(),
+            status=DraftStatus.default(),
         )
