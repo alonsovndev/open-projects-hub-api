@@ -46,3 +46,8 @@ logging:
     path: logs/app.log
     max_bytes: 52428800
     backup_count: 5
+
+ai:
+  provider: gemini    # gemini
+  gemini_api_key: !ENV ${GEMINI_API_KEY}
+  gemini_model: gemini-2.5-flash
