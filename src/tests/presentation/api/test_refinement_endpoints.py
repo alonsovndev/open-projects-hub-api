@@ -10,13 +10,13 @@ from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.refinement.application.dtos.refinement_dto import GeneratedStoryResponse, GenerateStoriesResponse
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
-@pytest.mark.integration
 @pytest.fixture
 def client():
     """Create test client."""
@@ -61,7 +61,7 @@ def mock_draft_entity():
         acceptance_criteria=["Criterion 1"],
         project_id=EntityId.from_string("550e8400-e29b-41d4-a716-446655440001"),
         created_by=EntityId.from_string("550e8400-e29b-41d4-a716-446655440001"),
-        status=RefinementStatus.DRAFT,
+        status=DraftStatus.DRAFT,
         created_at=datetime.now(tz=UTC),
         updated_at=datetime.now(tz=UTC),
     )
@@ -85,6 +85,7 @@ def mock_story_response():
     )
 
 
+@pytest.mark.integration
 class TestUpdateDraftEndpoint:
     """Test PATCH /v1/refinement/drafts/{draft_id} endpoint."""
 
@@ -111,7 +112,7 @@ class TestUpdateDraftEndpoint:
         """Test updating non-existent draft returns 404."""
         with patch(
             "src.app.features.refinement.application.use_cases.update_story_draft.UpdateStoryDraftUseCase.execute",
-            new=AsyncMock(return_value=None),
+            new=AsyncMock(side_effect=StoryDraftNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.patch(
                 "/v1/refinement/drafts/550e8400-e29b-41d4-a716-446655440999",
@@ -168,6 +169,7 @@ class TestUpdateDraftEndpoint:
         assert response.status_code == 200
 
 
+@pytest.mark.integration
 class TestGenerateStoriesEndpoint:
     """Test POST /v1/refinement/generate-stories endpoint."""
 
@@ -180,7 +182,6 @@ class TestGenerateStoriesEndpoint:
                     title="Generated Story",
                     description="Generated description",
                     acceptance_criteria=["Criterion 1"],
-                    confidence=0.9,
                 ),
             ],
             raw_notes="Some raw notes",
@@ -203,7 +204,6 @@ class TestGenerateStoriesEndpoint:
         data = response.json()
         assert len(data["stories"]) == 1
         assert data["stories"][0]["title"] == "Generated Story"
-        assert data["stories"][0]["confidence"] == 0.9
         assert data["rawNotes"] == "Some raw notes"
 
     def test_generate_stories_unauthorized_without_token(self, client: TestClient):
@@ -266,7 +266,6 @@ class TestGenerateStoriesEndpoint:
                     title="Story",
                     description="Desc",
                     acceptance_criteria=["Crit"],
-                    confidence=0.8,
                 ),
             ],
             raw_notes="Notes",
@@ -292,6 +291,7 @@ class TestGenerateStoriesEndpoint:
         assert "acceptanceCriteria" in data["stories"][0]
 
 
+@pytest.mark.integration
 class TestApproveDraftEndpoint:
     """Test POST /v1/refinement/drafts/{draft_id}/approve endpoint."""
 
@@ -315,7 +315,7 @@ class TestApproveDraftEndpoint:
         """Test approving non-existent draft returns 404."""
         with patch(
             "src.app.features.refinement.application.use_cases.approve_draft.ApproveDraftUseCase.execute",
-            new=AsyncMock(return_value=None),
+            new=AsyncMock(side_effect=StoryDraftNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
             response = client.post(
                 "/v1/refinement/drafts/550e8400-e29b-41d4-a716-446655440999/approve",
@@ -342,6 +342,7 @@ class TestApproveDraftEndpoint:
         assert response.status_code == 403
 
 
+@pytest.mark.integration
 class TestApproveDraftsBulkEndpoint:
     """Test POST /v1/refinement/approve-drafts endpoint."""
 

@@ -11,7 +11,8 @@ import pytest
 
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -39,7 +40,7 @@ class TestApproveDraftUseCase:
             acceptance_criteria=["Criterion 1", "Criterion 2"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -72,8 +73,8 @@ class TestApproveDraftUseCase:
         mock_draft_repo.save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_execute_returns_none_when_draft_not_found(self):
-        """Test that non-existent draft returns None."""
+    async def test_execute_raises_error_when_draft_not_found(self):
+        """Test that non-existent draft raises StoryDraftNotFoundError."""
         mock_draft_repo = AsyncMock()
         mock_story_repo = AsyncMock()
 
@@ -81,9 +82,10 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(EntityId.generate().value), created_by="test-user")
+        draft_id = str(EntityId.generate().value)
+        with pytest.raises(StoryDraftNotFoundError, match=draft_id):
+            await use_case.execute(draft_id, created_by="test-user")
 
-        assert result is None
         mock_story_repo.save.assert_not_called()
 
     @pytest.mark.asyncio
@@ -103,7 +105,7 @@ class TestApproveDraftUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -129,7 +131,7 @@ class TestApproveDraftUseCase:
 
         await use_case.execute(str(draft_id.value), created_by="test-user")
 
-        assert existing_draft.status == RefinementStatus.APPLIED
+        assert existing_draft.status == DraftStatus.APPLIED
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_story_save_fails(self):
@@ -148,7 +150,7 @@ class TestApproveDraftUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -177,7 +179,7 @@ class TestApproveDraftUseCase:
             acceptance_criteria=["User can enter credentials", "User sees dashboard"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -224,7 +226,7 @@ class TestApproveDraftUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )

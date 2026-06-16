@@ -11,7 +11,7 @@ import pytest
 
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
@@ -40,7 +40,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=["Criterion 1"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -51,7 +51,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=["Criterion 2"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -114,7 +114,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -184,7 +184,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -195,7 +195,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -246,8 +246,8 @@ class TestApproveDraftsBulkUseCase:
 
         await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], created_by="test-user")
 
-        assert draft_1.status == RefinementStatus.APPLIED
-        assert draft_2.status == RefinementStatus.APPLIED
+        assert draft_1.status == DraftStatus.APPLIED
+        assert draft_2.status == DraftStatus.APPLIED
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_story_save_fails(self):
@@ -266,7 +266,7 @@ class TestApproveDraftsBulkUseCase:
             acceptance_criteria=[],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.REFINED,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )

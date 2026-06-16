@@ -9,12 +9,13 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 
 from src.app.features.refinement.application.dtos.refinement_dto import UpdateStoryDraftRequest
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -34,7 +35,7 @@ class TestUpdateStoryDraftUseCase:
             acceptance_criteria=["Old criterion"],
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
-            status=RefinementStatus.DRAFT,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -47,7 +48,7 @@ class TestUpdateStoryDraftUseCase:
             acceptance_criteria=["New criterion"],
             project_id=existing_draft.project_id,
             created_by=existing_draft.created_by,
-            status=RefinementStatus.DRAFT,
+            status=DraftStatus.DRAFT,
             created_at=existing_draft.created_at,
             updated_at=datetime.now(tz=UTC),
         )
@@ -72,21 +73,22 @@ class TestUpdateStoryDraftUseCase:
         mock_repo.save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_execute_returns_none_when_draft_not_found(self):
-        """Test that non-existent draft returns None."""
+    async def test_execute_raises_error_when_draft_not_found(self):
+        """Test that non-existent draft raises StoryDraftNotFoundError."""
         mock_repo = AsyncMock()
         mock_repo.find_by_id.return_value = None
 
         use_case = UpdateStoryDraftUseCase(mock_repo)
 
         request = UpdateStoryDraftRequest(title="New Title")
-        result = await use_case.execute(
-            draft_id=str(uuid4()),
-            request=request,
-            created_by="test-user",
-        )
+        draft_id = str(uuid4())
+        with pytest.raises(StoryDraftNotFoundError, match=draft_id):
+            await use_case.execute(
+                draft_id=draft_id,
+                request=request,
+                created_by="test-user",
+            )
 
-        assert result is None
         mock_repo.save.assert_not_called()
 
     @pytest.mark.asyncio
@@ -124,7 +126,7 @@ class TestUpdateStoryDraftUseCase:
             acceptance_criteria=["Original criterion"],
             project_id=EntityId.generate(),
             created_by=EntityId.generate(),
-            status=RefinementStatus.DRAFT,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )

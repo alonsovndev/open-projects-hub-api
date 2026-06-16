@@ -9,19 +9,19 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 
 from src.app.features.refinement.application.dtos.refinement_dto import GenerateStoriesRequest
 from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
     GenerateStoriesFromNotesUseCase,
 )
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
-from src.app.features.refinement.domain.value_objects.refinement_status import RefinementStatus
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.refinement.infrastructure.ai.ai_service import (
     AIServiceError,
     BulkGenerationResult,
     GeneratedStory,
 )
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -43,13 +43,11 @@ class TestGenerateStoriesFromNotesUseCase:
                     title="Story 1",
                     description="Description 1",
                     acceptance_criteria=["Criterion 1"],
-                    confidence=0.9,
                 ),
                 GeneratedStory(
                     title="Story 2",
                     description="Description 2",
                     acceptance_criteria=["Criterion 2"],
-                    confidence=0.8,
                 ),
             ],
             raw_notes="Some raw notes",
@@ -63,7 +61,7 @@ class TestGenerateStoriesFromNotesUseCase:
             acceptance_criteria=["Criterion 1"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.DRAFT,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
@@ -83,7 +81,6 @@ class TestGenerateStoriesFromNotesUseCase:
         assert result is not None
         assert len(result.stories) == 2
         assert result.stories[0].title == "Story 1"
-        assert result.stories[0].confidence == 0.9
         assert result.raw_notes == "Some raw notes that are long enough"
         assert mock_ai_service.generate_stories_from_notes.call_count == 1
         assert mock_repo.save.call_count == 2
@@ -165,7 +162,6 @@ class TestGenerateStoriesFromNotesUseCase:
                     title="Single Story",
                     description="Single description",
                     acceptance_criteria=["Single criterion"],
-                    confidence=0.95,
                 ),
             ],
             raw_notes="Notes",
@@ -179,7 +175,7 @@ class TestGenerateStoriesFromNotesUseCase:
             acceptance_criteria=["Single criterion"],
             project_id=project_id,
             created_by=created_by,
-            status=RefinementStatus.DRAFT,
+            status=DraftStatus.DRAFT,
             created_at=datetime.now(tz=UTC),
             updated_at=datetime.now(tz=UTC),
         )
