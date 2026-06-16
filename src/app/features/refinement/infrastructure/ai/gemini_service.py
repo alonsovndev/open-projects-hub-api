@@ -11,6 +11,7 @@ from src.app.features.refinement.infrastructure.ai.ai_service import (
     BulkGenerationResult,
     GeneratedStory,
 )
+from src.app.shared.infrastructure.retry import retry_on_exception
 from src.app.shared.logging import IntegrationLogger, get_logger
 
 
@@ -75,6 +76,7 @@ Return ONLY a valid JSON object with this exact structure:
         """Check if Gemini service is configured."""
         return bool(self._api_key and self._api_key.strip())
 
+    @retry_on_exception(max_tries=3)
     async def generate_stories_from_notes(
         self,
         raw_notes: str,
