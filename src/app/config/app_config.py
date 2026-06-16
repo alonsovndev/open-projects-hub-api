@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from pyaml_env import parse_config
 
 from src.app.config.paths import Paths
-from src.app.shared.utils.retry_decorator import retry_on_exception
 
 
 log = logging.getLogger(__name__)
@@ -62,7 +61,6 @@ class AppConfig:
         self.load_environment_variables()
         self.load_config_yaml_file()
 
-    @retry_on_exception()
     def load_environment_variables(self):
         """
         Loads environment variables from the `.env` file.
@@ -80,7 +78,6 @@ class AppConfig:
             log.error(f"Error loading environment variables. Exception: {e}")
             raise
 
-    @retry_on_exception()
     def load_config_yaml_file(self):
         """
         Loads the YAML configuration file specific to the current environment.
