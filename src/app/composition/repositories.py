@@ -97,20 +97,14 @@ def build_story_repository(session: AsyncSession) -> StoryRepository:
     """
     Plain factory for StoryRepository (no FastAPI Depends dependency).
 
-    Use this outside of FastAPI DI resolution (e.g., in shared/presentation/auth_dependencies.py's
-    create_story_owner_or_admin_dependency factory, or in route handler closures
-    that need inline repository access).
+    Use this outside of FastAPI DI resolution for route handler closures
+    that need inline repository access (e.g., authorization checks).
 
     Args:
         session: SQLAlchemy async session (already resolved)
 
     Returns:
         StoryRepository: Story repository implementation
-
-    Example:
-        async for session in get_database_session():
-            repo = build_story_repository(session)
-            story = await repo.find_by_id(story_id)
     """
 
     return StoryRepositoryImpl(session)
