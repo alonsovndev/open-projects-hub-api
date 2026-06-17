@@ -31,6 +31,14 @@ class JWTHandler:
         "supersecret",
     }
 
+    # PyJWT decode options shared by access and refresh token decoders
+    _DECODE_OPTIONS: dict[str, object] = {
+        "require": ["exp", "iat", "sub", "aud", "iss"],
+        "verify_exp": True,
+        "verify_aud": True,
+        "verify_iss": True,
+    }
+
     def __init__(
         self,
         secret_key: str,
@@ -195,12 +203,7 @@ class JWTHandler:
                 algorithms=[self.algorithm],
                 audience=self.audience,
                 issuer=self.issuer,
-                options={
-                    "require": ["exp", "iat", "sub", "aud", "iss"],
-                    "verify_exp": True,
-                    "verify_aud": True,
-                    "verify_iss": True,
-                },
+                options=self._DECODE_OPTIONS,
             )
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired JWT token")
@@ -214,22 +217,6 @@ class JWTHandler:
         except jwt.InvalidTokenError as e:
             log.warning(f"Invalid JWT token: {e!s}")
             raise
-
-    def verify_token(self, token: str) -> bool:
-        """
-        Verifies if a token is valid without raising exceptions.
-
-        Args:
-            token: JWT token string
-
-        Returns:
-            True if valid, False otherwise
-        """
-        try:
-            self.decode_access_token(token)
-            return True
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            return False
 
     def decode_refresh_token(self, token: str) -> dict[str, Any]:
         """
@@ -252,12 +239,7 @@ class JWTHandler:
                 algorithms=[self.algorithm],
                 audience=self.audience,
                 issuer=self.issuer,
-                options={
-                    "require": ["exp", "iat", "sub", "aud", "iss"],
-                    "verify_exp": True,
-                    "verify_aud": True,
-                    "verify_iss": True,
-                },
+                options=self._DECODE_OPTIONS,
             )
 
             # Verify this is a refresh token

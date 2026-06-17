@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.params import Depends
 
 from src.app.composition import (
+    build_story_repository,
     get_assign_story_use_case,
     get_create_story_use_case,
     get_database_session,
@@ -16,7 +17,6 @@ from src.app.composition import (
     get_list_stories_use_case,
     get_update_story_use_case,
 )
-from src.app.composition.repositories import build_story_repository
 from src.app.features.stories.application.dtos.story_dto import (
     AssignStoryRequest,
     CreateStoryRequest,

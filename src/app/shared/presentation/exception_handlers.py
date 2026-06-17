@@ -258,7 +258,6 @@ def register_exception_handlers(app):
     Args:
         app: FastAPI application instance
     """
-    from fastapi.exceptions import RequestValidationError
     from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
 

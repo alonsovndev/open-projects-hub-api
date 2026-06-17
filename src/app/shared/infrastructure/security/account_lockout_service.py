@@ -36,7 +36,7 @@ class AccountLockoutService:
     - 20+ failures: 120 minutes (2 hours)
     """
 
-    # Configuration (can be overridden via environment variables)
+    # Configuration (override on instance for tests or subclass for permanent changes)
     MAX_FAILED_ATTEMPTS = 5
     LOCKOUT_DURATION_MINUTES = 15
     PROGRESSIVE_LOCKOUT = True
