@@ -94,12 +94,13 @@ The root `opencode.json` references these files:
 
 ### For AI Agents
 
-These files are automatically loaded via `opencode.json` instructions. Priority:
+These files are automatically loaded via `opencode.json` instructions at the repository root. Load order:
 
-1. **AGENTS.repo.md** - Always loaded first (high-level)
-2. **repo-standards.md** - Detailed standards
-3. **quick-reference.md** - Fast lookups
-4. **common-tasks.md** - Step-by-step guides
+1. `AGENTS.md` (root) — auto-generated from global + repo sources
+2. `AGENTS.repo.md` — repository-specific rules
+3. `knowledge/repo-standards.md` — detailed implementation patterns
+4. `knowledge/quick-reference.md` — fast command/pattern lookups
+5. `knowledge/common-tasks.md` — step-by-step task guides
 
 ## ✏️ Updating
 

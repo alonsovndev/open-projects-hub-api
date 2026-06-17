@@ -16,7 +16,8 @@ alembic upgrade head       # Run migrations
 
 ### Testing
 ```bash
-make test-unit             # Fast, no DB (default)
+make test                  # Unit tests (same as test-unit)
+make test-unit             # Fast, no DB
 make test-integration      # Requires PostgreSQL
 make test-e2e             # End-to-end tests
 make coverage             # Coverage report (80% threshold)
@@ -48,6 +49,8 @@ docker compose exec postgres psql -U open-projects-hub-admin -d open-projects-hu
 
 ## 📁 Feature Structure (No `__init__.py`)
 
+**Existing features:** `auth`, `clients`, `dashboard`, `projects`, `refinement`, `stories`, `user`
+
 ```
 src/app/features/{feature}/
 ├── application/
@@ -65,6 +68,8 @@ src/app/features/{feature}/
 └── presentation/
     └── {feature}_routes.py # FastAPI routes
 ```
+
+**Note:** The `refinement` feature router is mounted at `/v1` (no sub-path), while all other feature routers use `/v1/<feature>` prefixes.
 
 **Import convention:** Always use full file paths (no `__init__.py` re-exports)
 
@@ -158,6 +163,9 @@ class CreateProjectUseCase:
 | Tests | `src/tests/{unit,application,domain,presentation,infrastructure,integration,e2e}/` |
 | Migrations | `alembic/versions/` |
 | Scripts | `scripts/` (seed_admin.py, start-api.sh) |
+| Health checks | `src/app/shared/presentation/health_checks.py` (`/health`, `/health/live`, `/health/ready`) |
+| Logging utils | `src/app/shared/logging/` (structured logging, PII redaction) |
+| CORS config | `src/app/config/config_<env>.yml` (per-environment, not hardcoded) |
 
 ---
 

@@ -152,7 +152,7 @@ from src.app.features.projects.presentation.dependencies import get_create_proje
 ```
 
 **Composition Structure:**
-- `composition/__init__.py` - Public API exports all 40+ dependencies
+- `composition/__init__.py` - Public API exports all 38 dependencies
 - `composition/infrastructure.py` - Database session, AI service
 - `composition/repositories.py` - Shared repository factories (User, Story, Client)
 - `composition/features/*.py` - Feature-specific use cases and repositories
