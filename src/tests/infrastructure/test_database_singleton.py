@@ -40,7 +40,7 @@ async def test_multiple_sessions_share_same_engine():
 
     This simulates what happens across multiple HTTP requests.
     """
-    from src.app.shared.persistence.db_session import get_database_session
+    from src.app.composition.infrastructure import get_database_session
 
     sessions_info = []
 

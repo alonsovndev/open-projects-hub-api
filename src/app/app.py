@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # 3. Graceful shutdown: dispose connection pool
-    close_engine()
+    await close_engine()
 
 
 # Initialize FastAPI application

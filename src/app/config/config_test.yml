@@ -8,7 +8,10 @@ jwt:
   access_token_expire_minutes: 1440
 
 persistence:
-  driver: in-memory
+  driver: sqlite
+  sqlite:
+    db_path: test.db
+    echo: false
 
 logging:
   level: WARNING

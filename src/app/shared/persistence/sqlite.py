@@ -1,8 +1,9 @@
-"""In-memory SQLite connection for tests (no PostgreSQL required)."""
+"""SQLite connection for tests (no PostgreSQL required)."""
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from src.app.shared.logging import get_logger
@@ -12,19 +13,18 @@ from src.app.shared.persistence.db_connection import DbConnection
 log = get_logger(__name__)
 
 
-class InMemoryDbConnection(DbConnection):
-    """In-memory SQLite connection for tests (no PostgreSQL required)."""
+class SQLiteDbConnection(DbConnection):
+    """File-based SQLite connection for tests (no PostgreSQL required)."""
 
-    def __init__(self):
-        self._db_url = "sqlite+aiosqlite:///:memory:"
+    def __init__(self, sqlite_config: dict):
+        db_path: str = sqlite_config.get("db_path", "test.db")
+        self._db_url = f"sqlite+aiosqlite:///{db_path}"
+        self._echo: bool = sqlite_config.get("echo", False)
 
-        log.info("Initializing in-memory SQLite engine for tests...")
-        self._engine: AsyncEngine = create_async_engine(
-            self._db_url,
-            echo=False,
-        )
+        log.info("Initializing SQLite engine for tests at %s...", db_path)
+        self._engine: AsyncEngine = create_async_engine(self._db_url, echo=self._echo)
 
-        log.info("Initializing async sessionmaker (in-memory)...")
+        log.info("Initializing async sessionmaker (SQLite)...")
         self._async_session = async_sessionmaker(
             bind=self._engine,
             class_=AsyncSession,
@@ -40,9 +40,12 @@ class InMemoryDbConnection(DbConnection):
         session = self._async_session()
         try:
             yield session
+        except OperationalError as e:
+            log.error("SQLite error: %s", e)
+            raise Exception("Database operation failed.") from e
         finally:
             await session.close()
 
     async def close(self) -> None:
-        log.info("Closing in-memory SQLite engine...")
+        log.info("Closing SQLite engine...")
         await self._engine.dispose()
