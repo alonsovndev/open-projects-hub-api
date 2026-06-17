@@ -67,6 +67,39 @@ use_case.execute(
 - For model/schema changes, update SQLAlchemy models and create Alembic migrations (`alembic revision --autogenerate -m "..."`, then `alembic upgrade head`).
 - Maintain startup compatibility with container flow that expects migrations to succeed before Gunicorn starts (`scripts/start-api.sh`).
 
+### SQLAlchemy Model Column Ordering
+
+**Convention: `id → data → audit`**
+
+Every table must follow this column order:
+
+```python
+class XxxModel(Base):
+    __tablename__ = "xxx"
+
+    # 1. Primary key (always first)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # 2. Data columns (business fields, foreign keys, enums)
+    name = Column(...)
+    client_id = Column(UUID(as_uuid=True), ForeignKey(...))
+    status = Column(...)
+
+    # 3. Audit columns (always last)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False, index=True
+    )
+```
+
+**Rationale:** `id` first for quick identification. Audit columns last because they are metadata, not business data. SQLAlchemy places parent class columns before child class columns, so `id`, `created_at`, and `updated_at` must be defined **explicitly on each concrete model** — not inherited from a base model.
+
+**Rules:**
+- ❌ Do not use an abstract base model with `id`, `created_at`, or `updated_at` — inheritance forces them first in column order
+- ✅ Define `id`, `created_at`, and `updated_at` explicitly on each concrete model
+- ✅ `id` always first, `created_at`/`updated_at` always last
+- ✅ Use `Base = declarative_base()` (without abstract columns) as the shared parent
+
 ## Testing Strategy for This Repo
 
 - Test suites are split by scope under `src/tests/` (`unit/`, `application/`, `domain/`, `presentation/`, `infrastructure/`, `integration/`, `e2e/`).
