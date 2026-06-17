@@ -56,12 +56,12 @@ class RefreshTokenUseCase:
             log = BusinessLogger(get_logger(__name__), user_id=user_id)
 
             # Check if token has already been used (revoked)
-            if token_revocation.is_revoked(payload.refresh_token):
+            if await token_revocation.is_revoked(payload.refresh_token):
                 log.warning("Attempt to reuse revoked refresh token", event_type="auth.refresh.token_reused")
                 raise jwt.InvalidTokenError("Refresh token has already been used")
 
             # Revoke the old refresh token immediately (single-use token)
-            token_revocation.revoke_token(payload.refresh_token)
+            await token_revocation.revoke_token(payload.refresh_token)
             log.info("Refresh token revoked", event_type="auth.refresh.token_revoked")
 
             # Verify user still exists

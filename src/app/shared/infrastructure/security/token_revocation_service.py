@@ -5,8 +5,8 @@ This implementation uses an in-memory store for simplicity.
 For production deployments with multiple instances, replace with Redis.
 """
 
+import asyncio
 from datetime import UTC, datetime, timedelta
-from threading import Lock
 
 
 class TokenRevocationService:
@@ -23,9 +23,9 @@ class TokenRevocationService:
         """Initialize the token revocation service with in-memory storage."""
         # Store revoked tokens with their expiration timestamps
         self._revoked_tokens: dict[str, datetime] = {}
-        self._lock = Lock()
+        self._lock = asyncio.Lock()
 
-    def revoke_token(self, token: str, ttl_minutes: int = 10080) -> None:
+    async def revoke_token(self, token: str, ttl_minutes: int = 10080) -> None:
         """
         Mark a token as revoked.
 
@@ -33,12 +33,12 @@ class TokenRevocationService:
             token: The token to revoke (can be JTI or full token)
             ttl_minutes: Time-to-live in minutes (default: 7 days for refresh tokens)
         """
-        with self._lock:
+        async with self._lock:
             expiry = datetime.now(UTC) + timedelta(minutes=ttl_minutes)
             self._revoked_tokens[token] = expiry
             self._cleanup_expired()
 
-    def is_revoked(self, token: str) -> bool:
+    async def is_revoked(self, token: str) -> bool:
         """
         Check if a token has been revoked.
 
@@ -48,7 +48,7 @@ class TokenRevocationService:
         Returns:
             True if token is revoked, False otherwise
         """
-        with self._lock:
+        async with self._lock:
             self._cleanup_expired()
             return token in self._revoked_tokens
 
@@ -59,19 +59,19 @@ class TokenRevocationService:
         for token in expired_tokens:
             del self._revoked_tokens[token]
 
-    def clear_all(self) -> None:
+    async def clear_all(self) -> None:
         """Clear all revoked tokens (useful for testing)."""
-        with self._lock:
+        async with self._lock:
             self._revoked_tokens.clear()
 
-    def get_revoked_count(self) -> int:
+    async def get_revoked_count(self) -> int:
         """
         Get count of currently revoked tokens (for monitoring).
 
         Returns:
             Number of revoked tokens in storage
         """
-        with self._lock:
+        async with self._lock:
             self._cleanup_expired()
             return len(self._revoked_tokens)
 

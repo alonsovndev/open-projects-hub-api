@@ -7,7 +7,7 @@ Uses in-memory storage with Redis-ready design for horizontal scaling.
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 
 @dataclass
@@ -60,7 +60,7 @@ class AccountLockoutService:
             user_identifier: Unique identifier (email or user_id)
         """
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(tz=UTC)
 
             if user_identifier not in self._lockout_state:
                 self._lockout_state[user_identifier] = LockoutState(
@@ -114,7 +114,7 @@ class AccountLockoutService:
             if state.locked_until is None:
                 return False
 
-            now = datetime.utcnow()
+            now = datetime.now(tz=UTC)
 
             # Check if lockout has expired
             if now >= state.locked_until:
@@ -139,7 +139,7 @@ class AccountLockoutService:
                 return None
 
             state = self._lockout_state[user_identifier]
-            now = datetime.utcnow()
+            now = datetime.now(tz=UTC)
 
             # Check if lockout is active
             if state.locked_until and now < state.locked_until:
@@ -179,7 +179,7 @@ class AccountLockoutService:
                 return 0
 
             state = self._lockout_state[user_identifier]
-            now = datetime.utcnow()
+            now = datetime.now(tz=UTC)
 
             # Check if attempts are within the time window
             time_since_last = now - state.last_attempt
@@ -236,7 +236,7 @@ class AccountLockoutService:
             List of dictionaries with lockout information
         """
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(tz=UTC)
             locked_accounts = []
 
             for identifier, state in list(self._lockout_state.items()):

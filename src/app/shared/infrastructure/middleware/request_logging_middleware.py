@@ -5,12 +5,12 @@ Logs every HTTP request with method, path, status, latency, correlation ID, and 
 """
 
 import time
-import uuid
 from collections.abc import Callable
 
 from fastapi import Request, Response
 
 from src.app.shared.logging import get_logger, set_user_context
+from src.app.shared.logging.correlation import correlation_id
 
 
 log = get_logger(__name__)
@@ -20,28 +20,19 @@ async def request_logging_middleware(request: Request, call_next: Callable) -> R
     """
     Middleware to log all HTTP requests with correlation IDs and user identification.
 
-    Generates or extracts X-Request-ID header and logs:
-    - HTTP method
-    - Request path
-    - Status code
-    - Latency in milliseconds
-    - Authenticated user ID (if available)
-
-    The X-Request-ID is added to the response headers for client reference
-    and included in structured log output.
+    Reads the correlation ID from the contextvar set by CorrelationIdMiddleware
+    (the app-level ASGI middleware).  Does NOT generate its own ID — that would
+    create a discrepancy between the ID seen in application logs and the one
+    reported in this middleware's summary line.
 
     Args:
         request: FastAPI request object
         call_next: Next middleware/handler in the chain
 
     Returns:
-        Response with X-Request-ID header
+        Response from the downstream handler
     """
-    # Generate or extract request ID
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-
-    # Attach request_id to request state for use in downstream handlers
-    request.state.request_id = request_id
+    request_id = correlation_id.get() or "N/A"
 
     # Record start time
     start_time = time.time()
@@ -51,9 +42,6 @@ async def request_logging_middleware(request: Request, call_next: Callable) -> R
 
     # Calculate latency
     latency_ms = (time.time() - start_time) * 1000
-
-    # Add request ID to response headers
-    response.headers["X-Request-ID"] = request_id
 
     # Extract user_id from request state if authentication middleware set it
     user_id = getattr(request.state, "user_id", None) or "anonymous"

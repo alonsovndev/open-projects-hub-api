@@ -198,7 +198,6 @@ class JWTHandler:
                 options={
                     "require": ["exp", "iat", "sub", "aud", "iss"],
                     "verify_exp": True,
-                    "verify_iat": True,
                     "verify_aud": True,
                     "verify_iss": True,
                 },
@@ -256,7 +255,6 @@ class JWTHandler:
                 options={
                     "require": ["exp", "iat", "sub", "aud", "iss"],
                     "verify_exp": True,
-                    "verify_iat": True,
                     "verify_aud": True,
                     "verify_iss": True,
                 },

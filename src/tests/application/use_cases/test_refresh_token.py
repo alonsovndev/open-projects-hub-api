@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import jwt as pyjwt
 import pytest
+import pytest_asyncio
 
 from src.app.features.auth.application.use_cases.refresh_token import RefreshTokenRequest, RefreshTokenUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity, UserRole
@@ -15,13 +16,13 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import get_token_revocation_service
 
 
-@pytest.fixture(autouse=True)
-def clear_token_revocation():
+@pytest_asyncio.fixture(autouse=True)
+async def clear_token_revocation():
     """Clear token revocation service before each test."""
     service = get_token_revocation_service()
-    service.clear_all()
+    await service.clear_all()
     yield
-    service.clear_all()
+    await service.clear_all()
 
 
 @pytest.fixture
