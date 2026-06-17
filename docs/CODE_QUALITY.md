@@ -145,8 +145,8 @@ pre-commit install --hook-type commit-msg
 ### Configuration
 
 -   **File**: `pyproject.toml` under `[tool.ruff]`
--   **Line length**: 100 characters
--   **Target Python**: 3.11+
+-   **Line length**: 120 characters
+-   **Target Python**: 3.12+
 
 ### Enabled Rules
 
@@ -157,9 +157,18 @@ pre-commit install --hook-type commit-msg
 -   **UP**: pyupgrade (modern Python syntax)
 -   **ARG**: unused arguments detection
 -   **SIM**: code simplification
+-   **C4**: comprehensions
 -   **S**: security (Bandit rules)
 -   **N**: naming conventions
--   And more...
+-   **ASYNC**: async/await best practices
+-   **TC**: type-checking imports
+-   **DTZ**: timezone-aware datetime
+-   **PIE**: misc. lints
+-   **COM**: commas
+-   **Q**: quotes
+-   **RET**: returns
+-   **PTH**: pathlib over os.path
+-   And more (see `pyproject.toml` for full list)
 
 ### Commands
 
@@ -365,7 +374,7 @@ After running coverage:
 
 -   **File**: `pyproject.toml` under `[tool.mypy]`
 -   **Strict mode**: Disabled (gradual typing)
--   **Python version**: 3.11
+-   **Python version**: 3.12
 
 ### Commands
 
@@ -462,9 +471,11 @@ Bandit checks for:
 2.  Trailing whitespace - Remove trailing spaces
 3.  End of file fixer - Ensure files end with newline
 4.  YAML/JSON/TOML validation - Syntax checking
-5.  Bandit - Security scanning
-6.  MyPy - Type checking
-7.  Conventional commits - Commit message validation
+5.  Debug statements and merge conflict checks
+6.  Bandit - Security scanning
+7.  MyPy - Type checking
+8.  Hadolint - Dockerfile linting
+9.  Conventional commits - Commit message validation
 
 ### Commands
 
@@ -506,32 +517,12 @@ test(projects): add integration tests for project creation
 
 ---
 
-## CI/CD - GitHub Actions
+## CI/CD - Quality Checks
 
-### Workflow: Code Quality & Testing
+Quality checks are enforced locally via pre-commit hooks (see above). CI/CD workflow files have not yet been added to this repository. To run all quality checks manually:
 
-**File**: `.github/workflows/ci-quality.yml`
-
-This workflow runs automatically on:
--   Push to `main`, `develop`, or `feature/**` branches
--   Pull requests to `main` or `develop`
-
-### Jobs
-
-1.  **Lint** - Ruff linting and format checking
-2.  **Type Check** - MyPy static type analysis
-3.  **Security** - Bandit security scanning
-4.  **Test** - Unit and integration tests with coverage
-5.  **E2E Tests** - End-to-end tests with database
-6.  **Quality Gate** - Fail build if any check fails
-
-### Required Environment Variables (CI)
-
-```yaml
-DATABASE_URL: postgresql+asyncpg://test_user:test_password@localhost:5432/test_db
-APP_ENV: test
-SECRET_KEY: test-secret-key-for-ci-only
-JWT_SECRET_KEY: test-jwt-secret-key-for-ci-only
+```bash
+make lint && make format-check && make type-check && make security && make test && make coverage
 ```
 
 ---
@@ -540,56 +531,37 @@ JWT_SECRET_KEY: test-jwt-secret-key-for-ci-only
 
 ```
 open-projects-hub-api/
-├── .github/
-│   └── workflows/
-│       ├── ci-quality.yml          # CI/CD quality workflow
-│       ├── test-coverage.yml       # Existing coverage workflow
-│       └── security.yml            # Existing security workflow
 ├── src/
 │   ├── app/                        # Application code
 │   │   ├── features/               # Feature modules
 │   │   ├── shared/                 # Shared utilities
+│   │   ├── composition/            # Dependency injection
 │   │   └── config/                 # Configuration
 │   └── tests/                      # Test suite
 │       ├── unit/                   # Unit tests
 │       ├── integration/            # Integration tests
 │       ├── e2e/                    # E2E tests
-│       └── conftest.py             # Pytest fixtures
+│       └── application/            # Application layer tests
 ├── pyproject.toml                  # Python project config (Ruff, Pytest, MyPy, Bandit, Coverage)
 ├── .pre-commit-config.yaml         # Pre-commit hooks config
 ├── requirements.txt                # Production dependencies
 ├── requirements-dev.txt            # Development dependencies
-├── pytest.ini                      # Legacy pytest config (migrate to pyproject.toml)
-├── .coveragerc                     # Legacy coverage config (migrate to pyproject.toml)
+├── pytest.ini                      # Pytest configuration
+├── .coveragerc                     # Coverage configuration
 └── Makefile                        # Common commands
 ```
 
 ---
 
-## Migration from Legacy Config
+## Configuration Consolidation
 
-This project previously used separate config files. The new setup centralizes configuration in `pyproject.toml`.
+The project uses both `pyproject.toml` and legacy standalone config files. Configuration is split between:
 
-### What Changed
-
-| Old          | New                                  | Status      |
-| :----------- | :----------------------------------- | :---------- |
-| `pytest.ini`   | `[tool.pytest]` in `pyproject.toml`  | ✅ Migrated |
-| `.coveragerc`  | `[tool.coverage]` in `pyproject.toml` | ✅ Migrated |
-| Black        | Ruff format                          | ✅ Replaced |
-| isort        | Ruff (I rules)                       | ✅ Replaced |
-| flake8       | Ruff                                 | ✅ Replaced |
-
-### Cleanup (Optional)
-
-After verifying everything works:
-
-```bash
-# Remove legacy config files
-rm pytest.ini .coveragerc
-
-# Keep for now as reference, delete later
-```
+| Config | Location | Purpose |
+|:-------|:---------|:--------|
+| Ruff, Pytest, MyPy, Bandit | `pyproject.toml` | Primary tool configuration |
+| Coverage | `.coveragerc` | Coverage settings |
+| Pytest | `pytest.ini` | Additional pytest settings |
 
 ---
 
@@ -672,7 +644,6 @@ After migration, you should have:
 -   ✅ ≥80% test coverage
 -   ✅ No security vulnerabilities
 -   ✅ Pre-commit hooks active
--   ✅ CI/CD passing
 -   ✅ Clean commit history
 
 ---

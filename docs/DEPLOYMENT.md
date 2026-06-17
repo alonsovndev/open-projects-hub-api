@@ -19,7 +19,7 @@ This guide covers deploying the Open Projects Hub API to production environments
 
 - Docker 20.10+ with Docker Compose v2
 - PostgreSQL 15+ (or use Docker Compose)
-- Python 3.11+ (for local development)
+- Python 3.12+ (for local development)
 - Git
 
 ### Recommended

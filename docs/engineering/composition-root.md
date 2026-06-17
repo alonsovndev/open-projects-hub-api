@@ -44,7 +44,7 @@ The **Composition Root** is a centralized location where all application depende
 
 ```
 src/app/composition/
-├── __init__.py              # 🌟 Public API (40+ exports)
+├── __init__.py              # 🌟 Public API (38 exports)
 ├── infrastructure.py        # Database session, AI service
 ├── repositories.py          # Shared repositories (User, Story, Client)
 ├── features/

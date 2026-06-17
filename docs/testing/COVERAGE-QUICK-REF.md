@@ -3,10 +3,8 @@
 ## 🎯 Target: ≥80% Line Coverage
 
 ## 📊 Current Status
-```
-Coverage: 79% (2801 statements, 602 missed)
-Gap: -1% from target
-```
+
+Run `make coverage` to see current coverage. Target is ≥80% line coverage.
 
 ## 🚀 Quick Commands
 
@@ -26,8 +24,7 @@ make clean
 
 ## 📁 Key Files
 
-- **CI Workflow:** `.github/workflows/test-coverage.yml`
-- **Config:** `.coveragerc`, `pytest.ini`
+- **Config:** `pyproject.toml`, `.coveragerc`, `pytest.ini`
 - **Commands:** `Makefile`
 - **Docs:** `docs/testing/coverage-strategy.md`
 
@@ -53,20 +50,13 @@ coverage report --fail-under=80
 4. **Green lines** = covered
 5. **Sort by coverage** to find gaps
 
-## 🏗️ CI/CD Behavior
+## 🏗️ Quality Enforcement
 
-### ✅ Build Passes If:
+Coverage threshold (≥80%) is enforced locally via `make coverage`. Review the HTML report for gaps.
+
+### ✅ Passes If:
 - All tests pass
 - Coverage ≥ 80%
-
-### ❌ Build Fails If:
-- Any test fails
-- Coverage < 80%
-
-### 📦 Artifacts (30 days retention):
-- HTML coverage report
-- XML report (Codecov)
-- PR coverage comment
 
 ## 📈 Improving Coverage
 
@@ -97,16 +87,12 @@ make coverage
 coverage report --fail-under=80
 ```
 
-## 🎯 Priority Files (Need Improvement)
+## 🎯 Improving Coverage
 
-| File                      | Coverage | Gap  |
-|---------------------------|----------|------|
-| `retry_decorator.py`      | 28%      | -52% |
-| `config_util.py`          | 67%      | -13% |
-| `exception_handlers.py`   | 71%      | -9%  |
-| `base_repository.py`      | 75%      | -5%  |
-
-**Quick win:** Add 10-15 tests for these → 80%+
+1. **Run:** `make coverage` to see current gaps
+2. **Review HTML report:** `make coverage-report`
+3. **Focus on:** Error paths, edge cases, exception handlers
+4. **Verify:** `coverage report --fail-under=80`
 
 ## 🚫 Excluding Code
 

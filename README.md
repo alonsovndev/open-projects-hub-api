@@ -81,20 +81,16 @@ make type-check        # Run type checker
 make security          # Run security scan
 
 # Testing
-make test              # Run all tests
+make test              # Run unit tests (excludes integration tests)
 make test-unit         # Run unit tests only
-make test-integration  # Run integration tests
+make test-integration  # Run integration tests (requires PostgreSQL)
 make test-e2e          # Run E2E tests
 make coverage          # Run tests with coverage
 ```
 
 ### CI/CD
 
-All code quality checks run automatically on:
-- Push to `main`, `develop`, or `feature/**` branches
-- Pull requests to `main` or `develop`
-
-See `.github/workflows/ci-quality.yml` for details.
+Pre-commit hooks run automatically on `git commit` to enforce code quality standards locally. CI/CD workflow configuration has not yet been added to this repository.
 
 ### Commit Convention
 

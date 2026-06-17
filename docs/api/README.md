@@ -51,8 +51,13 @@ curl -X POST http://localhost:8000/v1/auth/login \
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "email": "user@example.com",
+  "displayName": "John Doe",
+  "role": "viewer",
+  "loggedInAt": "2026-05-21T12:00:00.000Z",
   "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
     "email": "user@example.com",
     "displayName": "John Doe",
     "role": "viewer"
@@ -71,9 +76,7 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 
 ### Token Expiry
 
-- **Access Token:** 15 minutes
-- **Refresh Token:** 7 days
-- **Refresh Flow:** Single-use token rotation (old refresh token is revoked after use)
+Token expiry is configurable via the application configuration. Refresh tokens use single-use rotation (the old refresh token is revoked after use).
 
 ### Roles
 

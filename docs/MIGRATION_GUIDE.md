@@ -284,10 +284,10 @@ from src.app.features.users.domain import UserEntity
 
 ### Line Length Violations
 
-Some lines may exceed 100 characters:
+Some lines may exceed 120 characters:
 
 ```python
-# Before (120 characters)
+# Before (140 characters)
 very_long_function_call_with_many_parameters(param1, param2, param3, param4, param5, param6, param7, param8)
 
 # After (formatted by Ruff)
@@ -301,7 +301,7 @@ If you need to adjust line length, edit `pyproject.toml`:
 
 ```toml
 [tool.ruff]
-line-length = 120  # Increase if needed
+line-length = 120  # Default; adjust if needed
 ```
 
 ### False Positives
@@ -348,15 +348,25 @@ make test-e2e
 make coverage-all
 ```
 
-### Verify CI/CD
+### Verify Local Quality
 
-Push to a feature branch and verify GitHub Actions pass:
+Ensure all checks pass before pushing:
 
 ```bash
-git push origin feature/code-quality-migration
+# Unit tests
+make test-unit
+
+# Integration tests (requires database)
+make test-integration
+
+# E2E tests
+make test-e2e
+
+# All tests with coverage
+make coverage-all
 ```
 
-Check `.github/workflows/ci-quality.yml` workflow status.
+Quality enforcement is handled by pre-commit hooks that run automatically on `git commit`.
 
 ---
 

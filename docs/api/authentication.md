@@ -16,7 +16,7 @@ The authentication system uses:
 
 Authenticate a user and receive a JWT access token.
 
-**Rate Limit:** 5 requests per 15 minutes per IP address
+**Rate Limit:** 10 requests per 1 minute per IP address
 
 #### Request
 
@@ -44,24 +44,33 @@ Content-Type: application/json
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+  "email": "user@example.com",
+  "displayName": "John Doe",
+  "role": "viewer",
+  "loggedInAt": "2026-04-30T17:00:00.000Z",
   "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
     "email": "user@example.com",
-    "fullname": "John Doe"
+    "displayName": "John Doe",
+    "role": "viewer"
   }
 }
 ```
 
-**Response Body Schema:**
+**Response Fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| token | string | JWT access token (expires in 24 hours) |
-| user | object | User information |
-| user.id | string (UUID) | User's unique identifier |
-| user.email | string | User's email address |
-| user.fullname | string | User's full name (first + last) |
+| token | string | JWT access token |
+| accessToken | string | JWT access token (same value as token) |
+| refreshToken | string | JWT refresh token (single-use rotation) |
+| email | string | User's email address |
+| displayName | string | User's display name |
+| role | string | User role (admin or viewer) |
+| loggedInAt | string | ISO 8601 timestamp when login occurred |
+| user | object | Nested user detail object (email, displayName, name, role) |
 
 **JWT Token Payload:**
 
@@ -71,7 +80,7 @@ The token contains the following claims:
 {
   "sub": "123e4567-e89b-12d3-a456-426614174000",
   "email": "user@example.com",
-  "role": "ADMIN",
+  "role": "admin",
   "iat": 1714497600,
   "exp": 1714584000
 }
@@ -81,9 +90,9 @@ The token contains the following claims:
 |-------|-------------|
 | sub | User ID (subject) |
 | email | User email |
-| role | User role (USER or ADMIN) |
+| role | User role (admin or viewer) |
 | iat | Issued at (Unix timestamp) |
-| exp | Expiration time (Unix timestamp, iat + 24 hours) |
+| exp | Expiration time (Unix timestamp) |
 
 #### Error Responses
 
@@ -117,7 +126,7 @@ HTTP/1.1 429 Too Many Requests
 Retry-After: 900
 
 {
-  "error": "Rate limit exceeded: 5 per 15 minute"
+  "detail": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
 
@@ -184,23 +193,31 @@ async function login(email, password) {
 
 ## POST /v1/auth/refresh
 
-*Not yet implemented. Planned for Phase 2.*
-
 Refresh an access token using a refresh token.
 
-**Status:** Coming soon  
-**See:** [Phase 2 Next Steps](../implementation/phase2-next-steps.md#4-add-refresh-token-support-2-hours)
-
-**Planned Behavior:**
+**Rate Limit:** 10 requests per 15 minutes per IP address
 
 ```http
 POST /v1/auth/refresh HTTP/1.1
 Content-Type: application/json
 
 {
-  "refresh_token": "..."
+  "refreshToken": "..."
 }
 ```
+
+**Response:**
+
+```json
+{
+  "token": "new-access-token",
+  "accessToken": "new-access-token",
+  "refreshToken": "new-refresh-token",
+  "tokenType": "Bearer"
+}
+```
+
+Refresh tokens use single-use rotation: the old refresh token is revoked after use, and a new one is issued.
 
 **Planned Response:**
 
@@ -220,12 +237,7 @@ Content-Type: application/json
 
 ## POST /v1/auth/logout
 
-*Not yet implemented. Planned for Phase 2.*
-
-Logout a user by invalidating their refresh token.
-
-**Status:** Coming soon  
-**See:** [Phase 2 Next Steps](../implementation/phase2-next-steps.md#4-add-refresh-token-support-2-hours)
+A dedicated logout endpoint does not exist. Since refresh tokens use single-use rotation, clients should discard their tokens to effectively log out.
 
 ---
 
@@ -234,7 +246,7 @@ Logout a user by invalidating their refresh token.
 Once you have an access token, include it in the `Authorization` header for protected endpoints:
 
 ```http
-GET /v1/user/123 HTTP/1.1
+GET /v1/users/123 HTTP/1.1
 Host: localhost:8080
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
@@ -262,7 +274,8 @@ Content-Type: application/json
 
 - Tokens are signed with HS256 algorithm
 - Secret key is validated (minimum 32 characters)
-- Tokens expire after 24 hours
+- Access tokens have a configurable expiration
+- Refresh tokens use single-use rotation
 - Include user role for authorization
 
 **Best Practices:**
@@ -295,7 +308,7 @@ Content-Type: application/json
      │                                                │
      │ Store token                                    │
      │                                                │
-     │ GET /v1/user/123                               │
+     │ GET /v1/users/123                               │
      │ Authorization: Bearer {token}                  │
      ├───────────────────────────────────────────────>│
      │                                                │
@@ -339,23 +352,23 @@ See [Password Security](../security/authentication.md#password-requirements) for
 Login endpoint is rate limited to prevent brute force attacks.
 
 **Configuration:**
-- **Limit:** 5 requests
-- **Window:** 15 minutes
+- **Limit:** 10 requests
+- **Window:** 1 minute
 - **Key:** Client IP address
 
 **How it works:**
 
 1. Client makes login request
-2. API checks request count for that IP in last 15 minutes
-3. If count < 5: Process request, increment counter
-4. If count >= 5: Return 429 error with `Retry-After` header
-5. Counter resets after 15 minutes
+2. API checks request count for that IP in last 1 minute
+3. If count < 10: Process request, increment counter
+4. If count >= 10: Return 429 error with `Retry-After` header
+5. Counter resets after 1 minute
 
 **Testing rate limiting:**
 
 ```bash
-# Make 6 login attempts (6th should fail)
-for i in {1..6}; do
+# Make 11 login attempts (11th should fail)
+for i in {1..11}; do
   echo "Attempt $i:"
   curl -X POST http://localhost:8080/v1/auth/login \
     -H "Content-Type: application/json" \
@@ -385,7 +398,7 @@ See [Rate Limiting](../security/rate-limiting.md) for more details.
 
 ### Brute Force Protection
 
-- **Rate limiting:** 5 attempts per 15 minutes
+- **Rate limiting:** 10 attempts per 1 minute
 - **Failed attempts:** Count toward rate limit
 - **IP-based:** Rate limit per client IP address
 

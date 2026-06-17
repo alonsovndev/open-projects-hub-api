@@ -190,15 +190,7 @@ This document outlines the core software design principles applied throughout th
           )
   ```
 
-- **Dependencies:** Centralized dependency injection
-  ```python
-  # src/app/features/presentation/web/dependencies.py
-  # All dependencies defined in one place
-  def get_database_session(): ...
-  def get_user_repository(): ...
-  def get_create_user_use_case(): ...
-  def get_jwt_handler(): ...
-  ```
+- **Dependencies:** Centralized dependency injection in `src/app/composition/`
 
 **When we allow duplication:**
 - Different domains with genuinely different rules

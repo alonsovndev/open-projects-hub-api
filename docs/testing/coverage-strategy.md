@@ -1,8 +1,7 @@
 # Test Coverage Strategy & Guidelines
 
 **Last Updated:** 2026-05-14  
-**Target Coverage:** ≥80% line coverage  
-**Current Coverage:** 100% (as of 2026-05-14) ✅
+**Target Coverage:** ≥80% line coverage
 
 ## Overview
 
@@ -19,15 +18,15 @@ This document describes the test coverage strategy for the Open Projects Hub API
 
 ### Coverage by Layer
 
-| Layer                  | Target | Current | Status |
-|------------------------|--------|---------|--------|
-| Domain Entities        | 85%    | 100%    | ✅     |
-| Use Cases              | 85%    | 100%    | ✅     |
-| Repositories           | 75%    | 100%    | ✅     |
-| API Routes             | 80%    | 100%    | ✅     |
-| Security/Auth          | 90%    | 100%    | ✅     |
-| Middleware             | 75%    | 100%    | ✅     |
-| **Overall**            | **80%**| **100%** | ✅     |
+| Layer                  | Target | Status |
+|------------------------|--------|--------|
+| Domain Entities        | 85%    | ⏳     |
+| Use Cases              | 85%    | ⏳     |
+| Repositories           | 75%    | ⏳     |
+| API Routes             | 80%    | ⏳     |
+| Security/Auth          | 90%    | ⏳     |
+| Middleware             | 75%    | ⏳     |
+| **Overall**            | **80%**| ⏳     |
 
 ## Running Coverage Locally
 
@@ -80,84 +79,19 @@ pytest -m e2e --cov=src/app --cov-report=html -v
 
 ## CI/CD Coverage Enforcement
 
-### GitHub Actions Workflow
+Coverage is enforced locally via the Makefile (`make coverage` with `--cov-fail-under=80`). CI/CD workflow configuration has not yet been added to this repository.
 
-The `.github/workflows/test-coverage.yml` workflow enforces coverage on all pushes and PRs:
+To verify coverage locally:
 
-1. **Unit Tests:** Runs unit tests with `--cov-fail-under=80`
-2. **Integration Tests:** Runs integration tests against PostgreSQL with coverage
-3. **Coverage Check:** Fails build if total coverage < 80%
-4. **Artifact Upload:** Uploads HTML coverage report for 30 days
-5. **Codecov Integration:** Uploads coverage to Codecov (optional)
-6. **PR Comments:** Automatically comments coverage on PRs
-
-### CI Configuration
-
-```yaml
-- name: Run unit tests with coverage
-  run: |
-    pytest \
-      --ignore=src/tests/integration/ \
-      --cov=src/app \
-      --cov-report=xml \
-      --cov-fail-under=80 \
-      -v
-
-- name: Check coverage threshold
-  run: |
-    coverage report --fail-under=80
+```bash
+make coverage        # Unit tests with 80% threshold
+make coverage-all    # All tests with 80% threshold
+make coverage-report # Open HTML report in browser
 ```
-
-### Coverage Artifacts
-
-- **HTML Report:** Downloadable from GitHub Actions artifacts
-- **XML Report:** Used by Codecov and other tools
-- **PR Comments:** Automatic coverage summary on PRs (via `py-cov-action`)
 
 ## Configuration Files
 
-### `.coveragerc`
-
-Main configuration for coverage.py:
-
-```ini
-[run]
-source = src/app
-omit = */tests/*, */test_*.py, src/app/gunicorn_conf.py
-branch = True
-
-[report]
-precision = 2
-show_missing = True
-skip_covered = False
-exclude_lines =
-    pragma: no cover
-    def __repr__
-    raise NotImplementedError
-    if __name__ == .__main__.:
-    @abstractmethod
-
-[html]
-directory = htmlcov
-```
-
-### `pytest.ini`
-
-Coverage sections added to pytest configuration:
-
-```ini
-[coverage:run]
-source = src/app
-omit = */tests/*, */test_*.py, src/app/gunicorn_conf.py
-
-[coverage:report]
-precision = 2
-show_missing = True
-exclude_lines = pragma: no cover, @abstractmethod
-
-[coverage:html]
-directory = htmlcov
-```
+Coverage configuration is split between `pyproject.toml` (primary) and `.coveragerc` with additional settings in `pytest.ini`.
 
 ## Coverage Best Practices
 
@@ -289,14 +223,15 @@ TOTAL                                  2801    602    79%
 3. **Complete entity tests:** All methods and state transitions
 4. **Add repository tests:** Use integration tests for repos
 
-### Current Gaps (79% → 80%)
+### Current Gaps
 
-Based on coverage report, focus on:
+To identify coverage gaps:
 
 1. **Exception handlers:** Some error branches not tested
-2. **Retry decorator:** `retry_decorator.py` at 28% coverage
-3. **Config utilities:** Some config loading paths untested
-4. **Health checks:** Database failure paths need more coverage
+2. **Config utilities:** Some config loading paths untested
+3. **Health checks:** Database failure paths need more coverage
+
+Run `make coverage` and review the HTML report to see current coverage status.
 
 ### Maintenance Strategy
 
@@ -427,24 +362,11 @@ def mock_user_repo():
 
 ## Change Log
 
-- **2026-05-14:** Fixed all failing tests and reached 100% coverage ✅
-  - Updated repository tests to expect exceptions (better practice)
-  - Fixed health check tests with proper database mocking
-  - Fixed rate limiting test database mock
-  - All 375 tests passing
-  - Current coverage: 100% (unit tests)
-
+- **2026-05-14:** Updated coverage targets and documentation
 - **2026-05-11:** Initial coverage enforcement (Task 4.4)
-  - Added CI workflow with 80% threshold
-  - Created `.coveragerc` and `Makefile`
-  - Documented coverage strategy
-  - Current coverage: 79% (unit tests only)
 
 ## Next Steps
 
-1. ✅ ~~**Increase coverage to 80%+**~~ COMPLETED: Now at 100%
-2. 🔄 **Integrate Codecov** (optional, for trend tracking)
-3. 📊 **Add coverage badge** to README
-4. 🎯 **Maintain coverage above 80%** for new code
-5. 🔍 **Monthly coverage reviews** with team
-6. ⚠️ **Fix remaining warnings** (deprecations, pytest fixture marks)
+1. 🔄 **Maintain coverage above 80%** for new code
+2. 🔍 **Review coverage regularly** to identify gaps
+3. ➕ **Add CI/CD workflow** when ready for automated enforcement

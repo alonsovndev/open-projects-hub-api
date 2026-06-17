@@ -64,9 +64,8 @@ The API implements multiple layers of security to protect user data and prevent 
 **Summary:**
 - **Method:** JWT (JSON Web Tokens)
 - **Algorithm:** HS256 (HMAC with SHA-256)
-- **Access Token Expiry:** 15 minutes
-- **Refresh Token Expiry:** 7 days
-- **Token Rotation:** Single-use refresh tokens (old token revoked after use)
+- **Access Token:** Configurable expiration
+- **Refresh Token:** Single-use rotation (old token revoked after use)
 - **Password Hashing:** bcrypt (12 rounds)
 - **Secret Validation:** Minimum 32 characters, rejects known weak secrets
 
@@ -79,17 +78,10 @@ The API implements multiple layers of security to protect user data and prevent 
 ## Authorization
 
 **Current Implementation:**
-- **Roles:** USER, ADMIN
+- **Roles:** admin, viewer
 - **Method:** JWT token includes role claim
-- **Enforcement:** `get_current_user` dependency checks token
+- **Enforcement:** `verify_jwt_token` dependency checks token
 - **Protected Endpoints:** Require valid JWT token
-
-**Planned Enhancements (Phase 2):**
-- SUPER_ADMIN role
-- `@require_role` decorator for fine-grained control
-- Resource-based authorization (users can edit own data)
-
-See [Phase 2 Next Steps](../implementation/phase2-next-steps.md#5-add-super_admin-role-30-minutes)
 
 ## Rate Limiting
 
@@ -248,32 +240,26 @@ user = await session.get(UserModel, user_id)
 
 ## CORS Configuration
 
-**Current:** Permissive (for development)
+**Current:** Environment-driven via YAML config files (`src/app/config/config_*.yml`).
 
-```python
-# src/app/app.py
-fastApiApp.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ Change in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+```yaml
+# config_local.yml (example)
+cors:
+  origins:
+  - http://localhost:5173
+  allow_credentials: true
 ```
+
+The CORS middleware is configured in `src/app/shared/presentation/middleware.py` and reads origins from the active environment config. The wildcard `"*"` is not used when credentials are enabled.
 
 **Production Recommendation:**
 
-```python
-fastApiApp.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://app.yourdomain.com",
-        "https://admin.yourdomain.com"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-)
+```yaml
+cors:
+  origins:
+  - https://app.yourdomain.com
+  - https://admin.yourdomain.com
+  allow_credentials: true
 ```
 
 ## Security Headers
@@ -528,8 +514,6 @@ Recommended tools:
 ### Phase 2 (Completed)
 - ✅ Refresh token implementation (single-use rotation)
 - ✅ Token revocation (refresh tokens are single-use)
-- ⏸️ Enhanced health checks with security status
-- ⏸️ Fine-grained authorization decorators
 
 ### Phase 3 (Future)
 - Two-factor authentication (2FA)
@@ -554,8 +538,3 @@ Recommended tools:
 - [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md) - Rate limiting configuration
 - [API Documentation](../api/README.md) - Complete API reference
 - [Engineering Standards](../engineering/README.md) - Architecture and design principles
-
----
-
-**Last Updated:** June 11, 2026  
-**Security Version:** 1.1.0

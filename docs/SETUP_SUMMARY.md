@@ -16,14 +16,8 @@
    - File validation (YAML, JSON, TOML)
    - Security scanning (Bandit)
    - Type checking (MyPy)
+   - Dockerfile linting (Hadolint)
    - Commit message validation
-
-3. **`.github/workflows/ci-quality.yml`** - GitHub Actions CI/CD workflow
-   - Automated linting, formatting, type checking
-   - Security scanning
-   - Unit, integration, and E2E tests
-   - Coverage reporting
-   - Quality gate enforcement
 
 ### Development Files
 
@@ -53,11 +47,9 @@
 
    **Note:** Quick start information is now in the main [`docs/CODE_QUALITY.md`](./CODE_QUALITY.md) guide.
 
-8. **`src/tests/examples/test_sample_fastapi.py`** - Sample tests
-   - Unit test examples
-   - Integration test examples
-   - E2E test examples
-   - FastAPI testing patterns
+8. **`src/tests/examples/test_sample_fastapi.py`** - Sample test templates
+   - Contains commented-out example patterns for unit, integration, and E2E tests
+   - Use as a reference for writing new tests
 
 ### Updated Files
 
@@ -135,8 +127,8 @@ make coverage
 
 ### Ruff (Linting & Formatting)
 
-- **Line length**: 100 characters
-- **Target Python**: 3.11+
+- **Line length**: 120 characters
+- **Target Python**: 3.12+
 - **Enabled rules**: E, W, F, I, B, UP, ARG, SIM, S, N, and more
 - **Format style**: Double quotes, 4-space indentation
 
@@ -155,7 +147,7 @@ make coverage
 ### MyPy (Type Checking)
 
 - **Strict mode**: Disabled (gradual typing)
-- **Python version**: 3.11
+- **Python version**: 3.12
 
 ### Bandit (Security)
 
@@ -202,29 +194,27 @@ Examples:
 
 ---
 
-## 🔄 CI/CD Integration
+## 🔄 Quality Enforcement
 
-### GitHub Actions Workflow
+### Pre-commit Hooks
 
-The workflow runs automatically on:
-- Push to `main`, `develop`, or `feature/**` branches
-- Pull requests to `main` or `develop`
+Running automatically on commit:
+- Ruff linting and formatting
+- File validation (YAML, JSON, TOML)
+- Security scanning (Bandit)
+- Type checking (MyPy)
+- Dockerfile linting (Hadolint)
+- Commit message validation
 
-### Jobs
+### Manual Quality Checks
 
-1. **Lint** - Ruff linting and format checking
-2. **Type Check** - MyPy static analysis
-3. **Security** - Bandit security scanning
-4. **Test** - Unit and integration tests
-5. **E2E Tests** - End-to-end tests
-6. **Quality Gate** - Overall pass/fail
+Run before pushing:
 
-### Required for CI
+```bash
+make lint-fix format test
+```
 
-- Tests must pass
-- Linting must pass
-- Security scan must pass
-- Coverage ≥70% (can be adjusted)
+CI/CD workflow configuration is not yet added to this repository.
 
 ---
 

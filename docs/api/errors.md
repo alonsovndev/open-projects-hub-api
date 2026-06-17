@@ -76,7 +76,7 @@ POST /v1/auth/login
 #### Missing Token
 
 ```http
-GET /v1/user/123
+GET /v1/users/123
 Authorization: (missing)
 ```
 
@@ -92,7 +92,7 @@ Authorization: (missing)
 #### Invalid Token
 
 ```http
-GET /v1/user/123
+GET /v1/users/123
 Authorization: Bearer invalid-token
 ```
 
@@ -112,7 +112,7 @@ Authorization: Bearer invalid-token
 #### Expired Token
 
 ```http
-GET /v1/user/123
+GET /v1/users/123
 Authorization: Bearer eyJ... (expired)
 ```
 
@@ -122,15 +122,15 @@ Authorization: Bearer eyJ... (expired)
 }
 ```
 
-**Cause:** Token is older than 24 hours  
-**Solution:** Login again or use refresh token (when implemented)
+**Cause:** Token has expired  
+**Solution:** Login again or use refresh token
 
 ### Authorization Errors (403)
 
 #### Insufficient Permissions
 
 ```http
-POST /v1/user/register
+POST /v1/users/register
 Authorization: Bearer {user-role-token}
 ```
 
@@ -177,7 +177,7 @@ Content-Type: application/json
 #### Weak Password
 
 ```http
-POST /v1/user/register
+POST /v1/users/register
 Content-Type: application/json
 
 {
@@ -241,7 +241,7 @@ Content-Type: application/json
 
 ```http
 POST /v1/auth/login
-(6th request within 15 minutes)
+(11th request within 1 minute)
 ```
 
 ```http
@@ -250,7 +250,7 @@ Retry-After: 900
 Content-Type: application/json
 
 {
-  "error": "Rate limit exceeded: 5 per 15 minute"
+  "detail": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
 
@@ -258,15 +258,15 @@ Content-Type: application/json
 **Solution:** Wait for the time specified in `Retry-After` header (seconds)
 
 **Rate Limits:**
-- Login: 5 requests per 15 minutes
-- General: 100 requests per minute
+- Login: 10 requests per 1 minute
+- General: 100 requests per 1 minute
 
 ### Not Found Errors (404)
 
 #### User Not Found
 
 ```http
-GET /v1/user/nonexistent-id
+GET /v1/users/nonexistent-id
 Authorization: Bearer {valid-token}
 ```
 
@@ -299,7 +299,7 @@ GET /v1/nonexistent
 #### Internal Server Error
 
 ```http
-GET /v1/user/123
+GET /v1/users/123
 ```
 
 ```json
@@ -472,13 +472,13 @@ curl -X POST http://localhost:8080/v1/auth/login \
 ### Test Missing Token
 
 ```bash
-curl -X GET http://localhost:8080/v1/user/123
+curl -X GET http://localhost:8080/v1/users/123
 ```
 
 ### Test Invalid Token
 
 ```bash
-curl -X GET http://localhost:8080/v1/user/123 \
+curl -X GET http://localhost:8080/v1/users/123 \
   -H "Authorization: Bearer invalid-token"
 ```
 
@@ -502,7 +502,7 @@ curl -X POST http://localhost:8080/v1/auth/login \
   -d '{"email":"not-an-email","password":"Test123"}'
 
 # Weak password
-curl -X POST http://localhost:8080/v1/user/register \
+curl -X POST http://localhost:8080/v1/users/register \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {admin-token}" \
   -d '{"email":"user@example.com","password":"weak","first_name":"John","last_name":"Doe"}'
@@ -525,7 +525,7 @@ curl -X POST http://localhost:8080/v1/user/register \
 A: Check for extra whitespace in email/password, ensure password meets complexity requirements, verify account exists.
 
 **Q: How do I know when my token expires?**  
-A: Decode the JWT (don't verify signature) and check the `exp` claim. Tokens expire 24 hours after `iat`.
+A: Decode the JWT (don't verify signature) and check the `exp` claim. Token expiry is configurable.
 
 **Q: Can I retry after a 429 error?**  
 A: Yes, wait for the seconds specified in the `Retry-After` header, then retry.
