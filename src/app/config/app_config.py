@@ -114,19 +114,22 @@ class AppConfig:
                 "and at least 32 characters long. Set SECRET_KEY environment variable."
             )
 
-        # Validate database password
-        db_password = self.get_config("persistence.postgres.password")
-        if not db_password or db_password.startswith("${"):
+        # Validate database credentials for the active persistence driver
+        db_driver = self.get_config("persistence.driver", "postgresql")
+        db_config = self.get_config(f"persistence.{db_driver}", {})
+
+        db_password = db_config.get("password", "")
+        if not db_password or str(db_password).startswith("${"):
             raise RuntimeError(
-                "Production configuration error: Database password must be set. "
-                "Set POSTGRES_PASSWORD environment variable."
+                f"Production configuration error: {db_driver} password must be set. "
+                f"Set the appropriate environment variable."
             )
 
-        # Validate database host
-        db_host = self.get_config("persistence.postgres.host")
-        if not db_host or db_host.startswith("${"):
+        db_host = db_config.get("host", "")
+        if not db_host or str(db_host).startswith("${"):
             raise RuntimeError(
-                "Production configuration error: Database host must be set. Set POSTGRES_HOST environment variable."
+                f"Production configuration error: {db_driver} host must be set. "
+                f"Set the appropriate environment variable."
             )
 
         log.info("Production configuration validation passed")
