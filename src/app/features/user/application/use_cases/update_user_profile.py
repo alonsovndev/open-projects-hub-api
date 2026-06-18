@@ -5,7 +5,7 @@ Only allows updating display_name. Email and role cannot be changed via this end
 """
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.mappers.user_dto_mapper import map_entity_to_dto_user
+from src.app.features.user.application.mappers.user_dto_mapper import to_user_response
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.validators.user_validators import UserValidators
@@ -58,7 +58,7 @@ class UpdateUserProfileUseCase:
             old_display_name = user_entity.display_name
 
             # Update display name (immutable entity pattern: create new instance)
-            user_entity.display_name = display_name
+            user_entity.update_details(display_name=display_name)
 
             # Save updated entity
             updated_entity = await self.user_repository.update(user_entity)
@@ -67,7 +67,7 @@ class UpdateUserProfileUseCase:
                 log.failure("user.profile.update.save_failed")
                 raise ValueError("Failed to update user profile")
 
-            response = map_entity_to_dto_user(updated_entity)
+            response = to_user_response(updated_entity)
 
             log.event(
                 "user.profile.updated",

@@ -1,14 +1,17 @@
 """SQLAlchemy model for stories table."""
 
-from sqlalchemy import Column, Enum as SQLEnum, ForeignKey, Index, Integer, String, Text
+import uuid
+
+from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.persistence.base_model import BaseModel
+from src.app.shared.persistence import Base
 
 
-class StoryModel(BaseModel):
+class StoryModel(Base):
     """
     SQLAlchemy model for stories table.
 
@@ -17,6 +20,10 @@ class StoryModel(BaseModel):
 
     __tablename__ = "stories"
 
+    # 1. Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # 2. Data columns
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
@@ -33,6 +40,15 @@ class StoryModel(BaseModel):
         default=StoryPriority.MEDIUM.value,
     )
     points = Column(Integer, nullable=True)
+
+    # Relationships
+    project = relationship("ProjectModel", back_populates="stories", lazy="selectin")
+
+    # 3. Audit columns
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False, index=True
+    )
 
     # Composite indexes for common query patterns
     __table_args__ = (

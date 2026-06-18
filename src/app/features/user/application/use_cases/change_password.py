@@ -67,7 +67,7 @@ class ChangePasswordUseCase:
             new_password_hash = await PasswordHandler.hash_password(new_password)
 
             # Update password hash
-            user_entity.password_hash = new_password_hash
+            user_entity.update_details(password_hash=new_password_hash)
 
             # Save updated entity
             await self.user_repository.save(user_entity)

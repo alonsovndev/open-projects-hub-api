@@ -159,7 +159,7 @@ class ProjectEntity:
         self._description = description  # NEW
 ```
 
-**2. Update Model:**
+**2. Update Model & Infrastructure Mapper:**
 
 ```python
 # src/app/features/projects/infrastructure/models/project_model.py
@@ -167,33 +167,37 @@ class ProjectEntity:
 class ProjectModel(Base):
     __tablename__ = "projects"
 
-    id = Column(String, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
     code = Column(String(20), unique=True, nullable=False)
     description = Column(Text, nullable=True)  # NEW
-    # ... other columns
+    # ...
 
-    def to_entity(self) -> ProjectEntity:
+# src/app/features/projects/infrastructure/mappers/project_mapper.py
+
+class ProjectMapper:
+    @staticmethod
+    def to_entity(model: ProjectModel) -> ProjectEntity:
         return ProjectEntity(
-            id=EntityId(self.id),
-            name=self.name,
-            code=self.code,
-            description=self.description,  # NEW
-            # ... other fields
+            id=EntityId(model.id),
+            name=model.name,
+            code=model.code,
+            description=model.description,  # NEW
+            # ...
         )
 
-    @classmethod
-    def from_entity(cls, entity: ProjectEntity) -> "ProjectModel":
-        return cls(
-            id=str(entity.id),
+    @staticmethod
+    def to_model(entity: ProjectEntity) -> ProjectModel:
+        return ProjectModel(
+            id=entity.id.value,
             name=entity.name,
             code=entity.code,
             description=entity.description,  # NEW
-            # ... other fields
+            # ...
         )
 ```
 
-**3. Update DTOs:**
+**3. Update DTOs & Application Mapper:**
 
 ```python
 # src/app/features/projects/application/dtos/project_dto.py
@@ -215,15 +219,16 @@ class ProjectResponse(BaseModel):
     description: Optional[str]  # NEW
     # ... other fields
 
-    @classmethod
-    def from_entity(cls, entity: ProjectEntity, client_name: str) -> "ProjectResponse":
-        return cls(
-            id=str(entity.id),
-            name=entity.name,
-            code=entity.code,
-            description=entity.description,  # NEW
-            # ... other fields
-        )
+# src/app/features/projects/application/mappers/project_mapper.py
+
+def to_project_response(entity: ProjectEntity, client_name: str) -> ProjectResponse:
+    return ProjectResponse(
+        id=str(entity.id),
+        name=entity.name,
+        code=entity.code,
+        description=entity.description,  # NEW
+        # ... other fields
+    )
 ```
 
 **4. Create Migration:**
@@ -297,7 +302,7 @@ async def find_active_by_client(self, client_id: str) -> List[ProjectEntity]:
         .order_by(ProjectModel.created_at.desc())
     )
     models = result.scalars().all()
-    return [model.to_entity() for model in models]
+    return [ProjectMapper.to_entity(model) for model in models]
 ```
 
 **3. Test:**

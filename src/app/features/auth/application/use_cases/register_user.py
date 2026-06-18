@@ -9,6 +9,7 @@ Following API spec requirements:
 """
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
+from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.application.mappers.user_dto_mapper import map_create_request_to_entity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
@@ -81,7 +82,7 @@ class RegisterUserUseCase:
                 user_id=str(created_user.id.value), email=str(created_user.email.value), role=created_user.role.value
             )
 
-            response = AdminLoginResponse.from_user_entity(created_user, token, refresh_token)
+            response = to_admin_login_response(created_user, token, refresh_token)
 
             log.info(
                 "User registered successfully", event_type="auth.register.success", user_id=str(created_user.id.value)

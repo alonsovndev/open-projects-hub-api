@@ -55,7 +55,7 @@ docker compose exec postgres psql -U open-projects-hub-admin -d open-projects-hu
 src/app/features/{feature}/
 ├── application/
 │   ├── dtos/              # Request/Response DTOs
-│   ├── mappers/           # Entity ↔ DTO conversion
+│   ├── mappers/           # Entity ↔ DTO conversion (standalone functions)
 │   └── use_cases/         # Business orchestration
 ├── domain/
 │   ├── entities/          # Business objects
@@ -63,6 +63,7 @@ src/app/features/{feature}/
 │   ├── validators/        # Domain validation
 │   └── value_objects/     # Immutable domain values
 ├── infrastructure/
+│   ├── mappers/           # Model ↔ Entity conversion (standalone classes)
 │   ├── models/            # SQLAlchemy models
 │   └── repositories/      # Repository implementations
 └── presentation/
@@ -138,8 +139,8 @@ class CreateProjectUseCase:
         # 3. Persist
         saved = await self.project_repo.save(project)
 
-        # 4. Return DTO
-        return ProjectMapper.to_response(saved)
+        # 4. Return DTO (via application mapper)
+        return to_project_response(saved, client_name)
 ```
 
 **Rules:**
@@ -160,6 +161,8 @@ class CreateProjectUseCase:
 | Router registry | `src/app/shared/presentation/router_registry.py` |
 | Config files | `src/app/config/config_{env}.yml` |
 | Models | Feature: `infrastructure/models/`, Shared: `shared/infrastructure/models/` |
+| Mappers (infrastructure) | Feature: `infrastructure/mappers/` (classes: `XxxMapper`) |
+| Mappers (application) | Feature: `application/mappers/` (functions: `to_xxx_response`) |
 | Tests | `src/tests/{unit,application,domain,presentation,infrastructure,integration,e2e}/` |
 | Migrations | `alembic/versions/` |
 | Scripts | `scripts/` (seed_admin.py, start-api.sh) |
@@ -184,6 +187,9 @@ find src/app/features -path "*/use_cases/*.py"
 # Find DTOs
 find src/app/features -path "*/dtos/*.py"
 
+# Find mappers
+find src/app/features -path "*/mappers/*.py"
+
 # Check what's exported from composition
 cat src/app/composition/__init__.py | grep "^from"
 ```
@@ -197,7 +203,7 @@ cat src/app/composition/__init__.py | grep "^from"
    mkdir -p src/app/features/{feature}/{application,domain,infrastructure,presentation}
    mkdir -p src/app/features/{feature}/application/{dtos,mappers,use_cases}
    mkdir -p src/app/features/{feature}/domain/{entities,repositories,validators}
-   mkdir -p src/app/features/{feature}/infrastructure/{models,repositories}
+   mkdir -p src/app/features/{feature}/infrastructure/{mappers,models,repositories}
    ```
 
 2. **Create domain (inside out):**
@@ -211,8 +217,9 @@ cat src/app/composition/__init__.py | grep "^from"
    - Use case: `application/use_cases/{action}_{entity}.py`
 
 4. **Create infrastructure:**
-   - Model: `infrastructure/models/{entity}_model.py`
-   - Repository impl: `infrastructure/repositories/{entity}_repository_impl.py`
+    - Mapper: `infrastructure/mappers/{entity}_mapper.py` (standalone class with `to_entity`/`to_model`)
+    - Model: `infrastructure/models/{entity}_model.py`
+    - Repository impl: `infrastructure/repositories/{entity}_repository_impl.py`
 
 5. **Create presentation:**
    - Routes: `presentation/{feature}_routes.py`
@@ -372,18 +379,59 @@ class ProjectRepositoryImpl(ProjectRepository):
         self.session = session
 
     async def save(self, project: ProjectEntity) -> ProjectEntity:
-        model = ProjectModel.from_entity(project)
+        model = ProjectMapper.to_model(project)
         self.session.add(model)
         await self.session.flush()
         await self.session.refresh(model)
-        return model.to_entity()
+        return ProjectMapper.to_entity(model)
 
     async def find_by_id(self, project_id: str) -> Optional[ProjectEntity]:
         result = await self.session.execute(
             select(ProjectModel).where(ProjectModel.id == project_id)
         )
         model = result.scalar_one_or_none()
-        return model.to_entity() if model else None
+        return ProjectMapper.to_entity(model) if model else None
+```
+
+### Infrastructure Mapper (Model ↔ Entity)
+
+```python
+class ProjectMapper:
+    """Maps between ProjectEntity and ProjectModel."""
+
+    @staticmethod
+    def to_entity(model: ProjectModel) -> ProjectEntity:
+        return ProjectEntity(
+            id=EntityId(model.id),
+            name=model.name,
+            code=model.code,
+            # ...
+        )
+
+    @staticmethod
+    def to_model(entity: ProjectEntity) -> ProjectModel:
+        return ProjectModel(
+            id=entity.id.value,
+            name=entity.name,
+            code=entity.code,
+            # ...
+        )
+```
+
+### Application Mapper (Entity → DTO)
+
+```python
+def to_project_response(
+    entity: ProjectEntity,
+    client_name: str,
+) -> ProjectResponse:
+    return ProjectResponse(
+        id=str(entity.id),
+        name=entity.name,
+        code=entity.code,
+        clientName=client_name,
+        # ...
+    )
 ```
 
 ---
@@ -395,10 +443,15 @@ class ProjectRepositoryImpl(ProjectRepository):
 - [ ] Uses explicit file-path imports (no `__init__.py` re-exports)
 - [ ] Repository returns interface type, not implementation
 - [ ] Routes pass DTOs directly to use cases
+- [ ] Routes never construct DTOs inline — delegate to application mappers
+- [ ] Use cases never construct DTOs inline — delegate to application mappers
+- [ ] Models do NOT have `to_entity()` / `from_entity()` — use infrastructure mapper class
+- [ ] DTOs do NOT have `from_entity()` classmethods — use application mapper function
+- [ ] Infrastructure mappers are `XxxMapper` class with `@staticmethod` methods
+- [ ] Application mappers are standalone `to_xxx_response()` functions
 - [ ] Tests run and pass (`make test-unit`)
 - [ ] Code formatted (`make format`)
 - [ ] No linting errors (`make lint-fix`)
-- [ ] Updated relevant documentation
 - [ ] Migration created if model changed
 
 ---
@@ -463,4 +516,4 @@ make clean && make test-unit
 
 ---
 
-**Last Updated:** June 11, 2026
+**Last Updated:** June 18, 2026

@@ -1,15 +1,19 @@
 """SQLAlchemy model for projects table."""
 
-from sqlalchemy import Column, Date, Enum as SQLEnum, ForeignKey, Index, String, Text
+import uuid
+
+from sqlalchemy import Column, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+# Imported for relationship resolution
+from src.app.features.clients.infrastructure.models.client_model import ClientModel  # noqa: F401
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
-from src.app.shared.persistence.base_model import BaseModel
+from src.app.shared.persistence import Base
 
 
-class ProjectModel(BaseModel):
+class ProjectModel(Base):
     """
     SQLAlchemy model for projects table.
 
@@ -18,6 +22,10 @@ class ProjectModel(BaseModel):
 
     __tablename__ = "projects"
 
+    # 1. Primary key
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # 2. Data columns
     name = Column(String(255), nullable=False)
     code = Column(String(50), nullable=False, unique=True)
     description = Column(Text, nullable=True)
@@ -38,6 +46,14 @@ class ProjectModel(BaseModel):
 
     # Relationships
     client = relationship("ClientModel", backref="projects")
+    stories = relationship("StoryModel", back_populates="project", lazy="selectin")
+    story_drafts = relationship("StoryDraftModel", back_populates="project", lazy="selectin")
+
+    # 3. Audit columns
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False, index=True
+    )
 
     # Composite indexes for common query patterns
     __table_args__ = (

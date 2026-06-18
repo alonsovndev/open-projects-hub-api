@@ -28,16 +28,13 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from uuid import uuid4
-
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.value_objects.email import Email
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.features.user.infrastructure.mappers.user_mapper import UserMapper
 from src.app.features.user.infrastructure.models.user_model import UserModel
-from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
@@ -94,22 +91,15 @@ async def seed_admin():
             password_hash = await PasswordHandler.hash_password(admin_password)
 
             # Create admin user entity
-            admin_entity = UserEntity(
-                id=EntityId.from_string(str(uuid4())),
-                email=Email(admin_email),
+            admin_entity = UserEntity.create(
+                email=admin_email,
                 display_name=admin_display_name,
                 password_hash=password_hash,
                 role=UserRole.ADMIN,
             )
 
             # Create database model
-            admin_model = UserModel(
-                id=admin_entity.id.value,
-                email=admin_entity.email.value,
-                display_name=admin_entity.display_name,
-                password_hash=admin_entity.password_hash,
-                role=admin_entity.role.value,  # 'admin' string value
-            )
+            admin_model = UserMapper.to_model(admin_entity)
 
             # Save to database
             session.add(admin_model)

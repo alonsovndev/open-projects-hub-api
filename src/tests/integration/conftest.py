@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from src.app.config.app_config import AppConfig
-from src.app.shared.persistence.base_model import Base
+from src.app.shared.persistence import Base
 
 
 @pytest.fixture(scope="session")

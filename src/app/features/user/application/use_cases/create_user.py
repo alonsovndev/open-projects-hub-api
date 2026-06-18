@@ -1,8 +1,5 @@
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
-from src.app.features.user.application.mappers.user_dto_mapper import (
-    map_create_request_to_entity,
-    map_entity_to_dto_user,
-)
+from src.app.features.user.application.mappers.user_dto_mapper import map_create_request_to_entity, to_user_response
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
@@ -42,7 +39,7 @@ class CreateUserUseCase:
                 )
                 raise UserAlreadyExistsError(str(new_user_entity.email))
 
-            response_dto = map_entity_to_dto_user(created_user)
+            response_dto = to_user_response(created_user)
 
             log.info("User created successfully", event_type="user.create.success", user_id=str(created_user.id))
             return response_dto

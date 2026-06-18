@@ -1,4 +1,5 @@
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
+from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, InvalidCredentialsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.email import Email
@@ -104,7 +105,7 @@ class LoginUserUseCase:
                 role=user_entity.role.value,
             )
 
-            response = AdminLoginResponse.from_user_entity(user_entity, token, refresh_token)
+            response = to_admin_login_response(user_entity, token, refresh_token)
 
             log.info(
                 "User logged in successfully",

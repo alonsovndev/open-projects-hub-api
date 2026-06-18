@@ -14,11 +14,11 @@ from src.app.composition import (
 from src.app.features.refinement.application.dtos.refinement_dto import (
     ApproveDraftsBulkRequest,
     ApproveDraftsBulkResponse,
-    BulkApprovedStory,
     GenerateStoriesRequest,
     GenerateStoriesResponse,
     UpdateStoryDraftRequest,
 )
+from src.app.features.refinement.application.mappers.bulk_approve_mapper import to_approve_drafts_bulk_response
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
 from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
@@ -177,7 +177,4 @@ async def approve_drafts_bulk(
             detail="No drafts were found to approve",
         )
 
-    return ApproveDraftsBulkResponse(
-        approved_count=len(stories),
-        stories=[BulkApprovedStory(id=s.id, title=s.title) for s in stories],
-    )
+    return to_approve_drafts_bulk_response(stories)

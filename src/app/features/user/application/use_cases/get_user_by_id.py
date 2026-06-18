@@ -1,4 +1,4 @@
-from src.app.features.user.application.mappers.user_dto_mapper import UserResponse, map_entity_to_dto_user
+from src.app.features.user.application.mappers.user_dto_mapper import UserResponse, to_user_response
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -19,4 +19,4 @@ class GetUserByIdUseCase:
             log.failure("user.not_found", entity_id=user_id)
             raise UserNotFoundError(user_id)
 
-        return map_entity_to_dto_user(existing_user)
+        return to_user_response(existing_user)

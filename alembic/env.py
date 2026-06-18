@@ -20,7 +20,7 @@ from src.app.features.projects.infrastructure.models.project_model import Projec
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.user.infrastructure.models.user_model import UserModel
-from src.app.shared.persistence.base_model import Base
+from src.app.shared.persistence import Base
 
 
 # end DO NOT REMOVE

@@ -5,7 +5,7 @@ Returns user details (email, display_name, role) for authenticated user.
 """
 
 from src.app.features.user.application.dtos.user_dto import UserResponse
-from src.app.features.user.application.mappers.user_dto_mapper import map_entity_to_dto_user
+from src.app.features.user.application.mappers.user_dto_mapper import to_user_response
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -44,7 +44,7 @@ class GetUserProfileUseCase:
                 log.failure("user.profile.not_found", entity_id=user_id)
                 raise UserNotFoundError(user_id)
 
-            response = map_entity_to_dto_user(user_entity)
+            response = to_user_response(user_entity)
 
             log.event("user.profile.retrieved", entity_id=user_id)
             return response

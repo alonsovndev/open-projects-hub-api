@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
-from src.app.features.user.infrastructure.mappers.user_model_mapper import map_model_to_entity
+from src.app.features.user.infrastructure.mappers.user_mapper import UserMapper
 from src.app.features.user.infrastructure.models.user_model import UserModel
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -39,7 +39,7 @@ class UserRepositoryImpl(UserRepository):
 
             self._log.info(f"completed get user by id {entity_id.value}")
 
-            return map_model_to_entity(user_model)
+            return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
             self._log.connection_error("database", error=db_error, operation="find_by_id", table="users")
@@ -61,7 +61,7 @@ class UserRepositoryImpl(UserRepository):
                 return None
 
             self._log.info(f"User with email {email.value} found", operation="find_by_email", table="users")
-            return map_model_to_entity(user_model)
+            return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
             self._log.connection_error("database", error=db_error, operation="find_by_email", table="users")
@@ -101,13 +101,7 @@ class UserRepositoryImpl(UserRepository):
                 )
                 return None
 
-            user_model = UserModel(
-                id=user.id.value,
-                email=user.email.value,
-                display_name=user.display_name,
-                password_hash=user.password_hash,
-                role=user.role.value,
-            )
+            user_model = UserMapper.to_model(user)
 
             self.db_session.add(user_model)
             await self.db_session.commit()
@@ -117,7 +111,7 @@ class UserRepositoryImpl(UserRepository):
             self._log.operation(
                 "db.insert", success=True, duration_ms=duration, table="users", entity_id=str(user.id.value)
             )
-            return map_model_to_entity(user_model)
+            return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.IntegrityError as e:
             await self.db_session.rollback()
@@ -161,7 +155,7 @@ class UserRepositoryImpl(UserRepository):
             result = await self.db_session.execute(stmt)
             models = result.scalars().all()
 
-            return [map_model_to_entity(model) for model in models]
+            return [UserMapper.to_entity(model) for model in models]
 
         except sqlalchemy.exc.OperationalError as db_error:
             self._log.connection_error("database", error=db_error, operation="find_all", table="users")
@@ -236,7 +230,7 @@ class UserRepositoryImpl(UserRepository):
             self._log.operation(
                 "db.update", success=True, duration_ms=duration, table="users", entity_id=str(user.id.value)
             )
-            return map_model_to_entity(user_model)
+            return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.IntegrityError as e:
             await self.db_session.rollback()

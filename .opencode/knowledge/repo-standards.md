@@ -71,9 +71,12 @@ use_case.execute(
 
 **Convention: `id → data → audit`**
 
-Every table must follow this column order:
+Every table must follow this column order. Import `Base` from `src.app.shared.persistence`:
 
 ```python
+from src.app.shared.persistence import Base
+import uuid
+
 class XxxModel(Base):
     __tablename__ = "xxx"
 
@@ -128,11 +131,51 @@ class XxxModel(Base):
 - Return types should match domain needs (e.g., `Tuple[ProjectEntity, str]` for project + client name)
 - Repository methods use domain entities, not DTOs or models directly
 
-### Mapper Location
+### Mapper Patterns
 
-- Mappers live in feature's `application/mappers/` directory (not `shared/`)
-- Mappers convert between domain entities and application DTOs
-- Keep mappers close to the DTOs they work with
+Two layers of mappers, both in feature-local `mappers/` directories:
+
+**Infrastructure mappers** (`infrastructure/mappers/`): Model ↔ Entity
+
+Standalone `XxxMapper` class with `@staticmethod` methods. Models never carry mapping logic.
+
+```python
+# ✅ Good — standalone mapper class
+class ClientMapper:
+    @staticmethod
+    def to_entity(model: ClientModel) -> ClientEntity: ...
+    @staticmethod
+    def to_model(entity: ClientEntity) -> ClientModel: ...
+
+# ❌ Bad — mapping methods on the model
+class ClientModel(Base):
+    def to_entity(self) -> ClientEntity: ...    # model shouldn't know about domain
+    def from_entity(cls, entity) -> "ClientModel": ...
+```
+
+Repository implementations call `XxxMapper.to_entity(model)` and `XxxMapper.to_model(entity)`.
+
+**Application mappers** (`application/mappers/`): Entity ↔ DTO
+
+Standalone functions. Naming: `to_xxx_response(entity, ...)` (match the DTO name). DTOs never carry mapping logic.
+
+```python
+# ✅ Good — standalone function
+def to_project_response(entity: ProjectEntity, client_name: str, ...) -> ProjectResponse: ...
+
+# ❌ Bad — mapping classmethod on the DTO
+class ProjectResponse(BaseModel):
+    @classmethod
+    def from_entity(cls, entity, ...) -> "ProjectResponse": ...
+```
+
+**Rules:**
+- ❌ Models must not have `to_entity()` / `from_entity()` methods
+- ❌ DTOs must not have `from_entity()` / `to_response()` classmethods
+- ❌ Routes must not construct DTOs inline — delegate to application mappers
+- ❌ Use cases must not construct DTOs inline — delegate to application mappers
+- ✅ Mappers live in the feature they serve (not in `shared/`)
+- ✅ Keep mapper files focused — one mapper class/function per concern
 
 ### Validation Patterns
 
