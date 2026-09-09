@@ -3,6 +3,10 @@
 
 .PHONY: help install install-dev test test-unit test-integration test-e2e coverage coverage-report lint lint-fix format format-check type-check security pre-commit-install run seed-admin clean
 
+# Load environment variables from .env file (if it exists)
+-include .env
+export
+
 # Default target
 help:
 	@echo "Available commands:"

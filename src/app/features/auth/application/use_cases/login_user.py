@@ -6,7 +6,7 @@ from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import get_account_lockout_service
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import BusinessLogger, get_logger, mask_email
+from src.app.shared.logging import get_logger, mask_email, set_user_id
 
 
 class LoginUserUseCase:
@@ -39,7 +39,8 @@ class LoginUserUseCase:
             InvalidCredentialsError: If credentials are invalid
         """
         email_lower = str(payload.email).lower().strip()
-        log = BusinessLogger(get_logger(__name__), user_id=email_lower)
+        log = get_logger(__name__)
+        set_user_id(email_lower)
         is_locked = await self.lockout_service.is_locked_out(email_lower)
         if is_locked:
             lockout_info = await self.lockout_service.get_lockout_info(email_lower)
@@ -50,9 +51,11 @@ class LoginUserUseCase:
 
             log.warning(
                 "Login attempt for locked account",
-                event_type="auth.login.account_locked",
-                email=mask_email(email_lower),
-                remaining_seconds=remaining_seconds,
+                extra={
+                    "event_type": "auth.login.account_locked",
+                    "email": mask_email(email_lower),
+                    "remaining_seconds": remaining_seconds,
+                },
             )
             raise AccountLockedError(
                 message=f"Account temporarily locked. Try again in {remaining_minutes} minutes.",
@@ -66,8 +69,10 @@ class LoginUserUseCase:
             if not user_entity:
                 log.warning(
                     "Login attempt with non-existent email",
-                    event_type="auth.login.user_not_found",
-                    email=mask_email(email_lower),
+                    extra={
+                        "event_type": "auth.login.user_not_found",
+                        "email": mask_email(email_lower),
+                    },
                 )
                 # Record attempts for non-existent users to prevent timing-based user enumeration
                 await self.lockout_service.record_failed_attempt(email_lower)
@@ -83,10 +88,12 @@ class LoginUserUseCase:
 
                 log.warning(
                     "Failed login attempt - invalid password",
-                    event_type="auth.login.invalid_credentials",
-                    user_id=str(user_entity.id),
-                    email=mask_email(email_lower),
-                    failed_attempts=failed_attempts + 1,
+                    extra={
+                        "event_type": "auth.login.invalid_credentials",
+                        "user_id": str(user_entity.id),
+                        "email": mask_email(email_lower),
+                        "failed_attempts": failed_attempts + 1,
+                    },
                 )
                 await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
@@ -109,16 +116,18 @@ class LoginUserUseCase:
 
             log.info(
                 "User logged in successfully",
-                event_type="auth.login.success",
-                user_id=str(user_entity.id),
-                email=mask_email(email_lower),
-                role=user_entity.role.value,
+                extra={
+                    "event_type": "auth.login.success",
+                    "user_id": str(user_entity.id),
+                    "email": mask_email(email_lower),
+                    "role": user_entity.role.value,
+                },
             )
 
             return response
 
         except (InvalidCredentialsError, AccountLockedError):
             raise
-        except Exception as e:
-            log.error("Unexpected error during login", error=e, error_type="auth.login.unexpected_error")
+        except Exception:
+            log.exception("Unexpected error during login", extra={"event_type": "auth.login.unexpected_error"})
             raise

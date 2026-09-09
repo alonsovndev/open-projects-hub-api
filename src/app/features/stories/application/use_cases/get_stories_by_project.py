@@ -6,7 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class GetStoriesByProjectUseCase:
@@ -40,13 +40,16 @@ class GetStoriesByProjectUseCase:
         Returns:
             PaginatedResponse containing pagination metadata and StoryResponse items
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
         log.info(
             "Fetching stories by project",
-            event_type="stories.fetch_by_project.started",
-            project_id=project_id,
-            limit=limit,
-            offset=offset,
+            extra={
+                "event_type": "stories.fetch_by_project.started",
+                "project_id": project_id,
+                "limit": limit,
+                "offset": offset,
+            },
         )
 
         project_uuid = UUID(project_id)
@@ -62,7 +65,15 @@ class GetStoriesByProjectUseCase:
 
         page = (offset // limit) + 1 if limit > 0 else 1
 
-        log.event("stories.fetch_by_project.success", project_id=project_id, total=total, returned=len(items))
+        log.info(
+            "Stories fetched by project successfully",
+            extra={
+                "event_type": "stories.fetch_by_project.success",
+                "project_id": project_id,
+                "total": total,
+                "returned": len(items),
+            },
+        )
         return PaginatedResponse(
             total=total,
             page=page,

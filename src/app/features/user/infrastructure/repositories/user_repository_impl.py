@@ -10,7 +10,7 @@ from src.app.features.user.infrastructure.mappers.user_mapper import UserMapper
 from src.app.features.user.infrastructure.models.user_model import UserModel
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import TechnicalLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
 class DatabaseConnectionError(Exception):
@@ -26,7 +26,7 @@ class UserRepositoryImpl(UserRepository):
             db_session (AsyncSession): The SQLAlchemy session to use for database operations.
         """
         self.db_session = db_session
-        self._log = TechnicalLogger(get_logger(__name__), component="database")
+        self._log = get_logger(__name__)
 
     async def find_by_id(self, entity_id: EntityId) -> UserEntity | None:
         try:
@@ -42,13 +42,11 @@ class UserRepositoryImpl(UserRepository):
             return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("database", error=db_error, operation="find_by_id", table="users")
+            self._log.exception("Database connection error", extra={"operation": "find_by_id", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
-            self._log.error(
-                f"Error finding user by id: {entity_id.value}", error=e, operation="find_by_id", table="users"
-            )
+        except Exception:
+            self._log.exception("Error finding user by id", extra={"operation": "find_by_id", "table": "users"})
             raise
 
     async def find_by_email(self, email: Email) -> UserEntity | None:
@@ -57,18 +55,23 @@ class UserRepositoryImpl(UserRepository):
             user_model = result.scalar_one_or_none()
 
             if user_model is None:
-                self._log.info(f"User with email {email.value} not found", operation="find_by_email", table="users")
+                self._log.info(
+                    "User with email not found",
+                    extra={"email": email.value, "operation": "find_by_email", "table": "users"},
+                )
                 return None
 
-            self._log.info(f"User with email {email.value} found", operation="find_by_email", table="users")
+            self._log.info(
+                "User with email found", extra={"email": email.value, "operation": "find_by_email", "table": "users"}
+            )
             return UserMapper.to_entity(user_model)
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("database", error=db_error, operation="find_by_email", table="users")
+            self._log.exception("Database connection error", extra={"operation": "find_by_email", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
-            self._log.error("Error finding user by email", error=e, operation="find_by_email", table="users")
+        except Exception:
+            self._log.exception("Error finding user by email", extra={"operation": "find_by_email", "table": "users"})
             raise
 
     async def find_by_name(self, record: str) -> UserEntity | None:
@@ -97,7 +100,8 @@ class UserRepositoryImpl(UserRepository):
 
             if result.scalar_one_or_none():
                 self._log.warning(
-                    f"User with email {user.email} already exists - returning None", operation="save", table="users"
+                    "User with email already exists - returning None",
+                    extra={"email": str(user.email), "operation": "save", "table": "users"},
                 )
                 return None
 
@@ -108,25 +112,34 @@ class UserRepositoryImpl(UserRepository):
             await self.db_session.refresh(user_model)
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.insert", success=True, duration_ms=duration, table="users", entity_id=str(user.id.value)
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.insert",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "users",
+                    "entity_id": str(user.id.value),
+                },
             )
             return UserMapper.to_entity(user_model)
 
-        except sqlalchemy.exc.IntegrityError as e:
+        except sqlalchemy.exc.IntegrityError:
             await self.db_session.rollback()
-            self._log.error("IntegrityError while saving user with email", error=e, operation="save", table="users")
+            self._log.exception(
+                "IntegrityError while saving user with email", extra={"operation": "save", "table": "users"}
+            )
             # Return None for duplicate email constraint violations
             return None
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("database", error=db_error, operation="save", table="users")
+            self._log.exception("Database connection error", extra={"operation": "save", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
+        except Exception:
             await self.db_session.rollback()
-            self._log.error("Unexpected error while saving user", error=e, operation="save", table="users")
+            self._log.exception("Unexpected error while saving user", extra={"operation": "save", "table": "users"})
             raise
 
     async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
@@ -158,11 +171,11 @@ class UserRepositoryImpl(UserRepository):
             return [UserMapper.to_entity(model) for model in models]
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("database", error=db_error, operation="find_all", table="users")
+            self._log.exception("Database connection error", extra={"operation": "find_all", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
-            self._log.error("Error fetching all users", error=e, operation="find_all", table="users")
+        except Exception:
+            self._log.exception("Error fetching all users", extra={"operation": "find_all", "table": "users"})
             raise
 
     async def exists(self, entity_id: EntityId) -> bool:
@@ -185,13 +198,11 @@ class UserRepositoryImpl(UserRepository):
             return bool(int(result.scalar_one()))
 
         except sqlalchemy.exc.OperationalError as db_error:
-            self._log.connection_error("database", error=db_error, operation="exists", table="users")
+            self._log.exception("Database connection error", extra={"operation": "exists", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
-            self._log.error(
-                f"Error checking user existence {entity_id.value}", error=e, operation="exists", table="users"
-            )
+        except Exception:
+            self._log.exception("Error checking user existence", extra={"operation": "exists", "table": "users"})
             raise
 
     async def update(self, user: UserEntity) -> UserEntity | None:
@@ -214,7 +225,10 @@ class UserRepositoryImpl(UserRepository):
             user_model = await self.db_session.get(UserModel, user.id.value)
 
             if not user_model:
-                self._log.warning(f"User {user.id.value} not found for update", operation="update", table="users")
+                self._log.warning(
+                    "User not found for update",
+                    extra={"user_id": str(user.id.value), "operation": "update", "table": "users"},
+                )
                 return None
 
             # Update model fields
@@ -227,27 +241,32 @@ class UserRepositoryImpl(UserRepository):
             await self.db_session.refresh(user_model)
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.update", success=True, duration_ms=duration, table="users", entity_id=str(user.id.value)
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.update",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "users",
+                    "entity_id": str(user.id.value),
+                },
             )
             return UserMapper.to_entity(user_model)
 
-        except sqlalchemy.exc.IntegrityError as e:
+        except sqlalchemy.exc.IntegrityError:
             await self.db_session.rollback()
-            self._log.error(
-                f"IntegrityError while updating user {user.id.value}", error=e, operation="update", table="users"
-            )
+            self._log.exception("IntegrityError while updating user", extra={"operation": "update", "table": "users"})
             # Return None for constraint violations (e.g., duplicate email)
             return None
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("database", error=db_error, operation="update", table="users")
+            self._log.exception("Database connection error", extra={"operation": "update", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
+        except Exception:
             await self.db_session.rollback()
-            self._log.error(f"Error updating user {user.id.value}", error=e, operation="update", table="users")
+            self._log.exception("Error updating user", extra={"operation": "update", "table": "users"})
             raise
 
     async def delete(self, entity_id: EntityId) -> bool:
@@ -269,24 +288,34 @@ class UserRepositoryImpl(UserRepository):
             user_model = await self.db_session.get(UserModel, entity_id.value)
 
             if not user_model:
-                self._log.info(f"User {entity_id.value} not found for deletion", operation="delete", table="users")
+                self._log.info(
+                    "User not found for deletion",
+                    extra={"user_id": str(entity_id.value), "operation": "delete", "table": "users"},
+                )
                 return False
 
             await self.db_session.delete(user_model)
             await self.db_session.commit()
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.delete", success=True, duration_ms=duration, table="users", entity_id=str(entity_id.value)
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.delete",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "users",
+                    "entity_id": str(entity_id.value),
+                },
             )
             return True
 
         except sqlalchemy.exc.OperationalError as db_error:
             await self.db_session.rollback()
-            self._log.connection_error("database", error=db_error, operation="delete", table="users")
+            self._log.exception("Database connection error", extra={"operation": "delete", "table": "users"})
             raise DatabaseConnectionError("Failed to connect to the database.") from db_error
 
-        except Exception as e:
+        except Exception:
             await self.db_session.rollback()
-            self._log.error(f"Error deleting user {entity_id.value}", error=e, operation="delete", table="users")
+            self._log.exception("Error deleting user", extra={"operation": "delete", "table": "users"})
             raise

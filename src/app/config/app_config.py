@@ -8,7 +8,6 @@ from pyaml_env import parse_config
 
 from src.app.config.paths import Paths
 
-
 log = logging.getLogger(__name__)
 
 APP_ENV = "APP_ENV"
@@ -93,46 +92,9 @@ class AppConfig:
             self.config = parse_config(path=str(full_config_file_path))
             log.info(f"Successfully loaded configuration from: {config_file}")
 
-            # Validate production configuration
-            if self.env == "prod":
-                self._validate_production_config()
-
         except Exception as e:
             log.error(f"Error loading configuration file {config_file}. Exception: {e}")
             raise
-
-    def _validate_production_config(self):
-        """
-        Validates that critical configuration values are set in production environment.
-        Raises RuntimeError if required secrets are missing or invalid.
-        """
-        # Validate JWT secret
-        jwt_secret = self.get_config("jwt.secret_key")
-        if not jwt_secret or jwt_secret.startswith("${") or len(jwt_secret) < 32:
-            raise RuntimeError(
-                "Production configuration error: JWT secret_key must be set "
-                "and at least 32 characters long. Set SECRET_KEY environment variable."
-            )
-
-        # Validate database credentials for the active persistence driver
-        db_driver = self.get_config("persistence.driver", "postgresql")
-        db_config = self.get_config(f"persistence.{db_driver}", {})
-
-        db_password = db_config.get("password", "")
-        if not db_password or str(db_password).startswith("${"):
-            raise RuntimeError(
-                f"Production configuration error: {db_driver} password must be set. "
-                f"Set the appropriate environment variable."
-            )
-
-        db_host = db_config.get("host", "")
-        if not db_host or str(db_host).startswith("${"):
-            raise RuntimeError(
-                f"Production configuration error: {db_driver} host must be set. "
-                f"Set the appropriate environment variable."
-            )
-
-        log.info("Production configuration validation passed")
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """

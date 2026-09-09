@@ -11,7 +11,7 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.mappers.story_draft_mapper import StoryDraftMapper
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
-from src.app.shared.logging import TechnicalLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
 class StoryDraftRepositoryImpl(StoryDraftRepository):
@@ -25,7 +25,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             session: SQLAlchemy async session
         """
         self._session = session
-        self._log = TechnicalLogger(get_logger(__name__), component="database")
+        self._log = get_logger(__name__)
 
     async def find_by_id(self, draft_id: UUID) -> StoryDraftEntity | None:
         """Find story draft by ID."""
@@ -38,12 +38,12 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
                 return StoryDraftMapper.to_entity(model)
             return None
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="find_by_id", table="story_drafts")
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "find_by_id", "table": "story_drafts"})
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error fetching draft {draft_id}", error=e, operation="find_by_id", table="story_drafts"
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error fetching draft", extra={"operation": "find_by_id", "table": "story_drafts"}
             )
             raise
 
@@ -67,15 +67,15 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
 
             return [StoryDraftMapper.to_entity(m) for m in models]
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="find_by_project", table="story_drafts")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "find_by_project", "table": "story_drafts"}
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error fetching drafts for project {project_id}",
-                error=e,
-                operation="find_by_project",
-                table="story_drafts",
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error fetching drafts for project",
+                extra={"operation": "find_by_project", "table": "story_drafts"},
             )
             raise
 
@@ -102,15 +102,15 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
 
             return [StoryDraftMapper.to_entity(m) for m in models]
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="find_active_by_user", table="story_drafts")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "find_active_by_user", "table": "story_drafts"}
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error fetching drafts for user {user_id}",
-                error=e,
-                operation="find_active_by_user",
-                table="story_drafts",
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error fetching drafts for user",
+                extra={"operation": "find_active_by_user", "table": "story_drafts"},
             )
             raise
 
@@ -132,22 +132,25 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             await self._session.refresh(model)
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.insert" if is_insert else "db.update",
-                success=True,
-                duration_ms=duration,
-                table="story_drafts",
-                entity_id=str(draft.id.value),
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.insert" if is_insert else "db.update",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "story_drafts",
+                    "entity_id": str(draft.id.value),
+                },
             )
             return StoryDraftMapper.to_entity(model)
 
-        except OperationalError as e:
+        except OperationalError:
             await self._session.rollback()
-            self._log.connection_error("database", error=e, operation="save", table="story_drafts")
+            self._log.exception("Database connection error", extra={"operation": "save", "table": "story_drafts"})
             raise
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             await self._session.rollback()
-            self._log.error(f"Database error saving draft {draft.id}", error=e, operation="save", table="story_drafts")
+            self._log.exception("Database error saving draft", extra={"operation": "save", "table": "story_drafts"})
             raise
 
     async def delete(self, draft_id: UUID) -> bool:
@@ -165,20 +168,25 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             await self._session.commit()
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.delete", success=True, duration_ms=duration, table="story_drafts", entity_id=str(draft_id)
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.delete",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "story_drafts",
+                    "entity_id": str(draft_id),
+                },
             )
             return True
 
-        except OperationalError as e:
+        except OperationalError:
             await self._session.rollback()
-            self._log.connection_error("database", error=e, operation="delete", table="story_drafts")
+            self._log.exception("Database connection error", extra={"operation": "delete", "table": "story_drafts"})
             raise
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             await self._session.rollback()
-            self._log.error(
-                f"Database error deleting draft {draft_id}", error=e, operation="delete", table="story_drafts"
-            )
+            self._log.exception("Database error deleting draft", extra={"operation": "delete", "table": "story_drafts"})
             raise
 
     async def count_by_project(self, project_id: UUID) -> int:
@@ -188,14 +196,14 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             result = await self._session.execute(stmt)
             return result.scalar() or 0
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="count_by_project", table="story_drafts")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "count_by_project", "table": "story_drafts"}
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error counting drafts for project {project_id}",
-                error=e,
-                operation="count_by_project",
-                table="story_drafts",
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error counting drafts for project",
+                extra={"operation": "count_by_project", "table": "story_drafts"},
             )
             raise

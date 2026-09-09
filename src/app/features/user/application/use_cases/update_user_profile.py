@@ -10,7 +10,7 @@ from src.app.features.user.domain.exceptions.user_exceptions import UserNotFound
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger, mask_email
+from src.app.shared.logging import get_logger, mask_email, set_user_id
 
 
 class UpdateUserProfileUseCase:
@@ -38,7 +38,8 @@ class UpdateUserProfileUseCase:
             UserNotFoundError: If user doesn't exist
             ValueError: If validation fails
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
 
         try:
             # Validate display name
@@ -50,8 +51,7 @@ class UpdateUserProfileUseCase:
             if user_entity is None:
                 log.warning(
                     "User not found for profile update",
-                    event_type="user.profile.update.user_not_found",
-                    user_id=user_id,
+                    extra={"event_type": "user.profile.update.user_not_found", "user_id": user_id},
                 )
                 raise UserNotFoundError(user_id)
 
@@ -64,21 +64,30 @@ class UpdateUserProfileUseCase:
             updated_entity = await self.user_repository.update(user_entity)
 
             if updated_entity is None:
-                log.failure("user.profile.update.save_failed")
+                log.error(
+                    "Failed to update user profile",
+                    extra={"event_type": "user.profile.update.save_failed"},
+                )
                 raise ValueError("Failed to update user profile")
 
             response = to_user_response(updated_entity)
 
-            log.event(
-                "user.profile.updated",
-                email=mask_email(str(updated_entity.email.value)),
-                old_display_name=old_display_name,
-                new_display_name=display_name,
+            log.info(
+                "User profile updated",
+                extra={
+                    "event_type": "user.profile.updated",
+                    "email": mask_email(str(updated_entity.email.value)),
+                    "old_display_name": old_display_name,
+                    "new_display_name": display_name,
+                },
             )
             return response
 
         except (UserNotFoundError, ValueError):
             raise
-        except Exception as e:
-            log.failure("user.profile.update.unexpected_error", error=e)
+        except Exception:
+            log.exception(
+                "Unexpected error updating user profile",
+                extra={"event_type": "user.profile.update.unexpected_error"},
+            )
             raise

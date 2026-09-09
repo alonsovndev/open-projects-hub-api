@@ -11,7 +11,7 @@ from src.app.features.projects.domain.value_objects.project_status import Projec
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
-from src.app.shared.logging import TechnicalLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
 class DashboardRepositoryImpl(DashboardRepository):
@@ -25,7 +25,7 @@ class DashboardRepositoryImpl(DashboardRepository):
             session: Database session
         """
         self._session = session
-        self._log = TechnicalLogger(get_logger(__name__), component="database")
+        self._log = get_logger(__name__)
 
     async def get_aggregated_stats(self, user_id: UUID | None = None) -> dict:
         """
@@ -92,21 +92,27 @@ class DashboardRepositoryImpl(DashboardRepository):
 
             self._log.debug(
                 "Dashboard aggregated stats query completed",
-                user_id=str(user_id) if user_id else None,
-                total_projects=stats["total_projects"],
-                total_stories=stats["total_stories"],
+                extra={
+                    "user_id": str(user_id) if user_id else None,
+                    "total_projects": stats["total_projects"],
+                    "total_stories": stats["total_stories"],
+                },
             )
 
             return stats
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="get_aggregated_stats", table="projects,stories")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error",
+                extra={"operation": "get_aggregated_stats", "table": "projects,stories"},
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
+        except SQLAlchemyError:
+            self._log.exception(
                 "Failed to retrieve aggregated dashboard statistics",
-                error=e,
-                operation="get_aggregated_stats",
-                user_id=str(user_id) if user_id else None,
+                extra={
+                    "operation": "get_aggregated_stats",
+                    "user_id": str(user_id) if user_id else None,
+                },
             )
             raise

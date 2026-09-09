@@ -7,7 +7,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class ApproveDraftUseCase:
@@ -45,14 +45,18 @@ class ApproveDraftUseCase:
             StoryDraftNotFoundError: If the draft is not found
             ValueError: If draft validation fails
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         try:
             draft_entity_id = EntityId.from_string(draft_id)
             draft = await self._draft_repository.find_by_id(draft_entity_id.value)
 
             if not draft:
-                log.failure("refinement.approve.not_found", entity_id=draft_id)
+                log.error(
+                    "Draft not found for approval",
+                    extra={"event_type": "refinement.approve.not_found", "entity_id": draft_id},
+                )
                 raise StoryDraftNotFoundError(draft_id)
 
             story_entity = draft_to_story_entity(draft)
@@ -65,18 +69,24 @@ class ApproveDraftUseCase:
             draft.mark_applied()
             await self._draft_repository.save(draft)
 
-            log.event(
-                "refinement.draft.approved",
-                entity_id=draft_id,
-                story_id=str(story.id.value),
-                project_id=str(draft.project_id.value),
-                story_title=story.title,
+            log.info(
+                "Draft approved and converted to story",
+                extra={
+                    "event_type": "refinement.draft.approved",
+                    "entity_id": draft_id,
+                    "story_id": str(story.id.value),
+                    "project_id": str(draft.project_id.value),
+                    "story_title": story.title,
+                },
             )
 
             return to_story_response(story)
 
         except StoryDraftNotFoundError:
             raise
-        except Exception as e:
-            log.failure("refinement.approve.failed", error=e, entity_id=draft_id)
+        except Exception:
+            log.exception(
+                "Failed to approve draft",
+                extra={"event_type": "refinement.approve.failed", "entity_id": draft_id},
+            )
             raise

@@ -12,7 +12,7 @@ from src.app.features.refinement.infrastructure.ai.ai_service import (
     GeneratedStory,
 )
 from src.app.shared.infrastructure.retry import retry_on_exception
-from src.app.shared.logging import IntegrationLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
 class GeminiService(AIService):
@@ -70,7 +70,7 @@ Return ONLY a valid JSON object with this exact structure:
         self._base_url = base_url
         self._temperature = temperature
         self._max_tokens = max_tokens
-        self._log = IntegrationLogger(get_logger(__name__), service_name="gemini")
+        self._log = get_logger(__name__)
 
     async def is_available(self) -> bool:
         """Check if Gemini service is configured."""
@@ -144,7 +144,7 @@ Return ONLY a valid JSON object with this exact structure:
                 data = response.json()
                 content = data["candidates"][0]["content"]["parts"][0]["text"]
 
-                self._log.debug(f"Gemini bulk generation response length: {len(content)} chars")
+                self._log.debug("Gemini bulk generation response length: %s chars", len(content))
 
                 return self._parse_bulk_generation(content, raw_notes)
 
@@ -167,7 +167,7 @@ Return ONLY a valid JSON object with this exact structure:
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError as e:
-                self._log.warning(f"Malformed JSON from bulk generation: {e!s}")
+                self._log.warning("Malformed JSON from bulk generation: %s", e)
                 json_str = re.sub(r",(\s*[}\]])", r"\1", json_str)
                 data = json.loads(json_str)
 
@@ -187,6 +187,6 @@ Return ONLY a valid JSON object with this exact structure:
             )
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            self._log.error(f"Failed to parse bulk generation response: {e}")
-            self._log.error(f"Content that failed: {content[:1000]}")
+            self._log.exception("Failed to parse bulk generation response")
+            self._log.error("Content that failed: %s", content[:1000])
             raise AIServiceError(f"Invalid bulk generation response format: {e!s}") from e

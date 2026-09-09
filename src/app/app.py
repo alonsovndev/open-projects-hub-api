@@ -9,7 +9,8 @@ from fastapi import FastAPI
 
 from src.app.config.app_config import AppConfig
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
-from src.app.shared.logging import CorrelationIdMiddleware, load_logging_config, setup_logging
+from src.app.shared.logging import setup_logging
+from src.app.shared.logging.middleware import RequestContextMiddleware
 from src.app.shared.persistence.engine_factory import close_engine, get_engine
 from src.app.shared.presentation.exception_handlers import register_exception_handlers
 from src.app.shared.presentation.health_checks import register_health_endpoints
@@ -29,8 +30,9 @@ app_version = config.get_config("app.version")
 async def lifespan(app: FastAPI):
     """Application lifecycle: setup on startup, cleanup on shutdown."""
     # 1. Setup logging first so all startup logs are captured
-    logging_config = load_logging_config()
-    setup_logging(logging_config)
+    log_level = config.get_config("logging.level", "INFO")
+    log_format = config.get_config("logging.format", "json")
+    setup_logging(level=log_level, plain_text=(log_format == "text"))
 
     # 2. Initialize database connection pool
     get_engine()
@@ -45,7 +47,7 @@ async def lifespan(app: FastAPI):
 fastapi_app = FastAPI(title=app_name, version=app_version, lifespan=lifespan)
 
 # Register correlation ID middleware (must be before app starts)
-fastapi_app.add_middleware(CorrelationIdMiddleware)
+fastapi_app.add_middleware(RequestContextMiddleware)
 
 # Register rate limiter with FastAPI
 fastapi_app.state.limiter = limiter

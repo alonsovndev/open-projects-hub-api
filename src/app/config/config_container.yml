@@ -22,8 +22,8 @@ persistence:
     pool_pre_ping: true
 
 logging:
-  level: INFO
-  format: json
+  level: DEBUG
+  format: text
   outputs:
   - type: console
 

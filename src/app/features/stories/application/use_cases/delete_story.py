@@ -4,7 +4,7 @@ from uuid import UUID
 
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class DeleteStoryUseCase:
@@ -30,12 +30,16 @@ class DeleteStoryUseCase:
         Raises:
             StoryNotFoundError: If story not found
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         # Get story details before deletion for logging
         entity = await self._repository.find_by_id(UUID(story_id))
         if not entity:
-            log.failure("story.delete.not_found", entity_id=story_id)
+            log.error(
+                "Story not found for deletion",
+                extra={"event_type": "story.delete.not_found", "entity_id": story_id},
+            )
             raise StoryNotFoundError(story_id)
 
         story_title = entity.title
@@ -43,4 +47,12 @@ class DeleteStoryUseCase:
 
         await self._repository.delete(UUID(story_id))
 
-        log.event("story.deleted", entity_id=story_id, story_title=story_title, project_id=project_id)
+        log.info(
+            "Story deleted",
+            extra={
+                "event_type": "story.deleted",
+                "entity_id": story_id,
+                "story_title": story_title,
+                "project_id": project_id,
+            },
+        )

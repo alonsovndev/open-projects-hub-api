@@ -4,7 +4,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.mappers.project_mapper import to_project_response
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class GetProjectByIdUseCase:
@@ -33,20 +33,30 @@ class GetProjectByIdUseCase:
         Raises:
             ValueError: If project_id is invalid
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
 
-        log.info("Fetching project by ID", event_type="projects.fetch_by_id.started", project_id=project_id)
+        log.info(
+            "Fetching project by ID",
+            extra={"event_type": "projects.fetch_by_id.started", "project_id": project_id},
+        )
         entity_id = EntityId.from_string(project_id)
 
         result = await self._repository.find_by_id(entity_id.value)
 
         if not result:
-            log.warning("Project not found", event_type="projects.fetch_by_id.not_found", project_id=project_id)
+            log.warning(
+                "Project not found",
+                extra={"event_type": "projects.fetch_by_id.not_found", "project_id": project_id},
+            )
             return None
 
         entity, client_name = result
 
         total_stories, completed_stories = await self._repository.get_story_counts(entity_id.value)
 
-        log.event("projects.fetch_by_id.success", project_id=project_id)
+        log.info(
+            "Project fetched by ID successfully",
+            extra={"event_type": "projects.fetch_by_id.success", "project_id": project_id},
+        )
         return to_project_response(entity, client_name, total_stories, completed_stories)

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class DeleteClientUseCase:
@@ -26,7 +26,8 @@ class DeleteClientUseCase:
         Raises:
             ValueError: If client has associated projects (enforced by DB constraint).
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         try:
             # Try to delete the client
@@ -34,15 +35,21 @@ class DeleteClientUseCase:
             deleted = await self.client_repository.delete(client_id)
 
             if not deleted:
-                log.failure("client.delete.not_found", entity_id=str(client_id))
+                log.error(
+                    "Client not found for deletion",
+                    extra={"event_type": "client.delete.not_found", "entity_id": str(client_id)},
+                )
                 raise ClientNotFoundError(str(client_id))
 
-            log.event("client.deleted", entity_id=str(client_id))
+            log.info("Client deleted", extra={"event_type": "client.deleted", "entity_id": str(client_id)})
 
             return True
 
         except (ClientNotFoundError, ValueError):
             raise
-        except Exception as e:
-            log.failure("client.delete.unexpected_error", error=e, entity_id=str(client_id))
+        except Exception:
+            log.exception(
+                "Unexpected error deleting client",
+                extra={"event_type": "client.delete.unexpected_error", "entity_id": str(client_id)},
+            )
             raise

@@ -9,7 +9,7 @@ from src.app.features.stories.domain.value_objects.story_priority import StoryPr
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class ListStoriesUseCase:
@@ -60,16 +60,19 @@ class ListStoriesUseCase:
         if priority and priority not in [p.value for p in StoryPriority]:
             raise ValidationError(f"Priority must be one of: {', '.join(p.value for p in StoryPriority)}")
 
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
         log.info(
             "Listing stories",
-            event_type="stories.list.started",
-            limit=limit,
-            offset=offset,
-            project_id=project_id,
-            status=status,
-            priority=priority,
-            assigned_to=assigned_to,
+            extra={
+                "event_type": "stories.list.started",
+                "limit": limit,
+                "offset": offset,
+                "project_id": project_id,
+                "status": status,
+                "priority": priority,
+                "assigned_to": assigned_to,
+            },
         )
 
         project_uuid = UUID(project_id) if project_id else None
@@ -94,7 +97,10 @@ class ListStoriesUseCase:
 
         page = (offset // limit) + 1 if limit > 0 else 1
 
-        log.event("stories.list.success", total=total, returned=len(items))
+        log.info(
+            "Stories listed successfully",
+            extra={"event_type": "stories.list.success", "total": total, "returned": len(items)},
+        )
         return PaginatedResponse(
             total=total,
             page=page,

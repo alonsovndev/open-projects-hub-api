@@ -16,7 +16,7 @@ from src.app.features.stories.domain.value_objects.story_status import StoryStat
 
 # Cross-feature query for performance optimization (see ADR-001)
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
-from src.app.shared.logging import TechnicalLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
 class ProjectRepositoryImpl(ProjectRepository):
@@ -30,7 +30,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             session: SQLAlchemy async session
         """
         self._session = session
-        self._log = TechnicalLogger(get_logger(__name__), component="database")
+        self._log = get_logger(__name__)
 
     async def find_by_id(self, project_id: UUID) -> tuple[ProjectEntity, str] | None:
         """
@@ -60,12 +60,12 @@ class ProjectRepositoryImpl(ProjectRepository):
 
             return None
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="find_by_id", table="projects")
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "find_by_id", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error while fetching project {project_id}", error=e, operation="find_by_id", table="projects"
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching project", extra={"operation": "find_by_id", "table": "projects"}
             )
             raise
 
@@ -103,11 +103,13 @@ class ProjectRepositoryImpl(ProjectRepository):
 
             return [(ProjectMapper.to_entity(model), client_name) for model, client_name in rows]
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="find_all", table="projects")
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "find_all", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
-            self._log.error("Database error while fetching projects", error=e, operation="find_all", table="projects")
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching projects", extra={"operation": "find_all", "table": "projects"}
+            )
             raise
 
     async def save(self, project: ProjectEntity) -> ProjectEntity:
@@ -139,24 +141,25 @@ class ProjectRepositoryImpl(ProjectRepository):
             await self._session.refresh(model)
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.insert" if is_insert else "db.update",
-                success=True,
-                duration_ms=duration,
-                table="projects",
-                entity_id=str(project.id.value),
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.insert" if is_insert else "db.update",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "projects",
+                    "entity_id": str(project.id.value),
+                },
             )
             return ProjectMapper.to_entity(model)
 
-        except OperationalError as e:
+        except OperationalError:
             await self._session.rollback()
-            self._log.connection_error("database", error=e, operation="save", table="projects")
+            self._log.exception("Database connection error", extra={"operation": "save", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             await self._session.rollback()
-            self._log.error(
-                f"Database error while saving project {project.id.value}", error=e, operation="save", table="projects"
-            )
+            self._log.exception("Database error while saving project", extra={"operation": "save", "table": "projects"})
             raise
 
     async def delete(self, project_id: UUID) -> bool:
@@ -185,19 +188,26 @@ class ProjectRepositoryImpl(ProjectRepository):
             await self._session.commit()
 
             duration = (time.time() - start) * 1000
-            self._log.operation(
-                "db.delete", success=True, duration_ms=duration, table="projects", entity_id=str(project_id)
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.delete",
+                    "success": True,
+                    "duration_ms": duration,
+                    "table": "projects",
+                    "entity_id": str(project_id),
+                },
             )
             return True
 
-        except OperationalError as e:
+        except OperationalError:
             await self._session.rollback()
-            self._log.connection_error("database", error=e, operation="delete", table="projects")
+            self._log.exception("Database connection error", extra={"operation": "delete", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             await self._session.rollback()
-            self._log.error(
-                f"Database error while deleting project {project_id}", error=e, operation="delete", table="projects"
+            self._log.exception(
+                "Database error while deleting project", extra={"operation": "delete", "table": "projects"}
             )
             raise
 
@@ -223,11 +233,13 @@ class ProjectRepositoryImpl(ProjectRepository):
             result = await self._session.execute(stmt)
             return int(result.scalar_one())
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="count", table="projects")
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "count", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
-            self._log.error("Database error while counting projects", error=e, operation="count", table="projects")
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while counting projects", extra={"operation": "count", "table": "projects"}
+            )
             raise
 
     async def exists(self, project_id: UUID) -> bool:
@@ -248,15 +260,13 @@ class ProjectRepositoryImpl(ProjectRepository):
             result = await self._session.execute(stmt)
             return result.scalar_one_or_none() is not None
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="exists", table="projects")
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "exists", "table": "projects"})
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error while checking project existence {project_id}",
-                error=e,
-                operation="exists",
-                table="projects",
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while checking project existence",
+                extra={"operation": "exists", "table": "projects"},
             )
             raise
 
@@ -292,15 +302,15 @@ class ProjectRepositoryImpl(ProjectRepository):
 
             return (total, completed)
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="get_story_counts", table="stories")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "get_story_counts", "table": "stories"}
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
-                f"Database error while fetching story counts for project {project_id}",
-                error=e,
-                operation="get_story_counts",
-                table="stories",
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching story counts",
+                extra={"operation": "get_story_counts", "table": "stories"},
             )
             raise
 
@@ -346,14 +356,14 @@ class ProjectRepositoryImpl(ProjectRepository):
 
             return counts
 
-        except OperationalError as e:
-            self._log.connection_error("database", error=e, operation="get_story_counts_batch", table="stories")
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "get_story_counts_batch", "table": "stories"}
+            )
             raise
-        except SQLAlchemyError as e:
-            self._log.error(
+        except SQLAlchemyError:
+            self._log.exception(
                 "Database error while fetching batch story counts",
-                error=e,
-                operation="get_story_counts_batch",
-                table="stories",
+                extra={"operation": "get_story_counts_batch", "table": "stories"},
             )
             raise

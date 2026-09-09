@@ -8,7 +8,7 @@ from src.app.features.clients.domain.exceptions.client_exceptions import ClientE
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.phone_number import PhoneNumber
-from src.app.shared.logging import BusinessLogger, get_logger, mask_email
+from src.app.shared.logging import get_logger, mask_email, set_user_id
 
 
 class UpdateClientUseCase:
@@ -19,13 +19,17 @@ class UpdateClientUseCase:
 
     async def execute(self, client_id: UUID, request: UpdateClientRequest, created_by: str) -> ClientResponse:
         """Execute the update client use case."""
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         try:
             client = await self.client_repository.find_by_id(client_id)
 
             if client is None:
-                log.failure("client.update.not_found", entity_id=str(client_id))
+                log.error(
+                    "Client not found for update",
+                    extra={"event_type": "client.update.not_found", "entity_id": str(client_id)},
+                )
                 raise ClientNotFoundError(str(client_id))
 
             # Track changes for audit trail
@@ -42,7 +46,14 @@ class UpdateClientUseCase:
             if request.email and request.email != (client.email.value if client.email else None):
                 existing_client = await self.client_repository.find_by_email(request.email)
                 if existing_client:
-                    log.failure("client.update.email_exists", entity_id=str(client_id), email=mask_email(request.email))
+                    log.error(
+                        "Client email already exists",
+                        extra={
+                            "event_type": "client.update.email_exists",
+                            "entity_id": str(client_id),
+                            "email": mask_email(request.email),
+                        },
+                    )
                     raise ClientEmailExistsError(request.email)
 
             client.update_details(
@@ -56,12 +67,22 @@ class UpdateClientUseCase:
 
             updated_client = await self.client_repository.update(client)
 
-            log.event("client.updated", entity_id=str(client_id), changes=changes if changes else "no_key_changes")
+            log.info(
+                "Client updated",
+                extra={
+                    "event_type": "client.updated",
+                    "entity_id": str(client_id),
+                    "changes": changes if changes else "no_key_changes",
+                },
+            )
 
             return to_client_response(updated_client)
 
         except (ClientNotFoundError, ClientEmailExistsError, ValueError):
             raise
-        except Exception as e:
-            log.failure("client.update.unexpected_error", error=e, entity_id=str(client_id))
+        except Exception:
+            log.exception(
+                "Unexpected error updating client",
+                extra={"event_type": "client.update.unexpected_error", "entity_id": str(client_id)},
+            )
             raise

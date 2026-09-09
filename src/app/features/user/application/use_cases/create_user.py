@@ -3,7 +3,7 @@ from src.app.features.user.application.mappers.user_dto_mapper import map_create
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class CreateUserUseCase:
@@ -11,7 +11,8 @@ class CreateUserUseCase:
         self.user_repository = user_repository
 
     async def execute(self, payload: UserCreateRequest, created_by: str) -> UserResponse:
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         try:
             password_hash = await PasswordHandler.hash_password(payload.password)
@@ -23,8 +24,7 @@ class CreateUserUseCase:
             if existing_user:
                 log.warning(
                     "Duplicate user creation attempt",
-                    event_type="user.create.email_exists",
-                    email=str(new_user_entity.email),
+                    extra={"event_type": "user.create.email_exists", "email": str(new_user_entity.email)},
                 )
                 raise UserAlreadyExistsError(str(new_user_entity.email))
 
@@ -34,18 +34,20 @@ class CreateUserUseCase:
             if created_user is None:
                 log.warning(
                     "Race condition during user creation",
-                    event_type="user.create.race_condition",
-                    email=str(new_user_entity.email),
+                    extra={"event_type": "user.create.race_condition", "email": str(new_user_entity.email)},
                 )
                 raise UserAlreadyExistsError(str(new_user_entity.email))
 
             response_dto = to_user_response(created_user)
 
-            log.info("User created successfully", event_type="user.create.success", user_id=str(created_user.id))
+            log.info(
+                "User created successfully",
+                extra={"event_type": "user.create.success", "user_id": str(created_user.id)},
+            )
             return response_dto
 
         except (ValueError, UserAlreadyExistsError):
             raise
-        except Exception as e:
-            log.error("Unexpected error in CreateUserUseCase", error=e, error_type="user.create.unexpected_error")
+        except Exception:
+            log.exception("Unexpected error in CreateUserUseCase", extra={"event_type": "user.create.unexpected_error"})
             raise

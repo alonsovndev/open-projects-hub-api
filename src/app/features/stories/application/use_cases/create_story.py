@@ -6,7 +6,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class CreateStoryUseCase:
@@ -35,7 +35,8 @@ class CreateStoryUseCase:
         Raises:
             ValidationError: If validation fails
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         story_priority = StoryPriority(request.priority) if request.priority else None
 
@@ -51,16 +52,26 @@ class CreateStoryUseCase:
         saved_entity = await self._repository.save(entity)
 
         if not saved_entity:
-            log.failure("story.create.save_failed", story_title=request.title, project_id=request.project_id)
+            log.error(
+                "Failed to save story",
+                extra={
+                    "event_type": "story.create.save_failed",
+                    "story_title": request.title,
+                    "project_id": request.project_id,
+                },
+            )
             raise RuntimeError("Failed to create story")
 
-        log.event(
-            "story.created",
-            entity_id=str(saved_entity.id),
-            story_title=saved_entity.title,
-            project_id=str(saved_entity.project_id),
-            priority=saved_entity.priority.value if saved_entity.priority else None,
-            points=saved_entity.points,
+        log.info(
+            "Story created",
+            extra={
+                "event_type": "story.created",
+                "entity_id": str(saved_entity.id),
+                "story_title": saved_entity.title,
+                "project_id": str(saved_entity.project_id),
+                "priority": saved_entity.priority.value if saved_entity.priority else None,
+                "points": saved_entity.points,
+            },
         )
 
         return to_story_response(saved_entity)

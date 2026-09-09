@@ -6,7 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class GetStoryByIdUseCase:
@@ -35,14 +35,24 @@ class GetStoryByIdUseCase:
         Raises:
             StoryNotFoundError: If story not found
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
-        log.info("Fetching story by ID", event_type="stories.fetch_by_id.started", story_id=story_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
+        log.info(
+            "Fetching story by ID",
+            extra={"event_type": "stories.fetch_by_id.started", "story_id": story_id},
+        )
 
         entity = await self._repository.find_by_id(UUID(story_id))
 
         if not entity:
-            log.warning("Story not found", event_type="stories.fetch_by_id.not_found", story_id=story_id)
+            log.warning(
+                "Story not found",
+                extra={"event_type": "stories.fetch_by_id.not_found", "story_id": story_id},
+            )
             raise StoryNotFoundError(story_id)
 
-        log.event("stories.fetch_by_id.success", story_id=story_id)
+        log.info(
+            "Story fetched by ID successfully",
+            extra={"event_type": "stories.fetch_by_id.success", "story_id": story_id},
+        )
         return to_story_response(entity)

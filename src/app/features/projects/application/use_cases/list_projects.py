@@ -4,7 +4,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.mappers.project_mapper import to_project_response
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class ListProjectsUseCase:
@@ -38,8 +38,12 @@ class ListProjectsUseCase:
         Returns:
             PaginatedResponse containing pagination metadata and ProjectResponse items
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
-        log.info("Listing projects", event_type="projects.list.started", offset=offset, limit=limit, status=status)
+        log = get_logger(__name__)
+        set_user_id(user_id)
+        log.info(
+            "Listing projects",
+            extra={"event_type": "projects.list.started", "offset": offset, "limit": limit, "status": status},
+        )
 
         total = await self._repository.count(status=status)
         entities_with_clients = await self._repository.find_all(
@@ -59,7 +63,10 @@ class ListProjectsUseCase:
 
         page = (offset // limit) + 1 if limit > 0 else 1
 
-        log.event("projects.list.success", total=total, returned=len(items))
+        log.info(
+            "Projects listed successfully",
+            extra={"event_type": "projects.list.success", "total": total, "returned": len(items)},
+        )
         return PaginatedResponse(
             total=total,
             page=page,

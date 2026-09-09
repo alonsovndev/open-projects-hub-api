@@ -5,7 +5,7 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class UpdateStoryDraftUseCase:
@@ -40,13 +40,17 @@ class UpdateStoryDraftUseCase:
         Raises:
             StoryDraftNotFoundError: If the draft is not found
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         entity_id = EntityId.from_string(draft_id)
         draft = await self._repository.find_by_id(entity_id.value)
 
         if not draft:
-            log.failure("refinement.draft.update.not_found", entity_id=draft_id)
+            log.error(
+                "Draft not found for update",
+                extra={"event_type": "refinement.draft.update.not_found", "entity_id": draft_id},
+            )
             raise StoryDraftNotFoundError(draft_id)
 
         draft.update_draft(
@@ -57,6 +61,6 @@ class UpdateStoryDraftUseCase:
 
         updated = await self._repository.save(draft)
 
-        log.event("refinement.draft.updated", entity_id=draft_id)
+        log.info("Story draft updated", extra={"event_type": "refinement.draft.updated", "entity_id": draft_id})
 
         return updated

@@ -4,10 +4,10 @@ from src.app.config.app_config import AppConfig
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
 from src.app.features.refinement.infrastructure.ai.gemini_service import GeminiService
 from src.app.features.refinement.infrastructure.ai.mock_service import MockAIService
-from src.app.shared.logging import ApplicationLogger, get_logger
+from src.app.shared.logging import get_logger
 
 
-log = ApplicationLogger(get_logger(__name__), component="ai_factory")
+log = get_logger(__name__)
 
 
 def create_ai_service() -> AIService:

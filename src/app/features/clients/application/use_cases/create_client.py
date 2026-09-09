@@ -5,7 +5,7 @@ from src.app.features.clients.application.mappers.client_mapper import to_client
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
-from src.app.shared.logging import BusinessLogger, get_logger, mask_email
+from src.app.shared.logging import get_logger, mask_email, set_user_id
 
 
 class CreateClientUseCase:
@@ -16,15 +16,21 @@ class CreateClientUseCase:
 
     async def execute(self, request: CreateClientRequest, created_by: str) -> ClientResponse:
         """Execute the create client use case."""
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         try:
             # Enforce email uniqueness constraint at application layer
             if request.email:
                 existing_client = await self.client_repository.find_by_email(request.email)
                 if existing_client:
-                    log.failure(
-                        "client.create.email_exists", entity_id=str(existing_client.id), email=mask_email(request.email)
+                    log.error(
+                        "Client email already exists",
+                        extra={
+                            "event_type": "client.create.email_exists",
+                            "entity_id": str(existing_client.id),
+                            "email": mask_email(request.email),
+                        },
                     )
                     raise ClientEmailExistsError(request.email)
 
@@ -39,20 +45,27 @@ class CreateClientUseCase:
 
             saved_client = await self.client_repository.save(client)
 
-            log.event(
-                "client.created",
-                entity_id=str(saved_client.id.value),
-                name=saved_client.name,
-                email=mask_email(saved_client.email.value) if saved_client.email else None,
-                company=saved_client.company,
+            log.info(
+                "Client created",
+                extra={
+                    "event_type": "client.created",
+                    "entity_id": str(saved_client.id.value),
+                    "client_name": saved_client.name,
+                    "email": mask_email(saved_client.email.value) if saved_client.email else None,
+                    "company": saved_client.company,
+                },
             )
 
             return to_client_response(saved_client)
 
         except (ValueError, ClientEmailExistsError):
             raise
-        except Exception as e:
-            log.failure(
-                "client.create.unexpected_error", error=e, entity_id=str(saved_client.id) if saved_client else None
+        except Exception:
+            log.exception(
+                "Unexpected error creating client",
+                extra={
+                    "event_type": "client.create.unexpected_error",
+                    "entity_id": str(saved_client.id) if saved_client else None,
+                },
             )
             raise

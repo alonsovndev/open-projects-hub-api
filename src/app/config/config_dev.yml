@@ -42,10 +42,6 @@ logging:
   format: json
   outputs:
   - type: console
-  - type: file
-    path: logs/app.log
-    max_bytes: 52428800
-    backup_count: 5
 
 ai:
   provider: gemini    # gemini

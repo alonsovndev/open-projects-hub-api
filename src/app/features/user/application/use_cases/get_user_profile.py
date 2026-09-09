@@ -9,7 +9,7 @@ from src.app.features.user.application.mappers.user_dto_mapper import to_user_re
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class GetUserProfileUseCase:
@@ -35,22 +35,28 @@ class GetUserProfileUseCase:
         Raises:
             UserNotFoundError: If user doesn't exist
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
 
         try:
             user_entity = await self.user_repository.find_by_id(EntityId.from_string(user_id))
 
             if user_entity is None:
-                log.failure("user.profile.not_found", entity_id=user_id)
+                log.error(
+                    "User profile not found", extra={"event_type": "user.profile.not_found", "entity_id": user_id}
+                )
                 raise UserNotFoundError(user_id)
 
             response = to_user_response(user_entity)
 
-            log.event("user.profile.retrieved", entity_id=user_id)
+            log.info("User profile retrieved", extra={"event_type": "user.profile.retrieved", "entity_id": user_id})
             return response
 
         except UserNotFoundError:
             raise
-        except Exception as e:
-            log.failure("user.profile.unexpected_error", error=e, entity_id=user_id)
+        except Exception:
+            log.exception(
+                "Unexpected error retrieving user profile",
+                extra={"event_type": "user.profile.unexpected_error", "entity_id": user_id},
+            )
             raise

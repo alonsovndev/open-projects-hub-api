@@ -7,7 +7,7 @@ from src.app.features.stories.application.mappers.story_mapper import to_story_r
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class AssignStoryUseCase:
@@ -37,12 +37,16 @@ class AssignStoryUseCase:
         Raises:
             StoryNotFoundError: If story not found
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         entity = await self._repository.find_by_id(UUID(story_id))
 
         if not entity:
-            log.failure("story.assign.not_found", entity_id=story_id, assigned_to=user_id)
+            log.error(
+                "Story not found for assignment",
+                extra={"event_type": "story.assign.not_found", "entity_id": story_id, "assigned_to": user_id},
+            )
             raise StoryNotFoundError(story_id)
 
         # Track previous assignment for logging
@@ -53,15 +57,21 @@ class AssignStoryUseCase:
         saved_entity = await self._repository.save(entity)
 
         if not saved_entity:
-            log.failure("story.assign.save_failed", assigned_to=user_id)
+            log.error(
+                "Failed to save story assignment",
+                extra={"event_type": "story.assign.save_failed", "assigned_to": user_id},
+            )
             raise RuntimeError("Failed to assign story")
 
-        log.event(
-            "story.assigned",
-            entity_id=story_id,
-            story_title=saved_entity.title,
-            assigned_to=user_id,
-            previous_assignee=previous_assignee,
+        log.info(
+            "Story assigned",
+            extra={
+                "event_type": "story.assigned",
+                "entity_id": story_id,
+                "story_title": saved_entity.title,
+                "assigned_to": user_id,
+                "previous_assignee": previous_assignee,
+            },
         )
 
         return to_story_response(saved_entity)

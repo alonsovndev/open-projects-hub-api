@@ -9,7 +9,7 @@ from src.app.features.user.domain.repositories.user_repository import UserReposi
 from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class ChangePasswordUseCase:
@@ -35,7 +35,8 @@ class ChangePasswordUseCase:
             UserNotFoundError: If user doesn't exist
             ValueError: If validation fails or current password incorrect
         """
-        log = BusinessLogger(get_logger(__name__), user_id=user_id)
+        log = get_logger(__name__)
+        set_user_id(user_id)
 
         try:
             # Validate new password
@@ -47,8 +48,7 @@ class ChangePasswordUseCase:
             if user_entity is None:
                 log.warning(
                     "User not found for password change",
-                    event_type="user.password.change.user_not_found",
-                    user_id=user_id,
+                    extra={"event_type": "user.password.change.user_not_found", "user_id": user_id},
                 )
                 raise UserNotFoundError(user_id)
 
@@ -58,8 +58,7 @@ class ChangePasswordUseCase:
             if not is_valid:
                 log.warning(
                     "Incorrect current password for password change",
-                    event_type="user.password.change.incorrect_password",
-                    user_id=user_id,
+                    extra={"event_type": "user.password.change.incorrect_password", "user_id": user_id},
                 )
                 raise ValueError("Current password is incorrect")
 
@@ -72,10 +71,13 @@ class ChangePasswordUseCase:
             # Save updated entity
             await self.user_repository.save(user_entity)
 
-            log.event("user.password.changed")
+            log.info("Password changed", extra={"event_type": "user.password.changed"})
 
         except (UserNotFoundError, ValueError):
             raise
-        except Exception as e:
-            log.failure("user.password.change.unexpected_error", error=e)
+        except Exception:
+            log.exception(
+                "Unexpected error changing password",
+                extra={"event_type": "user.password.change.unexpected_error"},
+            )
             raise

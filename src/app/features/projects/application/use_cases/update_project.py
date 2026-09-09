@@ -9,7 +9,7 @@ from src.app.features.projects.domain.value_objects.project_priority import Proj
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class UpdateProjectUseCase:
@@ -43,7 +43,8 @@ class UpdateProjectUseCase:
             NotFoundError: If client is not found
             RuntimeError: If save fails unexpectedly
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         # Parse and validate UUID
         entity_id = EntityId.from_string(project_id)
@@ -51,7 +52,10 @@ class UpdateProjectUseCase:
         result = await self._project_repository.find_by_id(entity_id.value)
 
         if not result:
-            log.failure("project.update.not_found", entity_id=project_id)
+            log.error(
+                "Project not found for update",
+                extra={"event_type": "project.update.not_found", "entity_id": project_id},
+            )
             raise ProjectNotFoundError(project_id)
 
         entity, old_client_name = result
@@ -63,7 +67,10 @@ class UpdateProjectUseCase:
             client_entity_id = EntityId.from_string(request.client_id)
             client = await self._client_repository.find_by_id(client_entity_id.value)
             if not client:
-                log.failure("project.update.client_not_found", client_id=request.client_id)
+                log.error(
+                    "Client not found for project update",
+                    extra={"event_type": "project.update.client_not_found", "client_id": request.client_id},
+                )
                 raise NotFoundError("Client", request.client_id)
             client_name = client.name
 
@@ -89,11 +96,17 @@ class UpdateProjectUseCase:
         updated_entity = await self._project_repository.save(entity)
 
         if not updated_entity:
-            log.failure("project.update.save_failed", entity_id=project_id)
+            log.error(
+                "Failed to save project update",
+                extra={"event_type": "project.update.save_failed", "entity_id": project_id},
+            )
             raise RuntimeError("Failed to update project")
 
         total_stories, completed_stories = await self._project_repository.get_story_counts(entity_id.value)
 
-        log.event("project.updated", entity_id=project_id, project_name=updated_entity.name)
+        log.info(
+            "Project updated",
+            extra={"event_type": "project.updated", "entity_id": project_id, "project_name": updated_entity.name},
+        )
 
         return to_project_response(updated_entity, client_name, total_stories, completed_stories)

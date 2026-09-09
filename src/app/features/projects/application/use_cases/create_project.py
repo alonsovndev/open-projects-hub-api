@@ -8,7 +8,7 @@ from src.app.features.projects.domain.repositories.project_repository import Pro
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class CreateProjectUseCase:
@@ -40,13 +40,17 @@ class CreateProjectUseCase:
             NotFoundError: If client is not found
             RuntimeError: If save fails unexpectedly
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         # Ensure client exists before creating project to maintain referential integrity
         client_entity_id = EntityId.from_string(request.client_id)
         client = await self._client_repository.find_by_id(client_entity_id.value)
         if not client:
-            log.failure("project.create.client_not_found", client_id=request.client_id)
+            log.error(
+                "Client not found for project creation",
+                extra={"event_type": "project.create.client_not_found", "client_id": request.client_id},
+            )
             raise NotFoundError("Client", request.client_id)
 
         priority_enum = ProjectPriority(request.priority) if request.priority else ProjectPriority.default()
@@ -65,17 +69,27 @@ class CreateProjectUseCase:
         saved_entity = await self._project_repository.save(entity)
 
         if not saved_entity:
-            log.failure("project.create.save_failed", project_name=request.name, project_code=request.code)
+            log.error(
+                "Failed to save project",
+                extra={
+                    "event_type": "project.create.save_failed",
+                    "project_name": request.name,
+                    "project_code": request.code,
+                },
+            )
             raise RuntimeError("Failed to create project")
 
-        log.event(
-            "project.created",
-            entity_id=str(saved_entity.id),
-            project_name=saved_entity.name,
-            project_code=saved_entity.code,
-            client_id=str(saved_entity.client_id),
-            client_name=client.name,
-            priority=saved_entity.priority.value,
+        log.info(
+            "Project created",
+            extra={
+                "event_type": "project.created",
+                "entity_id": str(saved_entity.id),
+                "project_name": saved_entity.name,
+                "project_code": saved_entity.code,
+                "client_id": str(saved_entity.client_id),
+                "client_name": client.name,
+                "priority": saved_entity.priority.value,
+            },
         )
 
         # New project always starts with zero stories

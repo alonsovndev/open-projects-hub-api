@@ -6,7 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.logging import BusinessLogger, get_logger
+from src.app.shared.logging import get_logger, set_user_id
 
 
 class ApproveDraftsBulkUseCase:
@@ -43,10 +43,14 @@ class ApproveDraftsBulkUseCase:
         Raises:
             ValueError: If any draft validation fails
         """
-        log = BusinessLogger(get_logger(__name__), user_id=created_by)
+        log = get_logger(__name__)
+        set_user_id(created_by)
 
         if not draft_ids:
-            log.warning("Bulk approve called with empty draft list", event_type="refinement.bulk_approve.empty_list")
+            log.warning(
+                "Bulk approve called with empty draft list",
+                extra={"event_type": "refinement.bulk_approve.empty_list"},
+            )
             return []
 
         created_stories: list[StoryResponse] = []
@@ -58,8 +62,7 @@ class ApproveDraftsBulkUseCase:
             if not draft:
                 log.warning(
                     "Draft not found in bulk approval",
-                    event_type="refinement.bulk_approve.draft_not_found",
-                    entity_id=draft_id,
+                    extra={"event_type": "refinement.bulk_approve.draft_not_found", "entity_id": draft_id},
                 )
                 continue
 
@@ -73,12 +76,15 @@ class ApproveDraftsBulkUseCase:
             draft.mark_applied()
             await self._draft_repository.save(draft)
 
-            log.event(
-                "refinement.draft.approved",
-                entity_id=draft_id,
-                story_id=str(story.id.value),
-                project_id=str(draft.project_id.value),
-                story_title=story.title,
+            log.info(
+                "Draft approved and converted to story",
+                extra={
+                    "event_type": "refinement.draft.approved",
+                    "entity_id": draft_id,
+                    "story_id": str(story.id.value),
+                    "project_id": str(draft.project_id.value),
+                    "story_title": story.title,
+                },
             )
 
             created_stories.append(to_story_response(story))
@@ -86,10 +92,15 @@ class ApproveDraftsBulkUseCase:
         if created_stories:
             log.info(
                 "Bulk approval completed",
-                event_type="refinement.bulk_approve.completed",
-                approved_count=len(created_stories),
+                extra={
+                    "event_type": "refinement.bulk_approve.completed",
+                    "approved_count": len(created_stories),
+                },
             )
         else:
-            log.warning("No drafts were approved in bulk operation", event_type="refinement.bulk_approve.no_results")
+            log.warning(
+                "No drafts were approved in bulk operation",
+                extra={"event_type": "refinement.bulk_approve.no_results"},
+            )
 
         return created_stories
