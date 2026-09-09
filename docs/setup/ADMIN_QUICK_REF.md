@@ -4,10 +4,14 @@
 
 ### Method 1: Seed Script (First Admin)
 ```bash
-DATABASE_URL="postgresql+asyncpg://user:pass@host:port/dbname" \
 ADMIN_EMAIL="admin@example.com" \
 ADMIN_PASSWORD="SecurePass123!" \
 make seed-admin
+```
+
+Or, fully containerized:
+```bash
+docker compose --profile seed run --rm seed-admin
 ```
 
 **When to use:** Creating your first admin user

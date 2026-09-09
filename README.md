@@ -21,7 +21,6 @@ alembic upgrade head
 
 ### 4. Create First Admin User
 ```bash
-DATABASE_URL="postgresql+asyncpg://open-projects-hub-admin:admin123@localhost:5432/open-projects-hub-db" \
 ADMIN_EMAIL="admin@example.com" \
 ADMIN_PASSWORD="Admin123!" \
 make seed-admin

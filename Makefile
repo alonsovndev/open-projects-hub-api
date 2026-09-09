@@ -34,7 +34,7 @@ help:
 	@echo ""
 	@echo "🚀 Development:"
 	@echo "  make run                Run development server"
-	@echo "  make seed-admin         Create first admin user (requires DATABASE_URL)"
+	@echo "  make seed-admin         Create first admin user (uses APP_ENV config, defaults to .env)"
 	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean              Clean cache and coverage files"
@@ -147,14 +147,9 @@ pre-commit-install:
 run:
 	uvicorn src.app.app:fastapi_app --reload --host 0.0.0.0 --port 8000
 
-# Seed first admin user (requires DATABASE_URL environment variable)
+# Seed first admin user (connects using the same config as `make run`, i.e. APP_ENV from .env)
 seed-admin:
 	@echo "🌱 Creating first admin user..."
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "❌ ERROR: DATABASE_URL environment variable is required"; \
-		echo "Example: DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/dbname make seed-admin"; \
-		exit 1; \
-	fi
 	python3 scripts/seed_admin.py
 
 # Clean cache and coverage files

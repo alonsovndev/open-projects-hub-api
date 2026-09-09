@@ -104,14 +104,22 @@ docker compose exec app alembic upgrade head
 
 ### 5. Create First Admin User
 
+Run the one-shot `seed-admin` compose service (uses the same `.env`/`APP_ENV=container` config as the `app` service, so it always targets the running database):
+
 ```bash
-# Get database connection from docker environment
-docker compose exec app python scripts/seed_admin.py
+docker compose --profile seed run --rm seed-admin
 ```
 
-Or set environment variables:
+Or set custom credentials for that run:
 ```bash
-DATABASE_URL="postgresql+asyncpg://open-projects-hub-admin:PASSWORD@localhost:5432/open-projects-hub-db" \
+ADMIN_EMAIL="admin@yourdomain.com" \
+ADMIN_PASSWORD="SecureAdmin123!" \
+ADMIN_DISPLAY_NAME="System Administrator" \
+docker compose --profile seed run --rm -e ADMIN_EMAIL -e ADMIN_PASSWORD -e ADMIN_DISPLAY_NAME seed-admin
+```
+
+Running outside Docker (e.g. `APP_ENV=local` against a host-exposed Postgres):
+```bash
 ADMIN_EMAIL="admin@yourdomain.com" \
 ADMIN_PASSWORD="SecureAdmin123!" \
 ADMIN_DISPLAY_NAME="System Administrator" \

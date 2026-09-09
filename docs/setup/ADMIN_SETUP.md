@@ -32,9 +32,10 @@ The system supports two types of users:
 
 ### Quick Start
 
+The script connects using the app's own configuration (`src/app/config/config_<APP_ENV>.yml` + `.env`), so it always targets whatever database the app is configured for — no separate connection string needed.
+
 ```bash
 # Using environment variables
-DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/dbname" \
 ADMIN_EMAIL="admin@mycompany.com" \
 ADMIN_PASSWORD="SecurePass123!" \
 ADMIN_DISPLAY_NAME="Main Admin" \
@@ -45,7 +46,6 @@ Or using the script directly:
 
 ```bash
 # Using the script directly
-export DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/dbname"
 export ADMIN_EMAIL="admin@mycompany.com"
 export ADMIN_PASSWORD="SecurePass123!"
 export ADMIN_DISPLAY_NAME="Main Admin"
@@ -57,7 +57,7 @@ python3 scripts/seed_admin.py
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | ✅ Yes | - | PostgreSQL connection string with asyncpg driver |
+| `APP_ENV` | No | `dev` | Selects `config_<APP_ENV>.yml`, same as the running app (`local`, `dev`, `container`, `prod`, `test`) |
 | `ADMIN_EMAIL` | No | `admin@example.com` | Email for the admin user |
 | `ADMIN_PASSWORD` | No | `Admin123!@#` | Password (min 8 chars) |
 | `ADMIN_DISPLAY_NAME` | No | `System Administrator` | Display name |
@@ -68,7 +68,7 @@ python3 scripts/seed_admin.py
 ============================================================
 🌱 Admin User Seed Script
 ============================================================
-Database: localhost:5432/open_projects_hub
+App Environment: local
 Admin Email: admin@mycompany.com
 Admin Name: Main Admin
 ------------------------------------------------------------
@@ -87,18 +87,19 @@ Admin Name: Main Admin
 
 ### Docker Compose Example
 
-If using Docker Compose with the default `compose.yml`:
+The default `compose.yml` includes an opt-in `seed-admin` service (behind the `seed` profile) that runs the script inside the app's own container config (`APP_ENV=container`), so it always talks to the `postgres` service correctly:
 
 ```bash
-# Get DATABASE_URL from compose.yml environment variables
-# Default username: open-projects-hub-admin, database: open-projects-hub-db
-DATABASE_URL="postgresql+asyncpg://open-projects-hub-admin:YOUR_POSTGRES_PASSWORD@localhost:5432/open-projects-hub-db" \
-ADMIN_EMAIL="admin@mycompany.com" \
-ADMIN_PASSWORD="SecureAdmin123!" \
-make seed-admin
+docker compose --profile seed run --rm seed-admin
 ```
 
-**Note:** Replace `YOUR_POSTGRES_PASSWORD` with the `POSTGRES_PASSWORD` value from your `.env` file.
+With custom credentials:
+
+```bash
+ADMIN_EMAIL="admin@mycompany.com" \
+ADMIN_PASSWORD="SecureAdmin123!" \
+docker compose --profile seed run --rm -e ADMIN_EMAIL -e ADMIN_PASSWORD seed-admin
+```
 
 ### Idempotent Behavior
 
@@ -240,8 +241,8 @@ All passwords must meet these requirements:
 
 #### Development
 ```bash
-# .env.development
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/dev_db
+# .env
+APP_ENV=local
 ADMIN_EMAIL=admin@dev.local
 ADMIN_PASSWORD=DevAdmin123!
 ```
@@ -257,12 +258,9 @@ aws secretsmanager get-secret-value --secret-id prod/admin/credentials
 
 ## Troubleshooting
 
-### Error: "DATABASE_URL environment variable is required"
+### Error: "Configuration file not found" / connection refused
 
-**Solution:** Ensure `DATABASE_URL` is set with the correct format:
-```bash
-export DATABASE_URL="postgresql+asyncpg://user:pass@host:port/dbname"
-```
+**Solution:** The script connects using `APP_ENV` (same as the running app). Ensure `APP_ENV` in `.env` matches how you're running Postgres — `local` if Postgres is exposed on `localhost` (e.g. `docker compose up postgres`), or run via `docker compose --profile seed run --rm seed-admin` (`APP_ENV=container`) if the whole stack is containerized.
 
 ### Error: "Admin password must be at least 8 characters long"
 
@@ -291,7 +289,7 @@ chmod +x scripts/seed_admin.py
 
 | Task | Method | Command |
 |------|--------|---------|
-| Create first admin | Seed script | `DATABASE_URL=... ADMIN_EMAIL=... make seed-admin` |
+| Create first admin | Seed script | `ADMIN_EMAIL=... ADMIN_PASSWORD=... make seed-admin` |
 | Create additional admins | API | `POST /v1/users` with `role: "admin"` |
 | Public registration | API | `POST /v1/auth/register` (always creates viewers) |
 

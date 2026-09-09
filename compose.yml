@@ -17,6 +17,23 @@ services:
     networks:
     - open_projects_hub_network
 
+  seed-admin:
+    container_name: open_projects_hub_api_seed_admin
+    build:
+      context: .
+    profiles:
+    - seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+    - .env
+    environment:
+      APP_ENV: container
+    entrypoint: [python, scripts/seed_admin.py]
+    networks:
+    - open_projects_hub_network
+
   postgres:
     image: postgres:15
     container_name: open_projects_hub_api_db
