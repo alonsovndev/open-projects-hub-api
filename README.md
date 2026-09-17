@@ -38,6 +38,32 @@ The API will be available at `http://localhost:8000`
 
 ---
 
+## 📂 Project Structure
+
+```
+src/
+├── app/
+│   ├── features/          # One package per bounded context (auth, clients, dashboard,
+│   │                       # projects, refinement, stories, user)
+│   │   └── <feature>/
+│   │       ├── domain/           # Entities, value objects, repository interfaces, domain exceptions
+│   │       ├── application/      # Use cases, DTOs, mappers
+│   │       ├── infrastructure/   # Repository implementations, ORM models, infra mappers
+│   │       └── presentation/     # FastAPI routes for this feature
+│   ├── shared/             # Cross-feature building blocks (domain/application/infrastructure/
+│   │                       # presentation/logging/persistence) reused across features
+│   ├── config/             # app_config.py, per-environment config_*.yml, paths.py
+│   └── composition/        # Composition root — dependency wiring, one module per feature
+└── tests/                  # Mirrors src/app/ (unit, integration, presentation, domain,
+                             # application, infrastructure)
+```
+
+Every feature follows the same four-layer package structure (domain → application → infrastructure → presentation), enforcing the dependency-inversion rules described in [Clean Architecture](docs/engineering/clean-architecture.md) and [Composition Root](docs/engineering/composition-root.md).
+
+**Import convention**: all internal imports are absolute (`from src.app....`), never relative — enforced by the `known-first-party = ["src"]` isort setting in `pyproject.toml` and checked by `make lint`.
+
+---
+
 ## 🎨 Code Quality
 
 This project uses modern Python code quality tools to ensure clean, consistent, and secure code.
