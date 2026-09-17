@@ -1,5 +1,5 @@
 app:
-  name: App API
+  name: Open Projects Hub API
   version: 1.0.0
 
 jwt:

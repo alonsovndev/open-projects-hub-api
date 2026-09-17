@@ -24,6 +24,12 @@ ENV = os.getenv("APP_ENV", "local")
 config = AppConfig.instance()
 app_name = config.get_config("app.name")
 app_version = config.get_config("app.version")
+app_description = (
+    "REST API for Open Projects Hub — project, client, and story management "
+    "with JWT authentication and role-based access control. See "
+    "[docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/"
+    "blob/main/docs/api/README.md) for auth flows, pagination, and code examples."
+)
 
 
 @asynccontextmanager
@@ -44,7 +50,7 @@ async def lifespan(app: FastAPI):
 
 
 # Initialize FastAPI application
-fastapi_app = FastAPI(title=app_name, version=app_version, lifespan=lifespan)
+fastapi_app = FastAPI(title=app_name, version=app_version, description=app_description, lifespan=lifespan)
 
 # Register correlation ID middleware (must be before app starts)
 fastapi_app.add_middleware(RequestContextMiddleware)

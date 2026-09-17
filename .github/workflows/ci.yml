@@ -161,6 +161,31 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 50
 
+  api-docs:
+    name: API Docs (OpenAPI export)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Export OpenAPI schema
+        env:
+          APP_ENV: local
+          SECRET_KEY: ci-test-secret-key-not-for-production
+        run: make export-openapi
+      - name: Upload OpenAPI schema artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-schema
+          path: docs/api/openapi.json
+          retention-days: 30
+
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest

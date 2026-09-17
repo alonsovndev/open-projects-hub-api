@@ -16,7 +16,8 @@ docs/
 │   ├── README.md                 # API overview
 │   ├── api-contract.md           # Complete API endpoint reference
 │   ├── authentication.md         # Auth endpoints and flows
-│   └── errors.md                 # Error codes and responses
+│   ├── errors.md                 # Error codes and responses
+│   └── openapi.json              # Exported OpenAPI schema (`make export-openapi`)
 ├── engineering/                  # Engineering principles and patterns
 │   ├── README.md                 # Engineering overview
 │   ├── clean-architecture.md     # Clean Architecture guide

@@ -34,6 +34,7 @@ help:
 	@echo ""
 	@echo "🚀 Development:"
 	@echo "  make run                Run development server"
+	@echo "  make export-openapi     Export the live OpenAPI schema to docs/api/openapi.json"
 	@echo "  make seed-admin         Create first admin user (uses APP_ENV config, defaults to .env)"
 	@echo "  make seed-sample-data   Seed realistic sample clients/projects/stories (requires admin user)"
 	@echo ""
@@ -147,6 +148,11 @@ pre-commit-install:
 # Run development server
 run:
 	uvicorn src.app.app:fastapi_app --reload --host 0.0.0.0 --port 8000
+
+# Export the live OpenAPI schema to docs/api/openapi.json (generated from code)
+export-openapi:
+	@echo "📄 Exporting OpenAPI schema..."
+	python3 scripts/export_openapi.py
 
 # Seed first admin user (connects using the same config as `make run`, i.e. APP_ENV from .env)
 seed-admin:

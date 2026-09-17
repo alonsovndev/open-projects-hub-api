@@ -45,6 +45,24 @@ The API will be available at `http://localhost:8000`
 
 ---
 
+## 📖 API Documentation
+
+Swagger UI and ReDoc are generated automatically from route/Pydantic annotations — no hand-written spec to keep in sync. Available in `local`/`container` environments only (disabled elsewhere for security):
+
+- **Swagger UI**: `http://localhost:8000/docs` — browse every endpoint, see request/response schemas, and execute real requests ("Try it out") with a JWT.
+- **ReDoc**: `http://localhost:8000/redoc` — read-only alternative layout.
+- **Raw schema**: `http://localhost:8000/openapi.json`.
+
+To export a static, committable copy of the current schema (e.g. after adding/changing endpoints):
+
+```bash
+make export-openapi   # writes docs/api/openapi.json
+```
+
+Full endpoint reference, auth flows, pagination, filtering, and cURL/Python/JS examples: [docs/api/README.md](docs/api/README.md).
+
+---
+
 ## 📂 Project Structure
 
 ```
