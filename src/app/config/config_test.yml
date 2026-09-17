@@ -23,6 +23,11 @@ logging:
   outputs:
   - type: console
 
+monitoring:
+  # Sentry disabled here by choice — never send test-run noise to Sentry.
+  sentry_dsn: null
+  sentry_traces_sample_rate: 0.1
+
 ai:
   provider: mock    # gemini | mock
   gemini_api_key: !ENV ${GEMINI_API_KEY}

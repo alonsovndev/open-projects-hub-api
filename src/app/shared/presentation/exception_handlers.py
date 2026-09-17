@@ -8,6 +8,7 @@ for validation errors, domain errors, authentication errors, and unexpected exce
 import os
 import traceback
 
+import sentry_sdk
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -237,6 +238,11 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     """
     log.error(f"Unhandled exception: {exc!s}")
     log.error(traceback.format_exc())
+
+    # This handler intercepts the exception before it reaches the ASGI layer,
+    # so Sentry's automatic instrumentation never sees it — capture explicitly.
+    # No-op if sentry_sdk.init() was never called (no SENTRY_DSN configured).
+    sentry_sdk.capture_exception(exc)
 
     # In production, don't expose internal error details
     if ENV in ("prod", "production"):

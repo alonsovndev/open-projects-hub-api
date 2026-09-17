@@ -8,6 +8,7 @@ Request ID and user ID are managed by RequestContextMiddleware
 import time
 from collections.abc import Callable
 
+import sentry_sdk
 from fastapi import Request, Response
 
 from src.app.shared.logging import get_logger, set_user_id
@@ -35,6 +36,9 @@ async def request_logging_middleware(request: Request, call_next: Callable) -> R
     user_id = getattr(request.state, "user_id", None)
     if user_id:
         set_user_id(str(user_id))
+        # Internal ID only (never email/name) — send_default_pii=False in app.py
+        # keeps Sentry from auto-capturing anything more identifying.
+        sentry_sdk.set_user({"id": str(user_id)})
 
     # Log request summary — request_id is in context from RequestContextMiddleware
     log.info(

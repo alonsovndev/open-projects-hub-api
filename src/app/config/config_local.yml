@@ -43,6 +43,12 @@ logging:
   outputs:
   - type: console
 
+monitoring:
+  # Sentry disabled here by choice — console logs are sufficient locally.
+  # Enable by setting sentry_dsn (see config_prod.yml).
+  sentry_dsn: null
+  sentry_traces_sample_rate: 0.1
+
 ai:
   provider: gemini    # gemini | mock
   gemini_api_key: !ENV ${GEMINI_API_KEY}

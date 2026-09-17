@@ -427,6 +427,15 @@ grep "request:abc123def456" logs/app.log
 jq 'select(.request_id == "abc123def456")' logs/app.json
 ```
 
+## Error Tracking (Sentry)
+
+Structured logs (above) cover request/response visibility; unhandled exceptions are additionally captured by Sentry per **ADR-009: Monitoring and Observability Strategy** in the `open-projects-hub-docs` repository (`docs/04-decisions/adr-009-monitoring-observability.md`) — a separate repository, so not linked directly here.
+
+- **Enabling it**: set `monitoring.sentry_dsn` in the relevant `config_<env>.yml` (via the `SENTRY_DSN` env var/secret — see `config_prod.yml`). Every other environment explicitly sets it to `null`; the SDK safely no-ops (no transport, nothing sent) when the DSN is empty/unset, so it's always safe to boot without one.
+- **What's captured**: unhandled exceptions with full stack traces (explicitly forwarded from `generic_exception_handler` in `exception_handlers.py`, since FastAPI's registered handler intercepts them before Sentry's automatic ASGI instrumentation would ever see them), plus request metadata (URL, method) via the FastAPI/Starlette integration, plus user context (internal user ID only — see below) and the same `request_id` used in structured logs, for cross-referencing an error with its log lines.
+- **PII posture**: `send_default_pii=False` — the SDK does not auto-capture request bodies, headers, or IP addresses. `sentry_sdk.set_user({"id": ...})` in `request_logging_middleware.py` sends only the internal user UUID, never email or name.
+- **Sampling**: `monitoring.sentry_traces_sample_rate` (default `0.1`) controls performance-trace volume, to stay within the Sentry Free Developer plan's event limits per ADR-009.
+
 ## References
 
 - Implementation: `src/app/shared/logging/`
@@ -439,3 +448,4 @@ jq 'select(.request_id == "abc123def456")' logs/app.json
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-05-26 | 1.0 | Initial adoption - Phase 1 and Phase 2 complete |
+| 2026-09-17 | 1.1 | Added Sentry error tracking (ADR-009) |
