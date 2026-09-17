@@ -10,7 +10,8 @@ docs/
 ├── DEPLOYMENT.md                  # Production deployment guide
 ├── CODE_QUALITY.md                # Code quality tools and practices
 ├── SETUP_SUMMARY.md               # Installation overview
-├── MIGRATION_GUIDE.md             # Migration guide for breaking changes
+├── DATABASE_MIGRATIONS.md         # Alembic migration & rollback runbook, seed data
+├── MIGRATION_GUIDE.md             # Code quality standards migration guide (Ruff, not DB)
 ├── api/                          # API documentation
 │   ├── README.md                 # API overview
 │   ├── api-contract.md           # Complete API endpoint reference
@@ -44,6 +45,7 @@ docs/
 - [Admin Setup Guide](./setup/ADMIN_SETUP.md) - Comprehensive guide for setting up the admin environment
 - [Deployment Guide](./DEPLOYMENT.md) - Production deployment with Docker
 - [Installation Summary](./SETUP_SUMMARY.md) - Overview of the installation process
+- [Database Migrations](./DATABASE_MIGRATIONS.md) - Alembic commands, rollback procedure, backward-compatibility checklist, seed data
 - [API Documentation](./api/README.md) - API endpoints, requests, and responses
 
 ### Engineering

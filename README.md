@@ -26,7 +26,13 @@ ADMIN_PASSWORD="Admin123!" \
 make seed-admin
 ```
 
-### 5. Start API
+### 5. (Optional) Seed Sample Data
+```bash
+make seed-sample-data
+```
+Idempotent — populates 3 realistic clients, 6 projects, and ~20 stories with varied statuses.
+
+### 6. Start API
 ```bash
 make run
 ```
@@ -34,6 +40,7 @@ make run
 The API will be available at `http://localhost:8000`
 
 📖 **Full setup guide:** [docs/setup/ADMIN_SETUP.md](docs/setup/ADMIN_SETUP.md)
+📖 **Database migrations & rollback runbook:** [docs/DATABASE_MIGRATIONS.md](docs/DATABASE_MIGRATIONS.md)
 📖 **Comprehensive project documentation:** [docs/README.md](docs/README.md)
 
 ---

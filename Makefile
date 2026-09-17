@@ -35,6 +35,7 @@ help:
 	@echo "🚀 Development:"
 	@echo "  make run                Run development server"
 	@echo "  make seed-admin         Create first admin user (uses APP_ENV config, defaults to .env)"
+	@echo "  make seed-sample-data   Seed realistic sample clients/projects/stories (requires admin user)"
 	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean              Clean cache and coverage files"
@@ -151,6 +152,11 @@ run:
 seed-admin:
 	@echo "🌱 Creating first admin user..."
 	python3 scripts/seed_admin.py
+
+# Seed realistic sample clients/projects/stories (requires an existing admin user)
+seed-sample-data:
+	@echo "🌱 Seeding sample clients, projects, and stories..."
+	python3 scripts/seed_sample_data.py
 
 # Clean cache and coverage files
 clean:
