@@ -7,13 +7,18 @@ Tests in this module use the @pytest.mark.e2e marker and require a running datab
 
 import asyncio
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from src.app.config.app_config import AppConfig
-from src.app.shared.persistence import Base
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @pytest.fixture(scope="session")
@@ -35,9 +40,9 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
 
     Uses test configuration and creates a fresh database for each test session.
     """
-    # Load test configuration
-    config = AppConfig.instance(env="test")
-    postgres_config = config.get_config("postgres")
+    # Load test configuration (reads APP_ENV from the environment; set APP_ENV=test)
+    config = AppConfig.instance()
+    postgres_config = config.get_config("persistence.postgres", {}) or config.get_config("postgres", {})
 
     # Build database URL
     db_username = postgres_config.get("username", "open-projects-hub-admin")
@@ -57,15 +62,17 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
         pool_pre_ping=True,
     )
 
-    # Create all tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Build schema via real Alembic migrations (not Base.metadata.create_all):
+    # several columns use postgresql.ENUM(..., create_type=False), which relies
+    # on Alembic having already created the enum type — metadata.create_all()
+    # silently skips it, causing "type ... does not exist" at table creation.
+    alembic_cfg = AlembicConfig(str(REPO_ROOT / "alembic.ini"))
+    await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
 
     yield engine
 
-    # Cleanup: drop all tables after test session
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # Cleanup: roll back all migrations after the test session
+    await asyncio.to_thread(command.downgrade, alembic_cfg, "base")
 
     await engine.dispose()
 

@@ -4,6 +4,7 @@ from datetime import date, datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
@@ -15,8 +16,16 @@ from src.app.shared.domain.value_objects.entity_id import EntityId
 
 @pytest.fixture
 def mock_session():
-    """Create mock async session."""
-    return AsyncMock()
+    """Create mock async session.
+
+    spec=AsyncSession ensures sync methods (e.g. add()) are mocked as
+    regular MagicMocks, not AsyncMocks — an unspec'd AsyncMock() makes
+    every attribute async, so calling a real sync method the way
+    production code does (without awaiting it) leaves an unawaited
+    coroutine behind, which pyproject.toml's `filterwarnings = ["error"]`
+    turns into a test failure.
+    """
+    return AsyncMock(spec=AsyncSession)
 
 
 @pytest.fixture

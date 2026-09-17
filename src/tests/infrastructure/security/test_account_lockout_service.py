@@ -57,7 +57,7 @@ class TestFailedAttemptTracking:
         """Test that multiple failed attempts increment counter."""
         user = "user@example.com"
 
-        for i in range(3):
+        for _i in range(3):
             await lockout_service.record_failed_attempt(user)
 
         attempts = await lockout_service.get_failed_attempts(user)
@@ -99,7 +99,7 @@ class TestAccountLockout:
         assert not await lockout_service.is_locked_out(user)
 
         # Reach threshold (5 attempts)
-        for i in range(5):
+        for _i in range(5):
             await lockout_service.record_failed_attempt(user)
 
         # Should be locked
@@ -111,7 +111,7 @@ class TestAccountLockout:
         user = "user@example.com"
 
         # 4 attempts (below threshold of 5)
-        for i in range(4):
+        for _i in range(4):
             await lockout_service.record_failed_attempt(user)
 
         # Should not be locked
@@ -123,7 +123,7 @@ class TestAccountLockout:
         user = "user@example.com"
 
         # Trigger lockout
-        for i in range(5):
+        for _i in range(5):
             await lockout_service.record_failed_attempt(user)
 
         info = await lockout_service.get_lockout_info(user)
@@ -142,7 +142,7 @@ class TestAccountLockout:
         user = "user@example.com"
 
         # 3 attempts (not locked)
-        for i in range(3):
+        for _i in range(3):
             await lockout_service.record_failed_attempt(user)
 
         info = await lockout_service.get_lockout_info(user)
@@ -163,7 +163,7 @@ class TestLockoutExpiration:
 
         # Trigger lockout
         with freeze_time("2026-05-11 12:00:00"):
-            for i in range(5):
+            for _i in range(5):
                 await lockout_service.record_failed_attempt(user)
             assert await lockout_service.is_locked_out(user)
 
@@ -179,7 +179,7 @@ class TestLockoutExpiration:
 
         # Trigger lockout
         with freeze_time("2026-05-11 12:00:00"):
-            for i in range(5):
+            for _i in range(5):
                 await lockout_service.record_failed_attempt(user)
             assert await lockout_service.is_locked_out(user)
 
@@ -215,7 +215,7 @@ class TestProgressiveLockout:
 
         with freeze_time("2026-05-11 12:00:00"):
             # 5 attempts
-            for i in range(5):
+            for _i in range(5):
                 await lockout_service.record_failed_attempt(user)
 
             info = await lockout_service.get_lockout_info(user)
@@ -229,7 +229,7 @@ class TestProgressiveLockout:
 
         with freeze_time("2026-05-11 12:00:00"):
             # 10 attempts
-            for i in range(10):
+            for _i in range(10):
                 await lockout_service.record_failed_attempt(user)
 
             info = await lockout_service.get_lockout_info(user)
@@ -243,7 +243,7 @@ class TestProgressiveLockout:
 
         with freeze_time("2026-05-11 12:00:00"):
             # 15 attempts
-            for i in range(15):
+            for _i in range(15):
                 await lockout_service.record_failed_attempt(user)
 
             info = await lockout_service.get_lockout_info(user)
@@ -257,7 +257,7 @@ class TestProgressiveLockout:
 
         with freeze_time("2026-05-11 12:00:00"):
             # 20 attempts
-            for i in range(20):
+            for _i in range(20):
                 await lockout_service.record_failed_attempt(user)
 
             info = await lockout_service.get_lockout_info(user)
@@ -271,7 +271,7 @@ class TestProgressiveLockout:
 
         with freeze_time("2026-05-11 12:00:00"):
             # 20 attempts (would be 120 min with progressive)
-            for i in range(20):
+            for _i in range(20):
                 await lockout_service_no_progressive.record_failed_attempt(user)
 
             info = await lockout_service_no_progressive.get_lockout_info(user)
@@ -288,7 +288,7 @@ class TestManualLockoutClear:
         user = "user@example.com"
 
         # Trigger lockout
-        for i in range(5):
+        for _i in range(5):
             await lockout_service.record_failed_attempt(user)
         assert await lockout_service.is_locked_out(user)
 
@@ -315,7 +315,7 @@ class TestMultipleUsers:
         user2 = "user2@example.com"
 
         # Lock user1
-        for i in range(5):
+        for _i in range(5):
             await lockout_service.record_failed_attempt(user1)
 
         # user1 locked, user2 not
@@ -329,7 +329,7 @@ class TestMultipleUsers:
         user2 = "user2@example.com"
 
         # Record attempts for both
-        for i in range(3):
+        for _i in range(3):
             await lockout_service.record_failed_attempt(user1)
             await lockout_service.record_failed_attempt(user2)
 
@@ -351,11 +351,11 @@ class TestGetAllLockedAccounts:
         not_locked_user = "notlocked@example.com"
 
         # Lock one user
-        for i in range(5):
+        for _i in range(5):
             await lockout_service.record_failed_attempt(locked_user)
 
         # Not locked user (only 3 attempts)
-        for i in range(3):
+        for _i in range(3):
             await lockout_service.record_failed_attempt(not_locked_user)
 
         locked_accounts = await lockout_service.get_all_locked_accounts()

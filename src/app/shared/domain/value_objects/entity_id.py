@@ -19,8 +19,8 @@ class EntityId:
     def from_string(cls, entity_id: str) -> "EntityId":
         try:
             return cls(UUID(entity_id))
-        except ValueError:
-            raise ValueError(f"Invalid UUID format: {entity_id}")
+        except ValueError as err:
+            raise ValueError(f"Invalid UUID format: {entity_id}") from err
 
     def __str__(self) -> str:
         return str(self.value)

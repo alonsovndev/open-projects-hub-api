@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 
@@ -31,4 +30,4 @@ class Paths:
         """
         required_dirs = [Paths.LOGS_DIR, Paths.LOCAL_STORAGE_DIR]
         for directory in required_dirs:
-            os.makedirs(directory, exist_ok=True)
+            directory.mkdir(parents=True, exist_ok=True)

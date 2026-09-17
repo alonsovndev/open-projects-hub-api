@@ -36,8 +36,7 @@ class PasswordHandler:
                 bcrypt.gensalt(),
             ).decode("utf-8")
 
-        password_hash = await asyncio.to_thread(_hash)
-        return password_hash
+        return await asyncio.to_thread(_hash)
 
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -61,8 +60,7 @@ class PasswordHandler:
                     hashed_password.encode("utf-8"),
                 )
 
-            result = await asyncio.to_thread(_verify)
-            return result
+            return await asyncio.to_thread(_verify)
         except Exception as e:
             log.error(f"Error verifying password: {e!s}")
             return False

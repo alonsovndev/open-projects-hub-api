@@ -8,9 +8,13 @@ jwt:
   access_token_expire_minutes: 1440
 
 persistence:
-  driver: sqlite
-  sqlite:
-    db_path: test.db
+  driver: postgresql
+  postgres:
+    username: open-projects-hub-admin
+    password: test_password
+    host: localhost
+    port: 5432
+    dbname: open-projects-hub-db
     echo: false
 
 logging:

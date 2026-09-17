@@ -8,6 +8,7 @@ from pyaml_env import parse_config
 
 from src.app.config.paths import Paths
 
+
 log = logging.getLogger(__name__)
 
 APP_ENV = "APP_ENV"

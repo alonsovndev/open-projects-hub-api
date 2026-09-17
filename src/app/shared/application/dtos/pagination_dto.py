@@ -4,7 +4,7 @@ Shared pagination models for API responses.
 Provides standard pagination envelope structure for list endpoints.
 """
 
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 T = TypeVar("T")
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """
     Standard pagination envelope for list endpoints.
 
