@@ -143,6 +143,11 @@ def configure_cors(app) -> None:
     config = AppConfig.instance()
 
     cors_origins = get_allowed_cors_origins()
+    # Optional, local-dev-only convenience: Vite picks the next free port
+    # when the default is busy (5173 -> 5174 -> ...), so a fixed exact-match
+    # origin list breaks every time that happens. Only config_local.yml sets
+    # this; dev/container/prod keep the exact-match `cors.origins` list.
+    cors_origin_regex = config.get_config("cors.origin_regex", None)
     cors_allow_credentials = config.get_config("cors.allow_credentials", False)
     cors_allow_methods = config.get_config("cors.allow_methods", ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
     cors_allow_headers = config.get_config("cors.allow_headers", ["Authorization", "Content-Type", "Accept"])
@@ -150,6 +155,7 @@ def configure_cors(app) -> None:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
+        allow_origin_regex=cors_origin_regex,
         allow_credentials=cors_allow_credentials,
         allow_methods=cors_allow_methods,
         allow_headers=cors_allow_headers,

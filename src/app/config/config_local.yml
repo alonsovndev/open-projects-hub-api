@@ -10,6 +10,10 @@ jwt:
 cors:
   origins:
   - http://localhost:5173
+  # Local-dev convenience: Vite falls back to the next free port (5174,
+  # 5175, ...) when 5173 is busy. Allows localhost/127.0.0.1 on any port
+  # so that doesn't break CORS. Not set in dev/container/prod.
+  origin_regex: "http://(localhost|127\\.0\\.0\\.1):\\d+"
   allow_credentials: true
   allow_methods:
   - GET
