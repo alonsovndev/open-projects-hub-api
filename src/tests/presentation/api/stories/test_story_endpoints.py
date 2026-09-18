@@ -6,18 +6,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
-
-
-@pytest.mark.integration
-@pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(fastapi_app)
 
 
 @pytest.fixture

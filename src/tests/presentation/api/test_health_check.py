@@ -4,17 +4,6 @@ Tests for health check endpoints (combined, liveness, and readiness).
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-from fastapi.testclient import TestClient
-
-from src.app.app import fastapi_app
-
-
-@pytest.fixture
-def client():
-    """Create a test client."""
-    return TestClient(fastapi_app)
-
 
 class TestHealthCheck:
     """Test combined health check endpoint (legacy)."""

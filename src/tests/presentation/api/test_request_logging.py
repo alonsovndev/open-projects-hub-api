@@ -2,17 +2,6 @@
 Tests for request logging middleware.
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
-from src.app.app import fastapi_app
-
-
-@pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(fastapi_app)
-
 
 class TestRequestLoggingMiddleware:
     """Test suite for request logging middleware."""

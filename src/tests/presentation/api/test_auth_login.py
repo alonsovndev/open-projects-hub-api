@@ -2,9 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from src.app.app import fastapi_app
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
@@ -15,11 +13,6 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 def _hash_password_sync(password: str) -> str:
     """Helper to hash password synchronously for test fixtures."""
     return asyncio.run(PasswordHandler.hash_password(password))
-
-
-@pytest.fixture
-def client():
-    return TestClient(fastapi_app)
 
 
 @pytest.fixture

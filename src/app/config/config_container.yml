@@ -7,6 +7,22 @@ jwt:
   algorithm: HS256
   access_token_expire_minutes: 15
 
+cors:
+  origins:
+  - http://localhost:5173
+  allow_credentials: true
+  allow_methods:
+  - GET
+  - POST
+  - PUT
+  - PATCH
+  - DELETE
+  - OPTIONS
+  allow_headers:
+  - Authorization
+  - Content-Type
+  - Accept
+
 persistence:
   driver: postgresql
   postgres:

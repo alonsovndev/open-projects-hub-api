@@ -7,17 +7,10 @@ Tests POST /v1/users/me/password.
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
-
-
-@pytest.fixture
-def client():
-    return TestClient(fastapi_app)
 
 
 @pytest.fixture

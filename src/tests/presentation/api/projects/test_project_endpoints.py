@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.app import fastapi_app
 from src.app.config.app_config import AppConfig
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
@@ -14,13 +13,6 @@ from src.app.features.projects.domain.value_objects.project_priority import Proj
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
-
-
-@pytest.mark.integration
-@pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(fastapi_app)
 
 
 @pytest.fixture

@@ -2,16 +2,9 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from src.app.app import fastapi_app
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
-
-
-@pytest.fixture
-def client():
-    return TestClient(fastapi_app)
 
 
 @pytest.fixture
