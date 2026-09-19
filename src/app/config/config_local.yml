@@ -1,0 +1,62 @@
+app:
+  name: Open Projects Hub API
+  version: 1.0.0
+
+jwt:
+  secret_key: !ENV ${SECRET_KEY}
+  algorithm: HS256
+  access_token_expire_minutes: 15  # Reduced from 1440 (24h) to 15min for improved security
+
+cors:
+  origins:
+  - http://localhost:5173
+  # Local-dev convenience: Vite falls back to the next free port (5174,
+  # 5175, ...) when 5173 is busy. Allows localhost/127.0.0.1 on any port
+  # so that doesn't break CORS. Not set in dev/container/prod.
+  origin_regex: "http://(localhost|127\\.0\\.0\\.1):\\d+"
+  allow_credentials: true
+  allow_methods:
+  - GET
+  - POST
+  - PUT
+  - PATCH
+  - DELETE
+  - OPTIONS
+  allow_headers:
+  - Authorization
+  - Content-Type
+  - Accept
+
+persistence:
+  driver: postgresql
+  postgres:
+    username: open-projects-hub-admin
+    password: !ENV ${POSTGRES_PASSWORD}
+    host: localhost
+    port: 5432
+    dbname: open-projects-hub-db
+    echo: true
+    pool_size: 10
+    max_overflow: 10
+    pool_timeout: 30
+    pool_pre_ping: true
+
+logging:
+  level: DEBUG
+  format: text
+  outputs:
+  - type: console
+
+monitoring:
+  # Sentry disabled here by choice — console logs are sufficient locally.
+  # Enable by setting sentry_dsn (see config_prod.yml).
+  sentry_dsn: null
+  sentry_traces_sample_rate: 0.1
+
+ai:
+  provider: gemini    # gemini | mock
+  gemini_api_key: !ENV ${GEMINI_API_KEY}
+  gemini_model: gemini-2.5-flash
+
+project_limits:
+  max_active_per_admin: 3

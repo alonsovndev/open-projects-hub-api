@@ -1,0 +1,58 @@
+app:
+  name: Open Projects Hub API
+  version: 1.0.0
+
+jwt:
+  secret_key: !ENV ${SECRET_KEY}
+  algorithm: HS256
+  access_token_expire_minutes: 15
+
+cors:
+  origins:
+  - !ENV ${CORS_ORIGINS:http://localhost:5173}
+  allow_credentials: true
+  allow_methods:
+  - GET
+  - POST
+  - PUT
+  - PATCH
+  - DELETE
+  - OPTIONS
+  allow_headers:
+  - Authorization
+  - Content-Type
+  - Accept
+
+persistence:
+  driver: postgresql
+  postgres:
+    username: open-projects-hub-admin
+    password: !ENV ${POSTGRES_PASSWORD}
+    host: dev-host
+    port: 5432
+    dbname: open-projects-hub-db
+    echo: false
+    pool_size: 10
+    max_overflow: 10
+    pool_timeout: 30
+    pool_pre_ping: true
+
+logging:
+  level: INFO
+  format: json
+  outputs:
+  - type: console
+
+monitoring:
+  # Sentry disabled here by choice — reviewing via console/CloudWatch logs
+  # for this environment. Enable by setting sentry_dsn (see config_prod.yml).
+  sentry_dsn: null
+  sentry_traces_sample_rate: 0.1
+
+ai:
+  provider: gemini    # gemini
+  gemini_api_key: !ENV ${GEMINI_API_KEY}
+  gemini_model: gemini-2.5-flash
+
+project_limits:
+  max_active_per_admin: 3

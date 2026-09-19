@@ -1,0 +1,144 @@
+# Pre-commit hooks for code quality and consistency
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3.12
+
+repos:
+  # Ruff - Fast Python linter and formatter (replaces black, isort, flake8)
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.8.4
+  hooks:
+      # Run the linter
+  - id: ruff
+    name: ruff lint
+    args: [--fix]
+    types_or: [python, pyi]
+
+      # Run the formatter
+  - id: ruff-format
+    name: ruff format
+    types_or: [python, pyi]
+
+  # Python-specific hooks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+      # General file checks
+  - id: trailing-whitespace
+    name: trim trailing whitespace
+    args: [--markdown-linebreak-ext=md]
+  - id: end-of-file-fixer
+    name: fix end of files
+  - id: check-yaml
+    name: check yaml syntax
+    exclude: ^src/app/config/config_.*\.yml$
+  - id: check-json
+    name: check json syntax
+  - id: check-toml
+    name: check toml syntax
+  - id: check-added-large-files
+    name: check for large files
+    args: [--maxkb=1000]
+
+      # Python-specific checks
+  - id: check-ast
+    name: check python ast
+  - id: check-builtin-literals
+    name: check builtin type constructor use
+  - id: check-docstring-first
+    name: check docstring is first
+  - id: debug-statements
+    name: check for debugger imports
+  - id: name-tests-test
+    name: check test naming
+    args: [--pytest-test-first]
+    exclude: ^src/tests/conftest\.py$
+
+      # Merge conflict and case sensitivity
+  - id: check-merge-conflict
+    name: check for merge conflicts
+  - id: check-case-conflict
+    name: check for case conflicts
+
+  # Security - Bandit
+- repo: https://github.com/PyCQA/bandit
+  rev: 1.8.0
+  hooks:
+  - id: bandit
+    name: bandit security linter
+    args: [-c, pyproject.toml]
+    additional_dependencies: ['bandit[toml]']
+    exclude: ^src/tests/
+
+  # Type checking - MyPy (Optional - uncomment to enable)
+  # Note: Can be slow on first run, requires type stubs for dependencies
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.14.0
+  hooks:
+  - id: mypy
+    name: mypy type checker
+    additional_dependencies:
+    - types-PyYAML
+    - types-python-dateutil
+    - types-pytz
+    - pydantic
+    args: [--config-file=pyproject.toml]
+    exclude: ^(alembic/|src/tests/)
+
+  # YAML formatting
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.14.0
+  hooks:
+  - id: pretty-format-yaml
+    name: format yaml files
+    args: [--autofix, --indent, '2']
+
+  # Dockerfile linting
+- repo: https://github.com/hadolint/hadolint
+  rev: v2.12.0
+  hooks:
+  - id: hadolint-docker
+    name: lint dockerfile
+
+  # Commit message validation (conventional commits)
+- repo: https://github.com/compilerla/conventional-pre-commit
+  rev: v3.6.0
+  hooks:
+  - id: conventional-pre-commit
+    name: validate commit message
+    stages: [commit-msg]
+    args: [--strict]
+
+# Global exclusions
+exclude: |
+  (?x)^(
+      \.git/|
+      \.venv/|
+      venv/|
+      __pycache__/|
+      \.pytest_cache/|
+      \.ruff_cache/|
+      htmlcov/|
+      \.coverage|
+      alembic/versions/.*\.py|
+      .*\.egg-info/|
+      dist/|
+      build/
+  )$
+
+# Fail fast on first error
+fail_fast: false
+
+# CI-specific configuration
+ci:
+  autofix_commit_msg: |
+    style: auto-fix pre-commit hooks
+
+    [skip ci]
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: 'chore: update pre-commit hooks'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

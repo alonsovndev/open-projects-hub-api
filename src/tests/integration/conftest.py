@@ -1,0 +1,129 @@
+"""
+Database integration test fixtures and configuration.
+
+Provides fixtures for running integration tests against a real PostgreSQL database.
+Tests in this module use the @pytest.mark.e2e marker and require a running database.
+"""
+
+import asyncio
+from collections.abc import AsyncGenerator
+from pathlib import Path
+
+import pytest
+from alembic import command
+from alembic.config import Config as AlembicConfig
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
+from src.app.config.app_config import AppConfig
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """
+    Create event loop for async tests.
+
+    Session-scoped to allow sharing database connections across tests.
+    """
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="session")
+async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
+    """
+    Create async database engine for integration tests.
+
+    Uses test configuration and creates a fresh database for each test session.
+    """
+    # Load test configuration (reads APP_ENV from the environment; set APP_ENV=test)
+    config = AppConfig.instance()
+    postgres_config = config.get_config("persistence.postgres", {}) or config.get_config("postgres", {})
+
+    # Build database URL
+    db_username = postgres_config.get("username", "open-projects-hub-admin")
+    db_password = postgres_config.get("password", "test_password")
+    db_host = postgres_config.get("host", "localhost")
+    db_port = postgres_config.get("port", 5432)
+    db_name = postgres_config.get("dbname", "open-projects-hub-db")
+
+    db_url = f"postgresql+asyncpg://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+    # Create engine with test-optimized settings
+    engine = create_async_engine(
+        db_url,
+        echo=False,  # Reduce noise in test output
+        pool_size=5,
+        max_overflow=5,
+        pool_pre_ping=True,
+    )
+
+    # Build schema via real Alembic migrations (not Base.metadata.create_all):
+    # several columns use postgresql.ENUM(..., create_type=False), which relies
+    # on Alembic having already created the enum type — metadata.create_all()
+    # silently skips it, causing "type ... does not exist" at table creation.
+    alembic_cfg = AlembicConfig(str(REPO_ROOT / "alembic.ini"))
+    await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
+
+    yield engine
+
+    # Cleanup: roll back all migrations after the test session
+    await asyncio.to_thread(command.downgrade, alembic_cfg, "base")
+
+    await engine.dispose()
+
+
+@pytest.fixture(scope="function")
+async def db_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Provide clean database session for each test.
+
+    Each test gets a fresh transaction that is rolled back after the test,
+    ensuring test isolation without recreating the entire database.
+    """
+    # Create session factory
+    async_session_maker = async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    # Start a transaction
+    async with async_session_maker() as session, session.begin():
+        yield session
+        # Rollback happens automatically when exiting context
+
+
+@pytest.fixture(scope="function")
+async def clean_db(db_session: AsyncSession) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Provide completely clean database for tests that need guaranteed isolation.
+
+    Truncates all tables before yielding the session.
+    Use this fixture when test isolation via transactions isn't sufficient.
+    """
+    # Truncate all tables (except alembic_version)
+    await db_session.execute(
+        text("""
+            DO $$
+            DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = 'public'
+                    AND tablename != 'alembic_version'
+                ) LOOP
+                    EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """)
+    )
+    await db_session.commit()
+
+    yield db_session

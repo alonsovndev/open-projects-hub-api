@@ -1,0 +1,22 @@
+version: 1
+
+project:
+  name: open-projects-hub-api
+  root: /Users/alonso/Documents/Workspace/NaranjoSolutions/OpenProjectsHub/open-projects-hub-api
+
+defaults:
+  agent: orchestrator
+  subagent: bug-hunter
+
+paths:
+  agents: ./.opencode/agents
+  subagents: ./.opencode/subagents
+  skills: ./.opencode/skills
+
+workflow:
+  require_tests_for_changes: true
+  require_security_review_for_auth: true
+  review_style: bug-risk-regression
+  orchestration_router: /Users/alonso/.config/opencode/orchestration/router.md
+  plan_mode: /Users/alonso/.config/opencode/orchestration/modes/plan-mode.md
+  build_mode: /Users/alonso/.config/opencode/orchestration/modes/build-mode.md
