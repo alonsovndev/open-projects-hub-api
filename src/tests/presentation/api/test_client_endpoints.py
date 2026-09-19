@@ -9,7 +9,10 @@ from fastapi.testclient import TestClient
 from src.app.config.app_config import AppConfig
 from src.app.features.clients.application.dtos.client_dto import ClientResponse, PaginatedClientsResponse
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
-from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
+from src.app.features.clients.domain.exceptions.client_exceptions import (
+    ClientHasActiveProjectsError,
+    ClientNotFoundError,
+)
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
@@ -348,6 +351,22 @@ class TestDeleteClientEndpoint:
             )
 
         assert response.status_code == 404
+
+    def test_delete_client_conflict_when_active_projects_exist(self, client: TestClient, admin_token: str):
+        """Test deleting a client with active projects returns 409."""
+        with patch(
+            "src.app.features.clients.application.use_cases.delete_client.DeleteClientUseCase.execute",
+            new=AsyncMock(
+                side_effect=ClientHasActiveProjectsError("550e8400-e29b-41d4-a716-446655440200"),
+            ),
+        ):
+            response = client.delete(
+                "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 409
+        assert "active projects" in response.json()["detail"]
 
 
 class TestCamelCaseJsonSerialization:

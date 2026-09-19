@@ -123,6 +123,27 @@ class TestCreateProjectEndpoint:
 
         assert response.status_code == 403
 
+    def test_create_project_conflict_at_active_limit(self, client: TestClient, admin_token: str, mock_project_response):
+        """Test creating project at active-project limit returns 409."""
+        from src.app.features.projects.domain.exceptions.project_exceptions import ActiveProjectLimitExceededError
+
+        with patch(
+            "src.app.features.projects.application.use_cases.create_project.CreateProjectUseCase.execute",
+            new=AsyncMock(side_effect=ActiveProjectLimitExceededError(3)),
+        ):
+            response = client.post(
+                "/v1/projects",
+                json={
+                    "name": "Test Project",
+                    "code": "TEST",
+                    "clientId": "550e8400-e29b-41d4-a716-446655440003",
+                },
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 409
+        assert "limit" in response.json()["detail"]
+
     def test_create_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test creating project as viewer returns 403."""
         response = client.post(
@@ -169,6 +190,36 @@ class TestListProjectsEndpoint:
         response = client.get("/v1/projects")
 
         assert response.status_code == 403
+
+    def test_list_projects_accepts_filter_parameters(self, client: TestClient, admin_token: str, mock_project_response):
+        """Test listing projects forwards filter query parameters."""
+        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+
+        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_project_response])
+
+        with patch(
+            "src.app.features.projects.application.use_cases.list_projects.ListProjectsUseCase.execute",
+            new=AsyncMock(return_value=paginated_response),
+        ) as mock_execute:
+            response = client.get(
+                "/v1/projects",
+                params={
+                    "status": "active",
+                    "clientId": "550e8400-e29b-41d4-a716-446655440003",
+                    "createdFrom": "2026-01-01T00:00:00Z",
+                    "createdTo": "2026-06-30T23:59:59Z",
+                    "search": "payroll",
+                },
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 200
+        _, kwargs = mock_execute.call_args
+        assert kwargs["status"] == "active"
+        assert kwargs["client_id"] == "550e8400-e29b-41d4-a716-446655440003"
+        assert kwargs["created_from"] is not None
+        assert kwargs["created_to"] is not None
+        assert kwargs["search"] == "payroll"
 
 
 class TestGetProjectByIdEndpoint:
@@ -256,7 +307,7 @@ class TestDeleteProjectEndpoint:
         """Test deleting project returns 204."""
         with patch(
             "src.app.features.projects.application.use_cases.delete_project.DeleteProjectUseCase.execute",
-            new=AsyncMock(return_value=True),
+            new=AsyncMock(return_value=None),
         ):
             response = client.delete(
                 "/v1/projects/550e8400-e29b-41d4-a716-446655440100",
@@ -265,10 +316,139 @@ class TestDeleteProjectEndpoint:
 
         assert response.status_code == 204
 
+    def test_delete_project_not_found(self, client: TestClient, admin_token: str):
+        """Test deleting non-existent project returns 404."""
+        from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+
+        with patch(
+            "src.app.features.projects.application.use_cases.delete_project.DeleteProjectUseCase.execute",
+            new=AsyncMock(side_effect=ProjectNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
+        ):
+            response = client.delete(
+                "/v1/projects/550e8400-e29b-41d4-a716-446655440999",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 404
+
     def test_delete_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test deleting project as viewer returns 403."""
         response = client.delete(
             "/v1/projects/550e8400-e29b-41d4-a716-446655440001",
+            headers={"Authorization": f"Bearer {viewer_token}"},
+        )
+
+        assert response.status_code == 403
+
+
+class TestArchiveProjectEndpoint:
+    """Test POST /v1/projects/{project_id}/archive endpoint."""
+
+    def test_archive_project_success(self, client: TestClient, admin_token: str, mock_project_response):
+        """Test archiving project returns 200 with archived status."""
+        archived_response = ProjectResponse(
+            id=mock_project_response.id,
+            name=mock_project_response.name,
+            code=mock_project_response.code,
+            description=mock_project_response.description,
+            created_by=mock_project_response.created_by,
+            client_id=mock_project_response.client_id,
+            client_name=mock_project_response.client_name,
+            status="archived",
+            priority=mock_project_response.priority,
+            start_date=mock_project_response.start_date,
+            end_date=mock_project_response.end_date,
+            created_at=mock_project_response.created_at,
+            updated_at=datetime.now(tz=UTC).isoformat(),
+        )
+        with patch(
+            "src.app.features.projects.application.use_cases.archive_project.ArchiveProjectUseCase.execute",
+            new=AsyncMock(return_value=archived_response),
+        ):
+            response = client.post(
+                "/v1/projects/550e8400-e29b-41d4-a716-446655440100/archive",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "archived"
+
+    def test_archive_project_not_found(self, client: TestClient, admin_token: str):
+        """Test archiving non-existent project returns 404."""
+        from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+
+        with patch(
+            "src.app.features.projects.application.use_cases.archive_project.ArchiveProjectUseCase.execute",
+            new=AsyncMock(side_effect=ProjectNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
+        ):
+            response = client.post(
+                "/v1/projects/550e8400-e29b-41d4-a716-446655440999/archive",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 404
+
+    def test_archive_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
+        """Test archiving project as viewer returns 403."""
+        response = client.post(
+            "/v1/projects/550e8400-e29b-41d4-a716-446655440100/archive",
+            headers={"Authorization": f"Bearer {viewer_token}"},
+        )
+
+        assert response.status_code == 403
+
+
+class TestReactivateProjectEndpoint:
+    """Test POST /v1/projects/{project_id}/reactivate endpoint."""
+
+    def test_reactivate_project_success(self, client: TestClient, admin_token: str, mock_project_response):
+        """Test reactivating project returns 200 with active status."""
+        reactivated_response = ProjectResponse(
+            id=mock_project_response.id,
+            name=mock_project_response.name,
+            code=mock_project_response.code,
+            description=mock_project_response.description,
+            created_by=mock_project_response.created_by,
+            client_id=mock_project_response.client_id,
+            client_name=mock_project_response.client_name,
+            status="active",
+            priority=mock_project_response.priority,
+            start_date=mock_project_response.start_date,
+            end_date=mock_project_response.end_date,
+            created_at=mock_project_response.created_at,
+            updated_at=datetime.now(tz=UTC).isoformat(),
+        )
+        with patch(
+            "src.app.features.projects.application.use_cases.reactivate_project.ReactivateProjectUseCase.execute",
+            new=AsyncMock(return_value=reactivated_response),
+        ):
+            response = client.post(
+                "/v1/projects/550e8400-e29b-41d4-a716-446655440100/reactivate",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "active"
+
+    def test_reactivate_project_not_found(self, client: TestClient, admin_token: str):
+        """Test reactivating non-existent project returns 404."""
+        from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+
+        with patch(
+            "src.app.features.projects.application.use_cases.reactivate_project.ReactivateProjectUseCase.execute",
+            new=AsyncMock(side_effect=ProjectNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
+        ):
+            response = client.post(
+                "/v1/projects/550e8400-e29b-41d4-a716-446655440999/reactivate",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+        assert response.status_code == 404
+
+    def test_reactivate_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
+        """Test reactivating project as viewer returns 403."""
+        response = client.post(
+            "/v1/projects/550e8400-e29b-41d4-a716-446655440100/reactivate",
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
 

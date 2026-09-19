@@ -31,6 +31,8 @@ class TestCreateProjectUseCase:
         created_by = EntityId.generate()
         client_id = EntityId.generate()
 
+        mock_project_repo.count_active_by_user.return_value = 0
+
         # Mock client lookup
         mock_client = AsyncMock()
         mock_client.name = "Test Client"
@@ -82,6 +84,8 @@ class TestCreateProjectUseCase:
         client_id = EntityId.generate()
         start = date(2026, 5, 1)
         end = date(2026, 12, 31)
+
+        mock_project_repo.count_active_by_user.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -184,6 +188,8 @@ class TestCreateProjectUseCase:
         mock_client_repo = AsyncMock()
         client_id = EntityId.generate()
 
+        mock_project_repo.count_active_by_user.return_value = 0
+
         # Mock client lookup
         mock_client = AsyncMock()
         mock_client.name = "Test Client"
@@ -216,6 +222,8 @@ class TestCreateProjectUseCase:
         mock_client_repo = AsyncMock()
         created_by_uuid = uuid4()
         client_id = EntityId.generate()
+
+        mock_project_repo.count_active_by_user.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -266,6 +274,8 @@ class TestCreateProjectUseCase:
         mock_project_repo = AsyncMock()
         mock_client_repo = AsyncMock()
         mock_client_repo.find_by_id.return_value = None
+
+        mock_project_repo.count_active_by_user.return_value = 0
 
         use_case = CreateProjectUseCase(mock_project_repo, mock_client_repo)
 

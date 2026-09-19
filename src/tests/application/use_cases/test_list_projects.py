@@ -72,8 +72,26 @@ class TestListProjectsUseCase:
         assert all(isinstance(p, ProjectResponse) for p in result.items)
         assert result.items[0].name == "Project 1"
         assert result.items[1].name == "Project 2"
-        mock_repo.count.assert_called_once_with(status=None)
-        mock_repo.find_all.assert_called_once_with(limit=20, offset=0, status=None)
+        mock_repo.count.assert_called_once_with(
+            status=None,
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
+        mock_repo.find_all.assert_called_once_with(
+            limit=20,
+            offset=0,
+            status=None,
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
 
     @pytest.mark.asyncio
     async def test_execute_with_pagination(self):
@@ -92,8 +110,26 @@ class TestListProjectsUseCase:
         assert result.page == 3
         assert result.per_page == 10
         assert len(result.items) == 0
-        mock_repo.count.assert_called_once_with(status=None)
-        mock_repo.find_all.assert_called_once_with(limit=10, offset=20, status=None)
+        mock_repo.count.assert_called_once_with(
+            status=None,
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
+        mock_repo.find_all.assert_called_once_with(
+            limit=10,
+            offset=20,
+            status=None,
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
 
     @pytest.mark.asyncio
     async def test_execute_with_status_filter(self):
@@ -127,8 +163,75 @@ class TestListProjectsUseCase:
         assert result.total == 1
         assert len(result.items) == 1
         assert result.items[0].status == "active"
-        mock_repo.count.assert_called_once_with(status="active")
-        mock_repo.find_all.assert_called_once_with(limit=20, offset=0, status="active")
+        mock_repo.count.assert_called_once_with(
+            status="active",
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
+        mock_repo.find_all.assert_called_once_with(
+            limit=20,
+            offset=0,
+            status="active",
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_execute_with_all_filters_forwards_to_repository(self):
+        """Test that all filter parameters are forwarded to the repository."""
+        mock_repo = AsyncMock()
+        mock_repo.count.return_value = 0
+        mock_repo.find_all.return_value = []
+        mock_repo.get_story_counts_batch.return_value = {}
+
+        use_case = ListProjectsUseCase(mock_repo)
+
+        created_from = datetime(2026, 1, 1, tzinfo=UTC)
+        created_to = datetime(2026, 6, 30, tzinfo=UTC)
+        updated_from = datetime(2026, 2, 1, tzinfo=UTC)
+        updated_to = datetime(2026, 7, 31, tzinfo=UTC)
+
+        await use_case.execute(
+            user_id="test-user",
+            limit=10,
+            offset=5,
+            status="active",
+            client_id="550e8400-e29b-41d4-a716-446655440003",
+            created_from=created_from,
+            created_to=created_to,
+            updated_from=updated_from,
+            updated_to=updated_to,
+            search="payroll",
+        )
+
+        mock_repo.count.assert_called_once_with(
+            status="active",
+            client_id="550e8400-e29b-41d4-a716-446655440003",
+            created_from=created_from,
+            created_to=created_to,
+            updated_from=updated_from,
+            updated_to=updated_to,
+            search="payroll",
+        )
+        mock_repo.find_all.assert_called_once_with(
+            limit=10,
+            offset=5,
+            status="active",
+            client_id="550e8400-e29b-41d4-a716-446655440003",
+            created_from=created_from,
+            created_to=created_to,
+            updated_from=updated_from,
+            updated_to=updated_to,
+            search="payroll",
+        )
 
     @pytest.mark.asyncio
     async def test_execute_returns_empty_list_when_no_projects(self):
@@ -162,8 +265,26 @@ class TestListProjectsUseCase:
         assert result.total == 200
         assert result.page == 3
         assert result.per_page == 50
-        mock_repo.count.assert_called_once_with(status="completed")
-        mock_repo.find_all.assert_called_once_with(limit=50, offset=100, status="completed")
+        mock_repo.count.assert_called_once_with(
+            status="completed",
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
+        mock_repo.find_all.assert_called_once_with(
+            limit=50,
+            offset=100,
+            status="completed",
+            client_id=None,
+            created_from=None,
+            created_to=None,
+            updated_from=None,
+            updated_to=None,
+            search=None,
+        )
 
     @pytest.mark.asyncio
     async def test_execute_maps_all_entity_fields(self):

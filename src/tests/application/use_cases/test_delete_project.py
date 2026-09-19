@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from src.app.features.projects.application.use_cases.delete_project import DeleteProjectUseCase
+from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 
 
 class TestDeleteProjectUseCase:
@@ -18,41 +19,6 @@ class TestDeleteProjectUseCase:
     @pytest.mark.asyncio
     async def test_execute_deletes_project_successfully(self):
         """Test successful project deletion."""
-        # Setup
-        mock_repo = AsyncMock()
-        mock_repo.delete.return_value = True
-
-        use_case = DeleteProjectUseCase(mock_repo)
-        project_id = uuid4()
-
-        # Execute
-        result = await use_case.execute(str(project_id), created_by="test-user")
-
-        # Assert
-        assert result is True
-        mock_repo.delete.assert_called_once_with(project_id)
-
-    @pytest.mark.asyncio
-    async def test_execute_returns_false_when_project_not_found(self):
-        """Test that non-existent project returns False."""
-        # Setup
-        mock_repo = AsyncMock()
-        mock_repo.delete.return_value = False
-
-        use_case = DeleteProjectUseCase(mock_repo)
-        project_id = uuid4()
-
-        # Execute
-        result = await use_case.execute(str(project_id), created_by="test-user")
-
-        # Assert
-        assert result is False
-        mock_repo.delete.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_execute_parses_uuid_string_correctly(self):
-        """Test that UUID string is correctly parsed."""
-        # Setup
         mock_repo = AsyncMock()
         mock_repo.delete.return_value = True
 
@@ -62,18 +28,43 @@ class TestDeleteProjectUseCase:
         # Execute
         await use_case.execute(str(project_id), created_by="test-user")
 
-        # Assert - verify correct UUID was passed to delete
+        # Assert
+        mock_repo.delete.assert_called_once_with(project_id)
+
+    @pytest.mark.asyncio
+    async def test_execute_raises_not_found_when_project_missing(self):
+        """Test that non-existent project raises ProjectNotFoundError."""
+        mock_repo = AsyncMock()
+        mock_repo.delete.return_value = False
+
+        use_case = DeleteProjectUseCase(mock_repo)
+        project_id = uuid4()
+
+        with pytest.raises(ProjectNotFoundError, match="Project not found"):
+            await use_case.execute(str(project_id), created_by="test-user")
+
+        mock_repo.delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_parses_uuid_string_correctly(self):
+        """Test that UUID string is correctly parsed."""
+        mock_repo = AsyncMock()
+        mock_repo.delete.return_value = True
+
+        use_case = DeleteProjectUseCase(mock_repo)
+        project_id = uuid4()
+
+        await use_case.execute(str(project_id), created_by="test-user")
+
         called_with = mock_repo.delete.call_args[0][0]
         assert called_with == project_id
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_on_invalid_uuid(self):
         """Test that invalid UUID string raises ValueError."""
-        # Setup
         mock_repo = AsyncMock()
         use_case = DeleteProjectUseCase(mock_repo)
 
-        # Execute & Assert
         with pytest.raises(ValueError):
             await use_case.execute("not-a-valid-uuid", created_by="test-user")
 
