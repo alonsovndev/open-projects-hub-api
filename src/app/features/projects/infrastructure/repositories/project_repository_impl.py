@@ -1,9 +1,10 @@
 """Project repository implementation using SQLAlchemy."""
 
 import time
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,35 @@ from src.app.features.stories.domain.value_objects.story_status import StoryStat
 # Cross-feature query for performance optimization (see ADR-001)
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.shared.logging import get_logger
+
+
+def _apply_project_filters(
+    stmt,
+    status: str | None = None,
+    client_id: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    updated_from: datetime | None = None,
+    updated_to: datetime | None = None,
+    search: str | None = None,
+):
+    """Apply common filter conditions to a project query statement."""
+    if status:
+        stmt = stmt.where(ProjectModel.status == status)
+    if client_id:
+        stmt = stmt.where(ProjectModel.client_id == client_id)
+    if created_from:
+        stmt = stmt.where(ProjectModel.created_at >= created_from)
+    if created_to:
+        stmt = stmt.where(ProjectModel.created_at <= created_to)
+    if updated_from:
+        stmt = stmt.where(ProjectModel.updated_at >= updated_from)
+    if updated_to:
+        stmt = stmt.where(ProjectModel.updated_at <= updated_to)
+    if search:
+        pattern = f"%{search}%"
+        stmt = stmt.where(or_(ProjectModel.name.ilike(pattern), ProjectModel.code.ilike(pattern)))
+    return stmt
 
 
 class ProjectRepositoryImpl(ProjectRepository):
@@ -74,6 +104,12 @@ class ProjectRepositoryImpl(ProjectRepository):
         limit: int = 20,
         offset: int = 0,
         status: str | None = None,
+        client_id: str | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
+        updated_from: datetime | None = None,
+        updated_to: datetime | None = None,
+        search: str | None = None,
     ) -> list[tuple[ProjectEntity, str]]:
         """
         Find all projects with pagination and optional filtering.
@@ -82,6 +118,12 @@ class ProjectRepositoryImpl(ProjectRepository):
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
             status: Optional status filter (active, completed, archived)
+            client_id: Optional client UUID filter
+            created_from: Optional lower bound on created_at
+            created_to: Optional upper bound on created_at
+            updated_from: Optional lower bound on updated_at
+            updated_to: Optional upper bound on updated_at
+            search: Optional substring match on name or code (case-insensitive)
 
         Returns:
             List of tuples (ProjectEntity, client_name)
@@ -92,8 +134,16 @@ class ProjectRepositoryImpl(ProjectRepository):
         try:
             stmt = select(ProjectModel, ClientModel.name).join(ClientModel, ProjectModel.client_id == ClientModel.id)
 
-            if status:
-                stmt = stmt.where(ProjectModel.status == status)
+            stmt = _apply_project_filters(
+                stmt,
+                status=status,
+                client_id=client_id,
+                created_from=created_from,
+                created_to=created_to,
+                updated_from=updated_from,
+                updated_to=updated_to,
+                search=search,
+            )
 
             stmt = stmt.order_by(ProjectModel.created_at.desc())
             stmt = stmt.limit(limit).offset(offset)
@@ -211,12 +261,27 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def count(self, status: str | None = None) -> int:
+    async def count(
+        self,
+        status: str | None = None,
+        client_id: str | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
+        updated_from: datetime | None = None,
+        updated_to: datetime | None = None,
+        search: str | None = None,
+    ) -> int:
         """
-        Count projects with optional status filter.
+        Count projects with optional filters.
 
         Args:
             status: Optional status filter
+            client_id: Optional client UUID filter
+            created_from: Optional lower bound on created_at
+            created_to: Optional upper bound on created_at
+            updated_from: Optional lower bound on updated_at
+            updated_to: Optional upper bound on updated_at
+            search: Optional substring match on name or code (case-insensitive)
 
         Returns:
             Number of projects
@@ -227,8 +292,16 @@ class ProjectRepositoryImpl(ProjectRepository):
         try:
             stmt = select(func.count(ProjectModel.id))
 
-            if status:
-                stmt = stmt.where(ProjectModel.status == status)
+            stmt = _apply_project_filters(
+                stmt,
+                status=status,
+                client_id=client_id,
+                created_from=created_from,
+                created_to=created_to,
+                updated_from=updated_from,
+                updated_to=updated_to,
+                search=search,
+            )
 
             result = await self._session.execute(stmt)
             return int(result.scalar_one())
@@ -365,5 +438,123 @@ class ProjectRepositoryImpl(ProjectRepository):
             self._log.exception(
                 "Database error while fetching batch story counts",
                 extra={"operation": "get_story_counts_batch", "table": "stories"},
+            )
+            raise
+
+    async def count_active_by_user(self, user_id: UUID) -> int:
+        """
+        Count active projects owned by a specific user.
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            Number of active projects for the user
+        """
+        try:
+            stmt = (
+                select(func.count(ProjectModel.id))
+                .where(ProjectModel.created_by == user_id)
+                .where(ProjectModel.status == "active")
+            )
+            result = await self._session.execute(stmt)
+            return int(result.scalar_one())
+
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "count_active_by_user", "table": "projects"}
+            )
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error counting active projects by user",
+                extra={"operation": "count_active_by_user", "table": "projects"},
+            )
+            raise
+
+    async def has_active_projects_for_client(self, client_id: UUID) -> bool:
+        """
+        Check whether a client has any active projects.
+
+        Args:
+            client_id: Client UUID
+
+        Returns:
+            True if at least one active project exists for this client
+        """
+        try:
+            stmt = (
+                select(ProjectModel.id)
+                .where(ProjectModel.client_id == client_id)
+                .where(ProjectModel.status == "active")
+                .limit(1)
+            )
+            result = await self._session.execute(stmt)
+            return result.scalar_one_or_none() is not None
+
+        except OperationalError:
+            self._log.exception(
+                "Database connection error",
+                extra={"operation": "has_active_projects_for_client", "table": "projects"},
+            )
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error checking active projects for client",
+                extra={"operation": "has_active_projects_for_client", "table": "projects"},
+            )
+            raise
+
+    async def delete_archived_by_client(self, client_id: UUID) -> int:
+        """
+        Delete all archived projects for a client (cascade removes stories).
+
+        Args:
+            client_id: Client UUID
+
+        Returns:
+            Number of projects deleted
+        """
+        start = time.time()
+        try:
+            stmt = select(ProjectModel).where(
+                ProjectModel.client_id == client_id,
+                ProjectModel.status == "archived",
+            )
+            result = await self._session.execute(stmt)
+            models = result.scalars().all()
+
+            count = 0
+            for model in models:
+                await self._session.delete(model)
+                count += 1
+
+            if count > 0:
+                await self._session.commit()
+
+            duration = (time.time() - start) * 1000
+            self._log.info(
+                "Archived projects deleted for client",
+                extra={
+                    "event_type": "projects.archived.deleted_by_client",
+                    "client_id": str(client_id),
+                    "count": count,
+                    "duration_ms": duration,
+                },
+            )
+            return count
+
+        except OperationalError:
+            await self._session.rollback()
+            self._log.exception(
+                "Database connection error",
+                extra={"operation": "delete_archived_by_client", "table": "projects"},
+            )
+            raise
+        except SQLAlchemyError:
+            await self._session.rollback()
+            self._log.exception(
+                "Database error deleting archived projects for client",
+                extra={"operation": "delete_archived_by_client", "table": "projects"},
             )
             raise

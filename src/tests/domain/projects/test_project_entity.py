@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -36,11 +37,24 @@ class TestProjectEntityCreation:
         assert project.created_by == created_by
         assert project.client_id == client_id
         assert project.status == ProjectStatus.ACTIVE
+        assert project.phase == ProjectPhase.DISCOVERY
         assert project.start_date is None
         assert project.end_date is None
         assert project.created_at == mock_now
         assert project.updated_at == mock_now
         assert isinstance(project.id, EntityId)
+
+    def test_create_project_with_explicit_phase(self):
+        """Test creating project with an explicit phase."""
+        project = ProjectEntity.create(
+            name="Planning Project",
+            code="PLAN",
+            created_by=EntityId.generate(),
+            client_id=EntityId.generate(),
+            phase=ProjectPhase.PLANNING,
+        )
+
+        assert project.phase == ProjectPhase.PLANNING
 
     def test_create_project_with_all_fields(self):
         """Test creating project with all fields."""
@@ -312,6 +326,7 @@ class TestProjectEntityProperties:
             end_date=end,
             created_at=now,
             updated_at=now,
+            phase=ProjectPhase.PLANNING,
         )
 
         # Verify all properties are accessible
@@ -323,6 +338,7 @@ class TestProjectEntityProperties:
         assert project.client_id == client_id
         assert project.status == ProjectStatus.ACTIVE
         assert project.priority == ProjectPriority.MEDIUM
+        assert project.phase == ProjectPhase.PLANNING
         assert project.start_date == start
         assert project.end_date == end
         assert project.created_at == now

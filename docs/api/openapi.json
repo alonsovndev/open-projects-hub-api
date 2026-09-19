@@ -331,6 +331,10 @@
             "title": "Name",
             "type": "string"
           },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
           "priority": {
             "anyOf": [
               {
@@ -359,7 +363,8 @@
         "required": [
           "name",
           "code",
-          "clientId"
+          "clientId",
+          "phase"
         ],
         "title": "CreateProjectRequest",
         "type": "object"
@@ -752,6 +757,10 @@
             "title": "Name",
             "type": "string"
           },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
           "priority": {
             "title": "Priority",
             "type": "string"
@@ -792,6 +801,7 @@
           "clientName",
           "status",
           "priority",
+          "phase",
           "startDate",
           "endDate",
           "createdAt",
@@ -1149,17 +1159,6 @@
               }
             ],
             "title": "Startdate"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status"
           }
         },
         "title": "UpdateProjectRequest",
@@ -1714,7 +1713,7 @@
     },
     "/v1/clients/{client_id}": {
       "delete": {
-        "description": "Delete a client.\n\nRequires ADMIN role. Cannot delete if the client has associated projects\n(foreign key constraint).\n\nArgs:\n    client_id: Client UUID\n    current_user: Current authenticated admin user\n    use_case: Injected DeleteClientUseCase\n\nRaises:\n    400: Cannot delete client with associated projects\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    500: Internal server error",
+        "description": "Delete a client.\n\nRequires ADMIN role. Cannot delete if the client still has active projects;\narchived projects are removed as part of the deletion.\n\nArgs:\n    client_id: Client UUID\n    current_user: Current authenticated admin user\n    use_case: Injected DeleteClientUseCase\n\nRaises:\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    409: Client still has active projects\n    500: Internal server error",
         "operationId": "delete_client_v1_clients__client_id__delete",
         "parameters": [
           {
@@ -1887,7 +1886,7 @@
     },
     "/v1/projects": {
       "get": {
-        "description": "List projects with pagination and optional status filter.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_status: Optional status filter (active, completed, archived)\n    current_user: Current authenticated user\n    use_case: Injected ListProjectsUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of ProjectResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
+        "description": "List projects with pagination and optional filters.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_status: Optional status filter (active, completed, archived)\n    client_id: Optional client UUID filter\n    created_from: Optional lower bound on created_at (ISO datetime)\n    created_to: Optional upper bound on created_at (ISO datetime)\n    updated_from: Optional lower bound on updated_at (ISO datetime)\n    updated_to: Optional upper bound on updated_at (ISO datetime)\n    search: Optional substring match on name or code (case-insensitive)\n    current_user: Current authenticated user\n    use_case: Injected ListProjectsUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of ProjectResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
         "operationId": "list_projects_v1_projects_get",
         "parameters": [
           {
@@ -1927,6 +1926,107 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clientid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "createdFrom",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Createdfrom"
+            }
+          },
+          {
+            "in": "query",
+            "name": "createdTo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Createdto"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updatedFrom",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Updatedfrom"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updatedTo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Updatedto"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
             }
           }
         ],
@@ -2149,6 +2249,104 @@
           }
         ],
         "summary": "Update Project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/v1/projects/{project_id}/archive": {
+      "post": {
+        "description": "Archive a project, excluding it from active-project limits.\n\nRequires ADMIN role.\n\nRaises:\n    404: Project not found\n    401/403: Unauthorized or forbidden",
+        "operationId": "archive_project_v1_projects__project_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/v1/projects/{project_id}/reactivate": {
+      "post": {
+        "description": "Reactivate an archived or completed project.\n\nRequires ADMIN role. Subject to active-project limit enforcement (BE-002).\n\nRaises:\n    404: Project not found\n    409: Active project limit exceeded\n    401/403: Unauthorized or forbidden",
+        "operationId": "reactivate_project_v1_projects__project_id__reactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reactivate Project",
         "tags": [
           "Projects"
         ]

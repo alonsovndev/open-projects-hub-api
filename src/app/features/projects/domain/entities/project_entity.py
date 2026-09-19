@@ -3,6 +3,7 @@
 from datetime import UTC, date, datetime
 
 from src.app.features.projects.domain.validators.project_validators import ProjectValidators
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.entities.base_entity import BaseEntity
@@ -31,6 +32,7 @@ class ProjectEntity(BaseEntity):
         end_date: date | None,
         created_at: datetime,
         updated_at: datetime,
+        phase: ProjectPhase = ProjectPhase.default(),
     ):
         """
         Initialize ProjectEntity.
@@ -48,6 +50,7 @@ class ProjectEntity(BaseEntity):
             end_date: Optional project end date
             created_at: Timestamp when project was created
             updated_at: Timestamp when project was last updated
+            phase: Project phase (discovery, planning) — MVP scope only
 
         Raises:
             ValueError: If validation fails
@@ -68,6 +71,7 @@ class ProjectEntity(BaseEntity):
         self._priority = priority
         self._start_date = start_date
         self._end_date = end_date
+        self._phase = phase
 
     @property
     def name(self) -> str:
@@ -113,6 +117,11 @@ class ProjectEntity(BaseEntity):
     def end_date(self) -> date | None:
         """Get project end date."""
         return self._end_date
+
+    @property
+    def phase(self) -> ProjectPhase:
+        """Get project phase."""
+        return self._phase
 
     def update_details(
         self,
@@ -201,6 +210,7 @@ class ProjectEntity(BaseEntity):
         priority: ProjectPriority | None = None,
         start_date: date | None = None,
         end_date: date | None = None,
+        phase: ProjectPhase | None = None,
     ) -> "ProjectEntity":
         """
         Factory method to create a new project.
@@ -214,6 +224,7 @@ class ProjectEntity(BaseEntity):
             priority: Optional priority (defaults to MEDIUM)
             start_date: Optional start date
             end_date: Optional end date
+            phase: Optional phase (defaults to discovery)
 
         Returns:
             New ProjectEntity instance
@@ -235,4 +246,5 @@ class ProjectEntity(BaseEntity):
             end_date=end_date,
             created_at=now,
             updated_at=now,
+            phase=phase or ProjectPhase.default(),
         )

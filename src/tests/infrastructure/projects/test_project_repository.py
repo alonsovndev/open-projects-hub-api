@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -65,6 +66,7 @@ def sample_project_model():
         client_id=client_id.value,
         status=ProjectStatus.ACTIVE.value,
         priority=ProjectPriority.MEDIUM.value,
+        phase=ProjectPhase.DISCOVERY.value,
         start_date=date(2026, 5, 1),
         end_date=date(2026, 12, 31),
         created_at=now,
@@ -156,6 +158,50 @@ class TestFindAll:
 
         assert len(entities) == 1
         mock_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_find_all_with_client_id_filter(self, repository, mock_session):
+        """Test finding all projects filtered by client_id."""
+        from sqlalchemy import ColumnElement
+
+        mock_result = Mock()
+        mock_result.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        client_id = "550e8400-e29b-41d4-a716-446655440003"
+        await repository.find_all(client_id=client_id)
+
+        stmt = mock_session.execute.call_args.args[0]
+        where_clauses = list(stmt.whereclause.get_children() if isinstance(stmt.whereclause, ColumnElement) else [])
+        assert any(str(clause).find("client_id") != -1 for clause in where_clauses)
+
+    @pytest.mark.asyncio
+    async def test_find_all_with_created_range_filter(self, repository, mock_session):
+        """Test finding all projects filtered by created_at range."""
+        mock_result = Mock()
+        mock_result.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        from datetime import UTC, datetime
+
+        created_from = datetime(2026, 1, 1, tzinfo=UTC)
+        created_to = datetime(2026, 6, 30, tzinfo=UTC)
+        await repository.find_all(created_from=created_from, created_to=created_to)
+
+        stmt = mock_session.execute.call_args.args[0]
+        assert stmt.whereclause is not None
+
+    @pytest.mark.asyncio
+    async def test_find_all_with_search_filter(self, repository, mock_session):
+        """Test finding all projects filtered by name/code search."""
+        mock_result = Mock()
+        mock_result.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        await repository.find_all(search="payroll")
+
+        stmt = mock_session.execute.call_args.args[0]
+        assert stmt.whereclause is not None
 
     @pytest.mark.asyncio
     async def test_find_all_raises_exception_on_database_error(self, repository, mock_session):
@@ -286,6 +332,19 @@ class TestCount:
         mock_session.execute.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_count_with_client_id_and_search_filters(self, repository, mock_session):
+        """Test counting projects with client_id and search filters."""
+        mock_result = Mock()
+        mock_result.scalar_one.return_value = 2
+        mock_session.execute.return_value = mock_result
+
+        count = await repository.count(client_id="550e8400-e29b-41d4-a716-446655440003", search="payroll")
+
+        assert count == 2
+        stmt = mock_session.execute.call_args.args[0]
+        assert stmt.whereclause is not None
+
+    @pytest.mark.asyncio
     async def test_count_raises_exception_on_database_error(self, repository, mock_session):
         """Test counting projects raises exception when database error occurs."""
         from sqlalchemy.exc import SQLAlchemyError
@@ -294,3 +353,106 @@ class TestCount:
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
             await repository.count()
+
+
+class TestCountActiveByUser:
+    """Test count_active_by_user method."""
+
+    @pytest.mark.asyncio
+    async def test_count_active_by_user_returns_count(self, repository, mock_session):
+        """Test counting active projects for a user."""
+        mock_result = Mock()
+        mock_result.scalar_one.return_value = 2
+        mock_session.execute.return_value = mock_result
+
+        count = await repository.count_active_by_user(EntityId.generate().value)
+
+        assert count == 2
+        mock_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_count_active_by_user_raises_exception_on_database_error(self, repository, mock_session):
+        """Test counting active projects raises exception when database error occurs."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
+
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.count_active_by_user(EntityId.generate().value)
+
+
+class TestHasActiveProjectsForClient:
+    """Test has_active_projects_for_client method."""
+
+    @pytest.mark.asyncio
+    async def test_returns_true_when_active_project_exists(self, repository, mock_session):
+        """Test returns True when client has an active project."""
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = EntityId.generate().value
+        mock_session.execute.return_value = mock_result
+
+        result = await repository.has_active_projects_for_client(EntityId.generate().value)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_no_active_project(self, repository, mock_session):
+        """Test returns False when client has no active projects."""
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_result
+
+        result = await repository.has_active_projects_for_client(EntityId.generate().value)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_raises_exception_on_database_error(self, repository, mock_session):
+        """Test raises exception when database error occurs."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
+
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.has_active_projects_for_client(EntityId.generate().value)
+
+
+class TestDeleteArchivedByClient:
+    """Test delete_archived_by_client method."""
+
+    @pytest.mark.asyncio
+    async def test_deletes_archived_projects_and_commits(self, repository, mock_session, sample_project_model):
+        """Test deleting archived projects for a client commits once."""
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = [sample_project_model, sample_project_model]
+        mock_session.execute.return_value = mock_result
+
+        count = await repository.delete_archived_by_client(EntityId.generate().value)
+
+        assert count == 2
+        assert mock_session.delete.call_count == 2
+        mock_session.commit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_archived_projects_skips_commit(self, repository, mock_session):
+        """Test no archived projects does not commit."""
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        count = await repository.delete_archived_by_client(EntityId.generate().value)
+
+        assert count == 0
+        mock_session.commit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_raises_exception_on_database_error(self, repository, mock_session):
+        """Test raises exception when database error occurs."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_session.execute.side_effect = SQLAlchemyError("Database error")
+
+        with pytest.raises(SQLAlchemyError, match="Database error"):
+            await repository.delete_archived_by_client(EntityId.generate().value)
+
+        mock_session.rollback.assert_called_once()

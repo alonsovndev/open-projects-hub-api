@@ -23,7 +23,7 @@ class ClientRepositoryImpl(ClientRepository):
         """Save a new client entity."""
         model = ClientMapper.to_model(client)
         self.db.add(model)
-        await self.db.flush()
+        await self.db.commit()
         await self.db.refresh(model)
         return ClientMapper.to_entity(model)
 
@@ -70,7 +70,7 @@ class ClientRepositoryImpl(ClientRepository):
         model.notes = client.notes
         model.updated_at = client.updated_at
 
-        await self.db.flush()
+        await self.db.commit()
         await self.db.refresh(model)
 
         return ClientMapper.to_entity(model)
@@ -85,7 +85,7 @@ class ClientRepositoryImpl(ClientRepository):
             return False
 
         await self.db.delete(model)
-        await self.db.flush()
+        await self.db.commit()
         return True
 
     async def find_by_email(self, email: str) -> ClientEntity | None:

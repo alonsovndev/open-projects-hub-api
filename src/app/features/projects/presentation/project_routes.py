@@ -1,5 +1,6 @@
 """Project routes."""
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -7,10 +8,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.params import Depends
 
 from src.app.composition import (
+    get_archive_project_use_case,
     get_create_project_use_case,
     get_delete_project_use_case,
     get_list_projects_use_case,
     get_project_by_id_use_case,
+    get_reactivate_project_use_case,
     get_update_project_use_case,
 )
 from src.app.features.projects.application.dtos.project_dto import (
@@ -18,12 +21,17 @@ from src.app.features.projects.application.dtos.project_dto import (
     ProjectResponse,
     UpdateProjectRequest,
 )
+from src.app.features.projects.application.use_cases.archive_project import ArchiveProjectUseCase
 from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
 from src.app.features.projects.application.use_cases.delete_project import DeleteProjectUseCase
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
+from src.app.features.projects.application.use_cases.reactivate_project import ReactivateProjectUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
-from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+from src.app.features.projects.domain.exceptions.project_exceptions import (
+    ActiveProjectLimitExceededError,
+    ProjectNotFoundError,
+)
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
@@ -60,6 +68,8 @@ async def create_project(
     user_id = str(current_user["sub"])
     try:
         return await use_case.execute(request=payload, created_by=user_id)
+    except ActiveProjectLimitExceededError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except ValidationError as e:
@@ -71,11 +81,17 @@ async def list_projects(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     project_status: str | None = Query(default=None, alias="status"),
+    client_id: str | None = Query(default=None, alias="clientId"),
+    created_from: datetime | None = Query(default=None, alias="createdFrom"),
+    created_to: datetime | None = Query(default=None, alias="createdTo"),
+    updated_from: datetime | None = Query(default=None, alias="updatedFrom"),
+    updated_to: datetime | None = Query(default=None, alias="updatedTo"),
+    search: str | None = Query(default=None, max_length=100),
     current_user: dict[str, Any] = Depends(get_current_user),
     use_case: ListProjectsUseCase = Depends(get_list_projects_use_case),
 ) -> PaginatedResponse[ProjectResponse]:
     """
-    List projects with pagination and optional status filter.
+    List projects with pagination and optional filters.
 
     Requires authentication.
 
@@ -83,6 +99,12 @@ async def list_projects(
         limit: Maximum number of results (1-100, default 20)
         offset: Number of results to skip (default 0)
         project_status: Optional status filter (active, completed, archived)
+        client_id: Optional client UUID filter
+        created_from: Optional lower bound on created_at (ISO datetime)
+        created_to: Optional upper bound on created_at (ISO datetime)
+        updated_from: Optional lower bound on updated_at (ISO datetime)
+        updated_to: Optional upper bound on updated_at (ISO datetime)
+        search: Optional substring match on name or code (case-insensitive)
         current_user: Current authenticated user
         use_case: Injected ListProjectsUseCase
 
@@ -107,6 +129,12 @@ async def list_projects(
         limit=limit,
         offset=offset,
         status=project_status,
+        client_id=client_id,
+        created_from=created_from,
+        created_to=created_to,
+        updated_from=updated_from,
+        updated_to=updated_to,
+        search=search,
     )
 
 
@@ -205,7 +233,54 @@ async def delete_project(
         500: Internal server error
     """
     user_id = str(current_user["sub"])
-    deleted = await use_case.execute(project_id=str(project_id), created_by=user_id)
+    try:
+        await use_case.execute(project_id=str(project_id), created_by=user_id)
+    except ProjectNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+@router.post("/{project_id}/archive", response_model=ProjectResponse)
+async def archive_project(
+    project_id: UUID,
+    current_user: dict[str, Any] = Depends(require_admin),
+    use_case: ArchiveProjectUseCase = Depends(get_archive_project_use_case),
+) -> ProjectResponse:
+    """
+    Archive a project, excluding it from active-project limits.
+
+    Requires ADMIN role.
+
+    Raises:
+        404: Project not found
+        401/403: Unauthorized or forbidden
+    """
+    user_id = str(current_user["sub"])
+    try:
+        return await use_case.execute(project_id=str(project_id), created_by=user_id)
+    except ProjectNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+
+@router.post("/{project_id}/reactivate", response_model=ProjectResponse)
+async def reactivate_project(
+    project_id: UUID,
+    current_user: dict[str, Any] = Depends(require_admin),
+    use_case: ReactivateProjectUseCase = Depends(get_reactivate_project_use_case),
+) -> ProjectResponse:
+    """
+    Reactivate an archived or completed project.
+
+    Requires ADMIN role. Subject to active-project limit enforcement (BE-002).
+
+    Raises:
+        404: Project not found
+        409: Active project limit exceeded
+        401/403: Unauthorized or forbidden
+    """
+    user_id = str(current_user["sub"])
+    try:
+        return await use_case.execute(project_id=str(project_id), created_by=user_id)
+    except ProjectNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except ActiveProjectLimitExceededError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e

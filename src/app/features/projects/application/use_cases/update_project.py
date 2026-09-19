@@ -6,7 +6,6 @@ from src.app.features.projects.application.mappers.project_mapper import to_proj
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
@@ -74,10 +73,6 @@ class UpdateProjectUseCase:
                 raise NotFoundError("Client", request.client_id)
             client_name = client.name
 
-        status_enum = None
-        if request.status is not None:
-            status_enum = ProjectStatus(request.status)
-
         priority_enum = None
         if request.priority is not None:
             priority_enum = ProjectPriority(request.priority)
@@ -87,7 +82,6 @@ class UpdateProjectUseCase:
             code=request.code,
             description=request.description,
             client_id=client_entity_id,
-            status=status_enum,
             priority=priority_enum,
             start_date=request.start_date,
             end_date=request.end_date,

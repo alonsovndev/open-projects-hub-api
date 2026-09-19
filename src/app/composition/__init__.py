@@ -59,11 +59,13 @@ from src.app.composition.features.dashboard import get_dashboard_stats_use_case
 # Feature: Projects
 # ============================================================================
 from src.app.composition.features.projects import (
+    get_archive_project_use_case,
     get_create_project_use_case,
     get_delete_project_use_case,
     get_list_projects_use_case,
     get_project_by_id_use_case,
     get_project_repository,
+    get_reactivate_project_use_case,
     get_update_project_use_case,
 )
 
@@ -139,11 +141,13 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Dashboard
     "get_dashboard_stats_use_case",
     # Projects
+    "get_archive_project_use_case",
     "get_create_project_use_case",
     "get_delete_project_use_case",
     "get_list_projects_use_case",
     "get_project_by_id_use_case",
     "get_project_repository",
+    "get_reactivate_project_use_case",
     "get_update_project_use_case",
     # Refinement
     "get_approve_draft_use_case",

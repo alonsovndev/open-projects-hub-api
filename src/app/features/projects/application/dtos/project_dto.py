@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 from src.app.features.projects.domain.validators.project_validators import ProjectValidators
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
-from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 
 
@@ -28,6 +28,7 @@ class ProjectResponse(BaseModel):
     client_name: str
     status: str
     priority: str
+    phase: str
     start_date: date | None
     end_date: date | None
     created_at: str
@@ -47,6 +48,7 @@ class CreateProjectRequest(BaseModel):
     name: str
     code: str
     client_id: str
+    phase: str
     description: str | None = None
     priority: str | None = "medium"
     start_date: date | None = None
@@ -76,6 +78,15 @@ class CreateProjectRequest(BaseModel):
                 raise ValidationError(f"Priority must be one of: {', '.join(valid_priorities)}")
         return priority
 
+    @field_validator("phase")
+    @classmethod
+    def validate_phase(cls, phase: str) -> str:
+        """Validate phase (MVP supports discovery and planning only)."""
+        valid_phases = [p.value for p in ProjectPhase]
+        if phase not in valid_phases:
+            raise ValidationError(f"Phase must be one of: {', '.join(valid_phases)}")
+        return phase
+
     @model_validator(mode="after")
     def validate_date_range(self) -> "CreateProjectRequest":
         """Validate that end_date is not before start_date."""
@@ -96,7 +107,6 @@ class UpdateProjectRequest(BaseModel):
     code: str | None = None
     client_id: str | None = None
     description: str | None = None
-    status: str | None = None
     priority: str | None = None
     start_date: date | None = None
     end_date: date | None = None
@@ -116,16 +126,6 @@ class UpdateProjectRequest(BaseModel):
         if code is not None:
             ProjectValidators.validate_code(code)
         return code
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, status: str | None) -> str | None:
-        """Validate status if provided."""
-        if status is not None:
-            valid_statuses = [s.value for s in ProjectStatus]
-            if status not in valid_statuses:
-                raise ValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
-        return status
 
     @field_validator("priority")
     @classmethod

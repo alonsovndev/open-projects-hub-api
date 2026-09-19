@@ -96,7 +96,7 @@ class TestUpdateProjectUseCase:
         request = UpdateProjectRequest(
             name="New Name",
             description="New Description",
-            status="completed",
+            priority="high",
         )
         result = await use_case.execute(
             project_id=str(project_id.value),
@@ -106,7 +106,7 @@ class TestUpdateProjectUseCase:
 
         assert result.name == "New Name"
         assert result.description == "New Description"
-        assert result.status == "completed"
+        assert result.priority == "high"
 
     @pytest.mark.asyncio
     async def test_execute_returns_none_when_project_not_found(self):
@@ -242,8 +242,10 @@ class TestUpdateProjectUseCase:
             )
 
     @pytest.mark.asyncio
-    async def test_execute_converts_status_string_to_enum(self):
-        """Test that status string is correctly converted to enum."""
+    async def test_execute_ignores_status_field_bypassing_active_project_limit(self):
+        """PATCH must not be able to change status (BE-002 bypass fix) — status transitions
+        are only allowed via the dedicated /archive and /reactivate endpoints, which enforce
+        the active-project limit. A `status` field in the raw payload is silently dropped."""
         mock_repo = AsyncMock()
         mock_client_repo = AsyncMock()
         project_id = EntityId.generate()
@@ -257,7 +259,7 @@ class TestUpdateProjectUseCase:
             description=None,
             created_by=created_by,
             client_id=client_id,
-            status=ProjectStatus.ACTIVE,
+            status=ProjectStatus.ARCHIVED,
             priority=ProjectPriority.MEDIUM,
             start_date=None,
             end_date=None,
@@ -270,21 +272,21 @@ class TestUpdateProjectUseCase:
 
         use_case = UpdateProjectUseCase(mock_repo, mock_client_repo)
 
-        request = UpdateProjectRequest(status="archived")
+        # UpdateProjectRequest no longer exposes a `status` field; simulate a client
+        # still sending one to confirm it has no effect on the persisted entity.
+        request = UpdateProjectRequest.model_validate({"name": "New Name", "status": "active"})
+
+        assert not hasattr(request, "status")
+
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
             created_by="test-user",
         )
 
+        assert result.name == "New Name"
         assert result.status == "archived"
         assert existing_entity.status == ProjectStatus.ARCHIVED
-
-    @pytest.mark.asyncio
-    async def test_execute_raises_validation_error_on_invalid_status(self):
-        """Test that invalid status raises ValidationError at DTO level."""
-        with pytest.raises(ValidationError, match="Status must be one of"):
-            UpdateProjectRequest(status="invalid_status")
 
     @pytest.mark.asyncio
     async def test_execute_verifies_client_exists_when_changing_client(self):
