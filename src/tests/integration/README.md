@@ -376,12 +376,7 @@ async def test_save_and_retrieve(db_session: AsyncSession):
 ```python
 async def test_complex_filtering(db_session: AsyncSession):
     # Test multiple filters combined
-    results = await repository.find_all(
-        status="active",
-        priority="high",
-        assigned_to=user_id,
-        limit=10
-    )
+    results = await repository.find_all(status="active", priority="high", assigned_to=user_id, limit=10)
     # Verify filtering logic
 ```
 

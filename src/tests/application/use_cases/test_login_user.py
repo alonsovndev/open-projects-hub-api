@@ -99,3 +99,21 @@ class TestLoginUserUseCase:
         result = await use_case.execute(payload)
 
         assert result.role == "viewer"
+
+    @pytest.mark.asyncio
+    async def test_remember_me_issues_a_7_day_session(self, jwt_handler, mock_admin_user):
+        """Standard login sessions are 24h; remember-me extends to 7 days (FR-007-06/07)."""
+        mock_repo = AsyncMock()
+        mock_repo.find_by_email.return_value = mock_admin_user
+        use_case = LoginUserUseCase(mock_repo, jwt_handler)
+
+        standard = await use_case.execute(LoginRequest(email="admin@example.com", password="Admin123!"))
+        remembered = await use_case.execute(
+            LoginRequest(email="admin@example.com", password="Admin123!", remember_me=True)
+        )
+
+        standard_payload = jwt_handler.decode_refresh_token(standard.refresh_token)
+        remembered_payload = jwt_handler.decode_refresh_token(remembered.refresh_token)
+
+        assert remembered_payload["exp"] - remembered_payload["iat"] > standard_payload["exp"] - standard_payload["iat"]
+        assert remembered.session_expires_at is not None
