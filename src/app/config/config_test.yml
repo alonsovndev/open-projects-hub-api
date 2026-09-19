@@ -28,6 +28,21 @@ monitoring:
   sentry_dsn: null
   sentry_traces_sample_rate: 0.1
 
+smtp:
+  host: localhost
+  port: 1025
+  username: ""
+  password: ""
+  from_address: no-reply@open-projects-hub.test
+  use_tls: false
+
+auth:
+  # Unit/presentation tests mock repositories directly and don't run against
+  # a live database; keep lockout/refresh-token state in-memory here so an
+  # incidental lockout check doesn't require Postgres. test-integration
+  # exercises the real SQL-backed repositories directly, not through this flag.
+  persist_session_state: false
+
 ai:
   provider: mock    # gemini | mock
   gemini_api_key: !ENV ${GEMINI_API_KEY}

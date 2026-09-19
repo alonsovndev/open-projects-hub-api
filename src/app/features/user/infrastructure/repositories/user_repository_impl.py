@@ -236,6 +236,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.display_name = user.display_name
             user_model.password_hash = user.password_hash
             user_model.role = user.role.value
+            user_model.token_version = user.token_version
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)

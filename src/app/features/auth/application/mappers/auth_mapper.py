@@ -6,7 +6,9 @@ from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 
 
-def to_admin_login_response(user_entity: UserEntity, token: str, refresh_token: str) -> AdminLoginResponse:
+def to_admin_login_response(
+    user_entity: UserEntity, token: str, refresh_token: str, session_expires_at: datetime
+) -> AdminLoginResponse:
     """
     Convert a UserEntity and tokens to an AdminLoginResponse DTO.
 
@@ -14,6 +16,8 @@ def to_admin_login_response(user_entity: UserEntity, token: str, refresh_token: 
         user_entity: UserEntity instance
         token: Generated JWT access token
         refresh_token: Generated JWT refresh token
+        session_expires_at: When the current refresh session lapses (standard
+            24h or remember-me 7d from the most recent login/refresh)
 
     Returns:
         AdminLoginResponse instance
@@ -25,6 +29,7 @@ def to_admin_login_response(user_entity: UserEntity, token: str, refresh_token: 
         token=token,
         access_token=token,
         refresh_token=refresh_token,
+        session_expires_at=session_expires_at.isoformat().replace("+00:00", "Z"),
         email=str(user_entity.email),
         display_name=display_name,
         logged_in_at=logged_in_at,

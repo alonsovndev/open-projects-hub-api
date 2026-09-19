@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, String, func
+from sqlalchemy import Column, DateTime, Integer, String, func
 from sqlalchemy.dialects.postgresql import ENUM as pg_enum, UUID  # noqa: N811
 from sqlalchemy.orm import relationship
 
@@ -26,6 +26,9 @@ class UserModel(Base):
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(pg_enum("admin", "viewer", name="userrole", create_type=False), nullable=False, default="viewer")
+    # Bumped on forced logout (e.g. after a password reset) to invalidate every
+    # refresh token issued before that point, without needing a token ledger.
+    token_version = Column(Integer, nullable=False, server_default="0", default=0)
 
     # Relationships
     created_projects = relationship("ProjectModel", foreign_keys="ProjectModel.created_by", backref="creator")

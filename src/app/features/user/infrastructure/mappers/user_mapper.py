@@ -19,6 +19,7 @@ class UserMapper:
             display_name=model.display_name,
             password_hash=model.password_hash,
             role=UserRole(model.role),
+            token_version=model.token_version or 0,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -32,6 +33,7 @@ class UserMapper:
             display_name=entity.display_name,
             password_hash=entity.password_hash,
             role=entity.role.value,
+            token_version=entity.token_version,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

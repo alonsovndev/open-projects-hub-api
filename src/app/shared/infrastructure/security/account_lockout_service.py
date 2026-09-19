@@ -2,10 +2,15 @@
 Account lockout service for preventing brute-force attacks.
 
 Implements progressive account lockout after consecutive failed login attempts.
-Uses in-memory storage with Redis-ready design for horizontal scaling.
+Storage is pluggable via AccountLockoutRepository: an in-memory implementation
+(default, used in tests and single-instance runs) and a SQL-backed one
+(src/app/features/auth/infrastructure/repositories/sql_account_lockout_repository.py,
+wired in production via composition/infrastructure.py) so lockout state survives
+a restart and is shared across multiple App Runner instances.
 """
 
 import asyncio
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -17,6 +22,41 @@ class LockoutState:
     failed_attempts: int
     locked_until: datetime | None
     last_attempt: datetime
+
+
+class AccountLockoutRepository(ABC):
+    """Storage port for account lockout state, keyed by user identifier (email)."""
+
+    @abstractmethod
+    async def get(self, user_identifier: str) -> LockoutState | None: ...
+
+    @abstractmethod
+    async def save(self, user_identifier: str, state: LockoutState) -> None: ...
+
+    @abstractmethod
+    async def delete(self, user_identifier: str) -> None: ...
+
+    @abstractmethod
+    async def list_all(self) -> dict[str, LockoutState]: ...
+
+
+class InMemoryAccountLockoutRepository(AccountLockoutRepository):
+    """Process-local storage. Lost on restart; not shared across instances."""
+
+    def __init__(self) -> None:
+        self._state: dict[str, LockoutState] = {}
+
+    async def get(self, user_identifier: str) -> LockoutState | None:
+        return self._state.get(user_identifier)
+
+    async def save(self, user_identifier: str, state: LockoutState) -> None:
+        self._state[user_identifier] = state
+
+    async def delete(self, user_identifier: str) -> None:
+        self._state.pop(user_identifier, None)
+
+    async def list_all(self) -> dict[str, LockoutState]:
+        return dict(self._state)
 
 
 class AccountLockoutService:
@@ -42,14 +82,16 @@ class AccountLockoutService:
     PROGRESSIVE_LOCKOUT = True
     ATTEMPT_WINDOW_MINUTES = 30
 
-    def __init__(self):
+    def __init__(self, repository: AccountLockoutRepository | None = None):
         """
         Initialize account lockout service.
 
-        Note: Uses in-memory storage. For production with multiple instances,
-        replace with Redis backend.
+        Args:
+            repository: Storage backend. Defaults to in-memory (tests,
+                single-instance runs). Pass a SQL-backed repository in
+                production so state survives restarts and multiple instances.
         """
-        self._lockout_state: dict[str, LockoutState] = {}
+        self._repository = repository or InMemoryAccountLockoutRepository()
         self._lock = asyncio.Lock()
 
     async def record_failed_attempt(self, user_identifier: str) -> None:
@@ -61,14 +103,11 @@ class AccountLockoutService:
         """
         async with self._lock:
             now = datetime.now(tz=UTC)
+            state = await self._repository.get(user_identifier)
 
-            if user_identifier not in self._lockout_state:
-                self._lockout_state[user_identifier] = LockoutState(
-                    failed_attempts=1, locked_until=None, last_attempt=now
-                )
+            if state is None:
+                state = LockoutState(failed_attempts=1, locked_until=None, last_attempt=now)
             else:
-                state = self._lockout_state[user_identifier]
-
                 # Reset counter if last attempt was outside the time window
                 time_since_last = now - state.last_attempt
                 if time_since_last.total_seconds() > (self.ATTEMPT_WINDOW_MINUTES * 60):
@@ -84,6 +123,8 @@ class AccountLockoutService:
                     lockout_duration = self._calculate_lockout_duration(state.failed_attempts)
                     state.locked_until = now + timedelta(minutes=lockout_duration)
 
+            await self._repository.save(user_identifier, state)
+
     async def record_successful_login(self, user_identifier: str) -> None:
         """
         Clear failed attempts after successful login.
@@ -92,8 +133,7 @@ class AccountLockoutService:
             user_identifier: Unique identifier (email or user_id)
         """
         async with self._lock:
-            if user_identifier in self._lockout_state:
-                del self._lockout_state[user_identifier]
+            await self._repository.delete(user_identifier)
 
     async def is_locked_out(self, user_identifier: str) -> bool:
         """
@@ -106,12 +146,9 @@ class AccountLockoutService:
             True if account is locked out, False otherwise
         """
         async with self._lock:
-            if user_identifier not in self._lockout_state:
-                return False
+            state = await self._repository.get(user_identifier)
 
-            state = self._lockout_state[user_identifier]
-
-            if state.locked_until is None:
+            if state is None or state.locked_until is None:
                 return False
 
             now = datetime.now(tz=UTC)
@@ -119,7 +156,7 @@ class AccountLockoutService:
             # Check if lockout has expired
             if now >= state.locked_until:
                 # Lockout expired, reset state
-                del self._lockout_state[user_identifier]
+                await self._repository.delete(user_identifier)
                 return False
 
             return True
@@ -135,10 +172,10 @@ class AccountLockoutService:
             Dictionary with lockout details or None if not locked
         """
         async with self._lock:
-            if user_identifier not in self._lockout_state:
+            state = await self._repository.get(user_identifier)
+            if state is None:
                 return None
 
-            state = self._lockout_state[user_identifier]
             now = datetime.now(tz=UTC)
 
             # Check if lockout is active
@@ -154,7 +191,7 @@ class AccountLockoutService:
 
             # Lockout expired or not locked
             if state.locked_until and now >= state.locked_until:
-                del self._lockout_state[user_identifier]
+                await self._repository.delete(user_identifier)
                 return None
 
             # Not locked but has failed attempts
@@ -175,17 +212,17 @@ class AccountLockoutService:
             Number of failed attempts in current window
         """
         async with self._lock:
-            if user_identifier not in self._lockout_state:
+            state = await self._repository.get(user_identifier)
+            if state is None:
                 return 0
 
-            state = self._lockout_state[user_identifier]
             now = datetime.now(tz=UTC)
 
             # Check if attempts are within the time window
             time_since_last = now - state.last_attempt
             if time_since_last.total_seconds() > (self.ATTEMPT_WINDOW_MINUTES * 60):
                 # Outside window, reset
-                del self._lockout_state[user_identifier]
+                await self._repository.delete(user_identifier)
                 return 0
 
             return state.failed_attempts
@@ -223,10 +260,10 @@ class AccountLockoutService:
             True if lockout was cleared, False if no lockout existed
         """
         async with self._lock:
-            if user_identifier in self._lockout_state:
-                del self._lockout_state[user_identifier]
-                return True
-            return False
+            if await self._repository.get(user_identifier) is None:
+                return False
+            await self._repository.delete(user_identifier)
+            return True
 
     async def get_all_locked_accounts(self) -> list[dict]:
         """
@@ -239,7 +276,7 @@ class AccountLockoutService:
             now = datetime.now(tz=UTC)
             locked_accounts = []
 
-            for identifier, state in list(self._lockout_state.items()):
+            for identifier, state in (await self._repository.list_all()).items():
                 if state.locked_until and now < state.locked_until:
                     remaining_seconds = int((state.locked_until - now).total_seconds())
                     locked_accounts.append(
@@ -253,7 +290,7 @@ class AccountLockoutService:
                     )
                 elif state.locked_until and now >= state.locked_until:
                     # Clean up expired lockouts
-                    del self._lockout_state[identifier]
+                    await self._repository.delete(identifier)
 
             return locked_accounts
 

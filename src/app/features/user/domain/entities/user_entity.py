@@ -14,6 +14,7 @@ class UserEntity(BaseEntity):
         display_name: str,
         password_hash: str,
         role: UserRole = UserRole.VIEWER,
+        token_version: int = 0,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -21,6 +22,7 @@ class UserEntity(BaseEntity):
         self._display_name = display_name
         self._password_hash = password_hash
         self._role = role
+        self._token_version = token_version
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -38,6 +40,10 @@ class UserEntity(BaseEntity):
     @property
     def role(self) -> UserRole:
         return self._role
+
+    @property
+    def token_version(self) -> int:
+        return self._token_version
 
     @classmethod
     def create(
@@ -75,3 +81,12 @@ class UserEntity(BaseEntity):
     def is_admin(self) -> bool:
         """Check if user has admin role."""
         return self._role == UserRole.ADMIN
+
+    def revoke_sessions(self) -> None:
+        """
+        Invalidate every refresh token issued before this call (forced logout
+        across all devices). Refresh tokens embed the token_version they were
+        issued under; bumping it makes older tokens fail validation.
+        """
+        self._token_version += 1
+        self.mark_as_updated()

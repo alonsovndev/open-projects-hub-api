@@ -3,7 +3,10 @@ from src.app.features.auth.application.mappers.auth_mapper import to_admin_login
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, InvalidCredentialsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.email import Email
-from src.app.shared.infrastructure.security.account_lockout_service import get_account_lockout_service
+from src.app.shared.infrastructure.security.account_lockout_service import (
+    AccountLockoutService,
+    get_account_lockout_service,
+)
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import get_logger, mask_email, set_user_id
@@ -19,10 +22,15 @@ class LoginUserUseCase:
     - Resets on successful login
     """
 
-    def __init__(self, user_repository: UserRepository, jwt_handler: JWTHandler):
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        jwt_handler: JWTHandler,
+        lockout_service: AccountLockoutService | None = None,
+    ):
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
-        self.lockout_service = get_account_lockout_service()
+        self.lockout_service = lockout_service or get_account_lockout_service()
 
     async def execute(self, payload: LoginRequest) -> AdminLoginResponse:
         """
@@ -110,9 +118,12 @@ class LoginUserUseCase:
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
                 role=user_entity.role.value,
+                remember_me=payload.remember_me,
+                token_version=user_entity.token_version,
             )
+            session_expires_at = self.jwt_handler.get_token_expiry(refresh_token)
 
-            response = to_admin_login_response(user_entity, token, refresh_token)
+            response = to_admin_login_response(user_entity, token, refresh_token, session_expires_at)
 
             log.info(
                 "User logged in successfully",
