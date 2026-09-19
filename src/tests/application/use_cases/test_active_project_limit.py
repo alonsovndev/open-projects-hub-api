@@ -62,6 +62,7 @@ class TestActiveProjectLimitCreate:
             name="New Project",
             code="NEW",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         with pytest.raises(ActiveProjectLimitExceededError):
@@ -88,6 +89,7 @@ class TestActiveProjectLimitCreate:
             name="New Project",
             code="NEW",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         result = await use_case.execute(request=request, created_by=str(EntityId.generate().value))
@@ -114,6 +116,7 @@ class TestActiveProjectLimitCreate:
             name="New Project",
             code="NEW",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         result = await use_case.execute(request=request, created_by=str(EntityId.generate().value))

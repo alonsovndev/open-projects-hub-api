@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -65,6 +66,7 @@ def sample_project_model():
         client_id=client_id.value,
         status=ProjectStatus.ACTIVE.value,
         priority=ProjectPriority.MEDIUM.value,
+        phase=ProjectPhase.DISCOVERY.value,
         start_date=date(2026, 5, 1),
         end_date=date(2026, 12, 31),
         created_at=now,

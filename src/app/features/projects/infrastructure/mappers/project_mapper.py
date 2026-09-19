@@ -1,6 +1,7 @@
 """Mapper between ProjectModel (infrastructure) and ProjectEntity (domain)."""
 
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -34,6 +35,7 @@ class ProjectMapper:
             end_date=model.end_date,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            phase=ProjectPhase(model.phase),
         )
 
     @staticmethod
@@ -56,6 +58,7 @@ class ProjectMapper:
             existing_model.client_id = entity.client_id.value
             existing_model.status = entity.status.value
             existing_model.priority = entity.priority.value
+            existing_model.phase = entity.phase.value
             existing_model.start_date = entity.start_date
             existing_model.end_date = entity.end_date
             existing_model.updated_at = entity.updated_at
@@ -71,6 +74,7 @@ class ProjectMapper:
             client_id=entity.client_id.value,
             status=entity.status.value,
             priority=entity.priority.value,
+            phase=entity.phase.value,
             start_date=entity.start_date,
             end_date=entity.end_date,
             created_at=entity.created_at,

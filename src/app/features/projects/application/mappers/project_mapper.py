@@ -33,6 +33,7 @@ def to_project_response(
         client_name=client_name,
         status=entity.status.value,
         priority=entity.priority.value,
+        phase=entity.phase.value,
         start_date=entity.start_date,
         end_date=entity.end_date,
         created_at=entity.created_at.isoformat(),

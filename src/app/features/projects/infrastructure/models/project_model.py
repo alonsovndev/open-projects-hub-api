@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 
 # Imported for relationship resolution
 from src.app.features.clients.infrastructure.models.client_model import ClientModel  # noqa: F401
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.persistence import Base
@@ -40,6 +41,12 @@ class ProjectModel(Base):
         SQLEnum(ProjectPriority, values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
         default=ProjectPriority.MEDIUM.value,
+    )
+    phase = Column(
+        SQLEnum(ProjectPhase, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+        server_default=ProjectPhase.DISCOVERY.value,
+        default=ProjectPhase.DISCOVERY.value,
     )
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)

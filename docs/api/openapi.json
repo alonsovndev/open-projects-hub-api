@@ -331,6 +331,10 @@
             "title": "Name",
             "type": "string"
           },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
           "priority": {
             "anyOf": [
               {
@@ -359,7 +363,8 @@
         "required": [
           "name",
           "code",
-          "clientId"
+          "clientId",
+          "phase"
         ],
         "title": "CreateProjectRequest",
         "type": "object"
@@ -752,6 +757,10 @@
             "title": "Name",
             "type": "string"
           },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
           "priority": {
             "title": "Priority",
             "type": "string"
@@ -792,6 +801,7 @@
           "clientName",
           "status",
           "priority",
+          "phase",
           "startDate",
           "endDate",
           "createdAt",
@@ -1149,17 +1159,6 @@
               }
             ],
             "title": "Startdate"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status"
           }
         },
         "title": "UpdateProjectRequest",

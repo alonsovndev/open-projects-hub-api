@@ -60,6 +60,7 @@ class TestCreateProjectUseCase:
             name="New Project",
             code="NEW",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         # Execute
@@ -114,6 +115,7 @@ class TestCreateProjectUseCase:
             name="Full Project",
             code="FULL",
             client_id=str(client_id.value),
+            phase="discovery",
             description="A complete project",
             priority="high",
             start_date=start,
@@ -152,6 +154,7 @@ class TestCreateProjectUseCase:
                 name="",
                 code="TEST",
                 client_id=str(client_id.value),
+                phase="discovery",
             )
 
         mock_project_repo.save.assert_not_called()
@@ -174,6 +177,7 @@ class TestCreateProjectUseCase:
                 name="Project",
                 code="TEST",
                 client_id=str(client_id.value),
+                phase="discovery",
                 start_date=date(2026, 12, 31),
                 end_date=date(2026, 5, 1),
             )
@@ -203,6 +207,7 @@ class TestCreateProjectUseCase:
             name="Project",
             code="TEST",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         # Execute & Assert
@@ -252,6 +257,7 @@ class TestCreateProjectUseCase:
             name="Test Project",
             code="TEST",
             client_id=str(client_id.value),
+            phase="discovery",
         )
 
         # Execute
@@ -266,6 +272,51 @@ class TestCreateProjectUseCase:
         # Verify the entity passed to save has correct created_by
         save_call_args = mock_project_repo.save.call_args[0][0]
         assert save_call_args.created_by.value == created_by_uuid
+
+    @pytest.mark.asyncio
+    async def test_execute_raises_validation_error_on_invalid_phase(self):
+        """Test that a phase outside discovery/planning raises ValidationError at DTO level."""
+        client_id = EntityId.generate()
+
+        with pytest.raises(ValidationError, match="Phase must be one of"):
+            CreateProjectRequest(
+                name="Project",
+                code="TEST",
+                client_id=str(client_id.value),
+                phase="delivery",
+            )
+
+    @pytest.mark.asyncio
+    async def test_execute_persists_requested_phase(self):
+        """Test that the requested phase is passed through to the created entity."""
+        mock_project_repo = AsyncMock()
+        mock_client_repo = AsyncMock()
+        created_by = EntityId.generate()
+        client_id = EntityId.generate()
+
+        mock_project_repo.count_active_by_user.return_value = 0
+
+        mock_client = AsyncMock()
+        mock_client.name = "Test Client"
+        mock_client_repo.find_by_id.return_value = mock_client
+
+        async def _save(entity: ProjectEntity) -> ProjectEntity:
+            return entity
+
+        mock_project_repo.save.side_effect = _save
+
+        use_case = CreateProjectUseCase(mock_project_repo, mock_client_repo)
+
+        request = CreateProjectRequest(
+            name="Planning Project",
+            code="PLAN",
+            client_id=str(client_id.value),
+            phase="planning",
+        )
+
+        result = await use_case.execute(request=request, created_by=str(created_by.value))
+
+        assert result.phase == "planning"
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_when_client_not_found(self):
@@ -283,6 +334,7 @@ class TestCreateProjectUseCase:
             name="Project",
             code="TEST",
             client_id=str(uuid4()),
+            phase="discovery",
         )
 
         # Execute & Assert

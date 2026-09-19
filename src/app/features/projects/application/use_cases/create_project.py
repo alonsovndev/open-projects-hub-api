@@ -6,6 +6,7 @@ from src.app.features.projects.application.mappers.project_mapper import to_proj
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
 from src.app.features.projects.domain.exceptions.project_exceptions import ActiveProjectLimitExceededError
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -71,6 +72,7 @@ class CreateProjectUseCase:
             raise NotFoundError("Client", request.client_id)
 
         priority_enum = ProjectPriority(request.priority) if request.priority else ProjectPriority.default()
+        phase_enum = ProjectPhase(request.phase)
 
         entity = ProjectEntity.create(
             name=request.name,
@@ -81,6 +83,7 @@ class CreateProjectUseCase:
             priority=priority_enum,
             start_date=request.start_date,
             end_date=request.end_date,
+            phase=phase_enum,
         )
 
         saved_entity = await self._project_repository.save(entity)
