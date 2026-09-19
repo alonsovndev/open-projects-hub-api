@@ -192,7 +192,7 @@ List endpoints support offset-based pagination with `limit` and `offset` query p
 | Endpoint | Additional Filters |
 |----------|-------------------|
 | `GET /v1/clients` | None |
-| `GET /v1/projects` | `status` (active, completed, archived) |
+| `GET /v1/projects` | `status`, `clientId`, `createdFrom`, `createdTo`, `updatedFrom`, `updatedTo`, `search` |
 | `GET /v1/stories` | `project_id`, `status`, `priority`, `assigned_to` |
 | `GET /v1/stories/by-project/{project_id}` | None |
 
@@ -216,6 +216,18 @@ The `GET /v1/projects` endpoint supports:
 | Filter | Values |
 |--------|--------|
 | `status` | `active`, `completed`, `archived` |
+| `clientId` | UUID string |
+| `createdFrom` | ISO 8601 datetime (inclusive lower bound on `createdAt`) |
+| `createdTo` | ISO 8601 datetime (inclusive upper bound on `createdAt`) |
+| `updatedFrom` | ISO 8601 datetime (inclusive lower bound on `updatedAt`) |
+| `updatedTo` | ISO 8601 datetime (inclusive upper bound on `updatedAt`) |
+| `search` | Case-insensitive substring match on project `name` or `code` |
+
+Example:
+
+```
+GET /v1/projects?status=active&clientId=550e8400-e29b-41d4-a716-446655440003&search=payroll
+```
 
 ## Interactive Documentation
 

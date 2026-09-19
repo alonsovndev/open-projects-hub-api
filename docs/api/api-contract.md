@@ -29,12 +29,14 @@ All endpoints are prefixed with `/v1`.
 | `GET` | `/v1/clients` | Authenticated | List clients with pagination |
 | `GET` | `/v1/clients/{client_id}` | Authenticated | Get client by ID |
 | `PUT` | `/v1/clients/{client_id}` | Admin Only | Update client |
-| `DELETE` | `/v1/clients/{client_id}` | Admin Only | Delete client |
-| `POST` | `/v1/projects` | Admin Only | Create project |
-| `GET` | `/v1/projects` | Authenticated | List projects with pagination and optional status filter |
+| `DELETE` | `/v1/clients/{client_id}` | Admin Only | Delete client (409 if active projects exist; archived projects removed as part of deletion) |
+| `POST` | `/v1/projects` | Admin Only | Create project (max 3 active projects per admin) |
+| `GET` | `/v1/projects` | Authenticated | List projects with pagination and filters (status, clientId, date ranges, search) |
 | `GET` | `/v1/projects/{project_id}` | Authenticated | Get project by ID |
 | `PATCH` | `/v1/projects/{project_id}` | Admin Only | Update project |
-| `DELETE` | `/v1/projects/{project_id}` | Admin Only | Delete project |
+| `POST` | `/v1/projects/{project_id}/archive` | Admin Only | Archive project (frees an active-project slot) |
+| `POST` | `/v1/projects/{project_id}/reactivate` | Admin Only | Reactivate archived/completed project (409 if at active limit) |
+| `DELETE` | `/v1/projects/{project_id}` | Admin Only | Delete project (404 if not found) |
 | `POST` | `/v1/stories` | Authenticated | Create story |
 | `GET` | `/v1/stories` | Authenticated | List stories with pagination and filters |
 | `GET` | `/v1/stories/by-project/{project_id}` | Authenticated | Get stories by project with pagination |

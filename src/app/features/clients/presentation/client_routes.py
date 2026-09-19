@@ -4,7 +4,6 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.exc import IntegrityError
 
 from src.app.composition import (
     get_create_client_use_case,
@@ -24,7 +23,11 @@ from src.app.features.clients.application.use_cases.delete_client import DeleteC
 from src.app.features.clients.application.use_cases.get_client_by_id import GetClientByIdUseCase
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.application.use_cases.update_client import UpdateClientUseCase
-from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError, ClientNotFoundError
+from src.app.features.clients.domain.exceptions.client_exceptions import (
+    ClientEmailExistsError,
+    ClientHasActiveProjectsError,
+    ClientNotFoundError,
+)
 from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
 
 
@@ -187,8 +190,8 @@ async def delete_client(
     """
     Delete a client.
 
-    Requires ADMIN role. Cannot delete if the client has associated projects
-    (foreign key constraint).
+    Requires ADMIN role. Cannot delete if the client still has active projects;
+    archived projects are removed as part of the deletion.
 
     Args:
         client_id: Client UUID
@@ -196,9 +199,9 @@ async def delete_client(
         use_case: Injected DeleteClientUseCase
 
     Raises:
-        400: Cannot delete client with associated projects
         401/403: Unauthorized or forbidden
         404: Client not found
+        409: Client still has active projects
         500: Internal server error
     """
     user_id = str(current_user["sub"])
@@ -207,8 +210,5 @@ async def delete_client(
         await use_case.execute(client_id=client_id, created_by=user_id)
     except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete client with associated projects",
-        ) from None
+    except ClientHasActiveProjectsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e

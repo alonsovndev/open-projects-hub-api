@@ -57,3 +57,6 @@ ai:
   provider: gemini    # gemini | mock
   gemini_api_key: !ENV ${GEMINI_API_KEY}
   gemini_model: gemini-2.5-flash
+
+project_limits:
+  max_active_per_admin: 3

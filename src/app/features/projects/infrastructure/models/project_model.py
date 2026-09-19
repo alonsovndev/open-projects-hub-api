@@ -65,8 +65,8 @@ class ProjectModel(Base):
         Index("ix_projects_priority", "priority"),
         # Index for code lookup
         Index("ix_projects_code", "code"),
-        # Index for client lookup (already created by migration)
-        # Index('ix_projects_client_id', 'client_id'),
+        # Index for client lookup
+        Index("ix_projects_client_id", "client_id"),
     )
 
     def __repr__(self) -> str:
