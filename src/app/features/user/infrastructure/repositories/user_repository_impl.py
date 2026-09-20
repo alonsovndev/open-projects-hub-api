@@ -205,6 +205,32 @@ class UserRepositoryImpl(UserRepository):
             self._log.exception("Error checking user existence", extra={"operation": "exists", "table": "users"})
             raise
 
+    async def exists_any(self) -> bool:
+        """
+        Check whether any user account exists.
+
+        Returns:
+            True if at least one user exists, False otherwise
+
+        Raises:
+            DatabaseConnectionError: If database connection fails
+            Exception: For other unexpected errors
+        """
+        try:
+            # LIMIT 1 rather than COUNT(*): the caller only asks "is this instance empty",
+            # and this stays constant-time as the table grows.
+            stmt = select(UserModel.id).limit(1)
+            result = await self.db_session.execute(stmt)
+            return result.scalar_one_or_none() is not None
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            self._log.exception("Database connection error", extra={"operation": "exists_any", "table": "users"})
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
+
+        except Exception:
+            self._log.exception("Error checking for any user", extra={"operation": "exists_any", "table": "users"})
+            raise
+
     async def update(self, user: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
@@ -236,6 +262,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.display_name = user.display_name
             user_model.password_hash = user.password_hash
             user_model.role = user.role.value
+            user_model.token_version = user.token_version
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)

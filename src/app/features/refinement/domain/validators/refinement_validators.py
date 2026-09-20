@@ -10,6 +10,7 @@ class RefinementValidators:
     MIN_TITLE_LENGTH = 1
     MAX_TITLE_LENGTH = 500
     MIN_NOTES_LENGTH = 20
+    MAX_NOTES_LENGTH = 5000
 
     @staticmethod
     def validate_title(title: str) -> None:
@@ -44,6 +45,12 @@ class RefinementValidators:
 
         if len(raw_notes) < RefinementValidators.MIN_NOTES_LENGTH:
             raise ValidationError(f"Raw notes must be at least {RefinementValidators.MIN_NOTES_LENGTH} characters")
+
+        if len(raw_notes) > RefinementValidators.MAX_NOTES_LENGTH:
+            raise ValidationError(
+                f"Raw notes cannot exceed {RefinementValidators.MAX_NOTES_LENGTH} characters "
+                f"(received {len(raw_notes)}). Shorten the notes and try again."
+            )
 
     @staticmethod
     def validate_project_id(project_id: str) -> None:

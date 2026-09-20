@@ -15,6 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.app.config.app_config import AppConfig
 
 # DO NOT REMOVE - Model imports required for Alembic autogenerate
+from src.app.features.auth.infrastructure.models.account_lockout_model import AccountLockoutModel
+from src.app.features.auth.infrastructure.models.password_reset_code_model import PasswordResetCodeModel
+from src.app.features.auth.infrastructure.models.revoked_refresh_token_model import RevokedRefreshTokenModel
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel

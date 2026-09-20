@@ -37,7 +37,16 @@ Design Pattern:
 # ============================================================================
 # Feature: Auth
 # ============================================================================
-from src.app.composition.features.auth import get_login_use_case, get_refresh_token_use_case, get_register_use_case
+from src.app.composition.features.auth import (
+    get_confirm_password_reset_use_case,
+    get_login_use_case,
+    get_logout_use_case,
+    get_refresh_token_use_case,
+    get_register_use_case,
+    get_request_password_reset_use_case,
+    get_resend_reset_code_use_case,
+    get_revoke_all_user_tokens_use_case,
+)
 
 # ============================================================================
 # Feature: Clients
@@ -75,8 +84,10 @@ from src.app.composition.features.projects import (
 from src.app.composition.features.refinement import (
     get_approve_draft_use_case,
     get_approve_drafts_bulk_use_case,
+    get_delete_draft_use_case,
     get_draft_repository,
     get_generate_stories_use_case,
+    get_list_drafts_use_case,
     get_update_draft_use_case,
 )
 
@@ -103,7 +114,7 @@ from src.app.composition.features.users import (
     get_get_user_profile_use_case,
     get_update_user_profile_use_case,
 )
-from src.app.composition.infrastructure import get_ai_service, get_database_session
+from src.app.composition.infrastructure import get_ai_service, get_database_session, get_email_sender
 
 # ============================================================================
 # Repositories - Shared (Level 2)
@@ -123,15 +134,21 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Infrastructure
     "get_ai_service",
     "get_database_session",
+    "get_email_sender",
     # Repositories (shared)
     "build_story_repository",
     "get_client_repository",
     "get_story_repository",
     "get_user_repository",
     # Auth
+    "get_confirm_password_reset_use_case",
     "get_login_use_case",
+    "get_logout_use_case",
     "get_refresh_token_use_case",
     "get_register_use_case",
+    "get_request_password_reset_use_case",
+    "get_resend_reset_code_use_case",
+    "get_revoke_all_user_tokens_use_case",
     # Clients
     "get_create_client_use_case",
     "get_delete_client_use_case",
@@ -152,8 +169,10 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Refinement
     "get_approve_draft_use_case",
     "get_approve_drafts_bulk_use_case",
+    "get_delete_draft_use_case",
     "get_draft_repository",
     "get_generate_stories_use_case",
+    "get_list_drafts_use_case",
     "get_update_draft_use_case",
     # Stories
     "get_assign_story_use_case",

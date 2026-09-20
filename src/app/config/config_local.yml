@@ -53,6 +53,17 @@ monitoring:
   sentry_dsn: null
   sentry_traces_sample_rate: 0.1
 
+smtp:
+  host: !ENV ${SMTP_HOST:localhost}
+  port: !ENV ${SMTP_PORT:1025}
+  username: !ENV ${SMTP_USERNAME:}
+  password: !ENV ${SMTP_PASSWORD:}
+  from_address: !ENV ${SMTP_FROM_ADDRESS:no-reply@open-projects-hub.local}
+  use_tls: false
+
+auth:
+  persist_session_state: true
+
 ai:
   provider: gemini    # gemini | mock
   gemini_api_key: !ENV ${GEMINI_API_KEY}

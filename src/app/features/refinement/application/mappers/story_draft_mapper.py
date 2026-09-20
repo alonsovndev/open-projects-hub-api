@@ -4,7 +4,8 @@ Shared mapper for refinement DTOs.
 Centralizes DTO mapping logic to reduce duplication across use cases.
 """
 
-from src.app.features.refinement.application.dtos.refinement_dto import GeneratedStoryResponse
+from src.app.features.refinement.application.dtos.refinement_dto import GeneratedStoryResponse, StoryDraftResponse
+from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.infrastructure.ai.ai_service import GeneratedStory
 
 
@@ -27,4 +28,26 @@ def to_generated_story_response(
         title=generated_story.title,
         description=generated_story.description,
         acceptance_criteria=generated_story.acceptance_criteria,
+    )
+
+
+def to_story_draft_response(draft: StoryDraftEntity) -> StoryDraftResponse:
+    """
+    Convert a StoryDraftEntity to its API response DTO.
+
+    Args:
+        draft: Persisted story draft
+
+    Returns:
+        StoryDraftResponse DTO
+    """
+    return StoryDraftResponse(
+        id=str(draft.id.value),
+        project_id=str(draft.project_id.value),
+        title=draft.title,
+        description=draft.description,
+        acceptance_criteria=draft.acceptance_criteria,
+        status=draft.status.value,
+        created_at=draft.created_at,
+        updated_at=draft.updated_at,
     )

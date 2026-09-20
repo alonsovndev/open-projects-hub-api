@@ -44,7 +44,8 @@ class JWTHandler:
         secret_key: str,
         algorithm: str = "HS256",
         expiration_minutes: int = 1440,
-        refresh_expiration_minutes: int = 10080,  # 7 days
+        refresh_expiration_minutes: int = 1440,  # 24 hours (standard session)
+        remember_me_expiration_minutes: int = 10080,  # 7 days (remember-me session)
         validate_secret: bool = True,
         audience: str | None = None,
         issuer: str | None = None,
@@ -54,7 +55,10 @@ class JWTHandler:
             secret_key: Secret key for signing tokens
             algorithm: JWT algorithm (default: HS256)
             expiration_minutes: Access token expiration time in minutes (default: 24 hours)
-            refresh_expiration_minutes: Refresh token expiration time in minutes (default: 7 days)
+            refresh_expiration_minutes: Standard-session refresh token expiration in minutes
+                (default: 24 hours)
+            remember_me_expiration_minutes: Remember-me refresh token expiration in minutes
+                (default: 7 days)
             validate_secret: Whether to validate secret strength (default: True, disable for tests)
             audience: Expected audience claim (default: None, auto-set to "open-projects-hub-api")
             issuer: Expected issuer claim (default: None, auto-set to "open-projects-hub-api")
@@ -69,6 +73,7 @@ class JWTHandler:
         self.algorithm = algorithm
         self.expiration_minutes = expiration_minutes
         self.refresh_expiration_minutes = refresh_expiration_minutes
+        self.remember_me_expiration_minutes = remember_me_expiration_minutes
         self.audience = audience or "open-projects-hub-api"
         self.issuer = issuer or "open-projects-hub-api"
 
@@ -149,20 +154,31 @@ class JWTHandler:
         user_id: str,
         email: str,
         role: str,
+        remember_me: bool = False,
+        token_version: int = 0,
     ) -> str:
         """
         Creates a JWT refresh token with longer expiration.
+
+        The session is sliding: each rotation (see RefreshTokenUseCase) mints a
+        new refresh token with a fresh expiration computed from "now", so an
+        active user's session keeps extending up to `remember_me`'s duration
+        since their last activity, per FR-007-06.
 
         Args:
             user_id: User's unique identifier
             email: User's email address
             role: User's role (ADMIN or USER)
+            remember_me: Standard 24h session if False, extended 7-day session if True
+            token_version: The user's current token_version, embedded so a forced
+                logout (token_version bump) invalidates this token immediately
 
         Returns:
             Encoded JWT refresh token string
         """
         now = datetime.now(tz=UTC)
-        expires_at = now + timedelta(minutes=self.refresh_expiration_minutes)
+        duration_minutes = self.remember_me_expiration_minutes if remember_me else self.refresh_expiration_minutes
+        expires_at = now + timedelta(minutes=duration_minutes)
 
         payload: dict[str, Any] = {
             "sub": user_id,
@@ -173,6 +189,8 @@ class JWTHandler:
             "aud": self.audience,
             "iss": self.issuer,
             "type": "refresh",  # Mark as refresh token
+            "remember_me": remember_me,
+            "tv": token_version,
         }
 
         token: str = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -254,3 +272,14 @@ class JWTHandler:
         except jwt.InvalidTokenError as e:
             log.warning(f"Invalid refresh token: {e!s}")
             raise
+
+    def get_token_expiry(self, token: str) -> datetime:
+        """
+        Reads the `exp` claim off a token this handler just issued.
+
+        Used to surface the session boundary to API responses without
+        changing create_*_token()'s return type. Not for validating
+        untrusted tokens — callers should decode_*_token() first for that.
+        """
+        exp = jwt.decode(token, options={"verify_signature": False})["exp"]
+        return datetime.fromtimestamp(exp, tz=UTC)

@@ -2,18 +2,19 @@
 RegisterUserUseCase - Public registration with auto-login.
 
 Following API spec requirements:
-- Public endpoint (no auth required)
-- Default role: viewer
+- Public endpoint (no auth required), open only while the instance has no accounts
+- Role: admin, assigned server-side and never taken from the request
 - Returns JWT token (auto-login behavior)
 - Returns AdminLoginResponse (same format as login)
 """
 
-from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse
+from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, RegisterRequest
 from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
-from src.app.features.user.application.dtos.user_dto import UserCreateRequest
-from src.app.features.user.application.mappers.user_dto_mapper import map_create_request_to_entity
+from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
+from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import get_logger, set_user_id
@@ -23,15 +24,17 @@ class RegisterUserUseCase:
     """
     Use case for user registration with auto-login.
 
-    Creates a new user with default viewer role and returns JWT token
-    for immediate authentication (auto-login behavior).
+    Bootstraps the instance's first Admin and returns a JWT token for immediate
+    authentication (auto-login behavior). Two things are decided here rather than by the
+    caller, because registration is anonymous: whether it is still open at all, and the
+    role. Either one left to the request body would be a privilege-escalation path.
     """
 
     def __init__(self, user_repository: UserRepository, jwt_handler: JWTHandler):
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
 
-    async def execute(self, payload: UserCreateRequest) -> AdminLoginResponse:
+    async def execute(self, payload: RegisterRequest) -> AdminLoginResponse:
         """
         Register new user and return JWT token (auto-login).
 
@@ -42,6 +45,7 @@ class RegisterUserUseCase:
             AdminLoginResponse with JWT token and user details
 
         Raises:
+            RegistrationClosedError: If the instance already has an account
             UserAlreadyExistsError: If email already exists
             ValueError: If validation fails
         """
@@ -49,9 +53,21 @@ class RegisterUserUseCase:
         set_user_id(str(payload.email))
 
         try:
+            if await self.user_repository.exists_any():
+                log.warning(
+                    "Registration attempt on an instance that already has accounts",
+                    extra={"event_type": "auth.register.closed", "email": str(payload.email)},
+                )
+                raise RegistrationClosedError
+
             password_hash = await PasswordHandler.hash_password(payload.password)
 
-            new_user_entity = map_create_request_to_entity(payload, password_hash)
+            new_user_entity = UserEntity.create(
+                email=str(payload.email).lower().strip(),
+                display_name=payload.display_name.strip(),
+                password_hash=password_hash,
+                role=UserRole.ADMIN,
+            )
 
             # Enforce email uniqueness constraint at application layer
             existing_user = await self.user_repository.find_by_email(new_user_entity.email)
@@ -78,10 +94,14 @@ class RegisterUserUseCase:
             )
 
             refresh_token = self.jwt_handler.create_refresh_token(
-                user_id=str(created_user.id.value), email=str(created_user.email.value), role=created_user.role.value
+                user_id=str(created_user.id.value),
+                email=str(created_user.email.value),
+                role=created_user.role.value,
+                token_version=created_user.token_version,
             )
+            session_expires_at = self.jwt_handler.get_token_expiry(refresh_token)
 
-            response = to_admin_login_response(created_user, token, refresh_token)
+            response = to_admin_login_response(created_user, token, refresh_token, session_expires_at)
 
             log.info(
                 "User registered successfully",
@@ -89,7 +109,7 @@ class RegisterUserUseCase:
             )
             return response
 
-        except (ValueError, UserAlreadyExistsError):
+        except (ValueError, UserAlreadyExistsError, RegistrationClosedError):
             raise
         except Exception:
             log.exception(

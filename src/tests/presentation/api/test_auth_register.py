@@ -1,9 +1,10 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
+from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 
 
@@ -14,15 +15,16 @@ def mock_register_response():
         token="mock.jwt.token",
         access_token="mock.jwt.token",
         refresh_token="mock.jwt.refresh.token",
+        session_expires_at=(datetime.now(tz=UTC) + timedelta(hours=24)).isoformat(),
         email="newuser@example.com",
         display_name="New User",
         logged_in_at=datetime.now(tz=UTC).isoformat(),
-        role="viewer",
+        role="admin",
         user=UserDetail(
             email="newuser@example.com",
             display_name="New User",
             name="New User",
-            role="viewer",
+            role="admin",
         ),
     )
 
@@ -54,7 +56,7 @@ class TestRegisterEndpoint:
         # Verify user fields
         assert data["email"] == "newuser@example.com"
         assert data["displayName"] == "New User"
-        assert data["role"] == "viewer"
+        assert data["role"] == "admin"
         assert "loggedInAt" in data
 
         # Verify nested user object
@@ -62,7 +64,7 @@ class TestRegisterEndpoint:
         assert data["user"]["email"] == "newuser@example.com"
         assert data["user"]["displayName"] == "New User"
         assert data["user"]["name"] == "New User"
-        assert data["user"]["role"] == "viewer"
+        assert data["user"]["role"] == "admin"
 
     def test_register_token_is_valid_jwt(self, client, mock_register_response):
         """Test that the returned token is a valid JWT with correct claims."""
@@ -181,8 +183,8 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 422
 
-    def test_register_defaults_to_viewer_role(self, client, mock_register_response):
-        """Test that registration defaults to viewer role."""
+    def test_register_creates_an_admin_account(self, client, mock_register_response):
+        """Registration creates an admin account (api-contract.md: 'Accounts created as Admin role')."""
         with patch(
             "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
             new=AsyncMock(return_value=mock_register_response),
@@ -198,5 +200,46 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["role"] == "viewer"
-        assert data["user"]["role"] == "viewer"
+        assert data["role"] == "admin"
+        assert data["user"]["role"] == "admin"
+
+    def test_register_rejects_a_role_supplied_in_the_body(self, client):
+        """A role in the request body is rejected outright rather than silently ignored.
+
+        Registration is anonymous, so honouring this field would let anyone mint an admin.
+        """
+        execute = AsyncMock()
+        with patch(
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
+            new=execute,
+        ):
+            response = client.post(
+                "/v1/auth/register",
+                json={
+                    "email": "newuser@example.com",
+                    "password": "SecurePass1",
+                    "displayName": "New User",
+                    "role": "admin",
+                },
+            )
+
+        assert response.status_code == 422
+        execute.assert_not_called()
+
+    def test_register_returns_403_once_the_instance_has_an_account(self, client):
+        """Registration bootstraps the first Admin; afterwards it is closed, not merely rate-limited."""
+        with patch(
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
+            new=AsyncMock(side_effect=RegistrationClosedError()),
+        ):
+            response = client.post(
+                "/v1/auth/register",
+                json={
+                    "email": "second@example.com",
+                    "password": "SecurePass1",
+                    "displayName": "Second Person",
+                },
+            )
+
+        assert response.status_code == 403
+        assert "Registration is closed" in response.json()["detail"]

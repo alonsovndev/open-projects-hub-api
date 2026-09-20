@@ -1,5 +1,40 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from pydantic.alias_generators import to_camel
+
+from src.app.features.user.domain.validators.user_validators import UserValidators
+
+
+class RegisterRequest(BaseModel):
+    """
+    Request model for public self-registration.
+
+    Deliberately has no `role` field: registration is anonymous, so a role taken from the
+    request body would let anyone mint an Admin account. The role is assigned server-side.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="forbid",
+    )
+
+    display_name: str
+    email: EmailStr
+    password: str
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, display_name: str) -> str:
+        """Validate display name."""
+        UserValidators.validate_display_name(display_name)
+        return display_name
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, password: str) -> str:
+        """Validate password meets complexity requirements."""
+        UserValidators.validate_password(password)
+        return password
 
 
 class LoginRequest(BaseModel):
@@ -12,6 +47,7 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str
+    remember_me: bool = False
 
 
 class RefreshTokenRequest(BaseModel):
@@ -35,6 +71,7 @@ class RefreshTokenResponse(BaseModel):
 
     access_token: str
     refresh_token: str
+    session_expires_at: str
 
 
 class UserDetail(BaseModel):
@@ -65,8 +102,82 @@ class AdminLoginResponse(BaseModel):
     token: str
     access_token: str
     refresh_token: str
+    session_expires_at: str
     email: str
     display_name: str
     logged_in_at: str
     role: str
     user: UserDetail
+
+
+class LogoutResponse(BaseModel):
+    """Response model for logout."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request model for initiating a password reset."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """
+    Response model for a password reset request.
+
+    Always returns the same generic message regardless of whether the email
+    is registered, so the endpoint never discloses account existence.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    message: str
+
+
+class ResendResetCodeRequest(BaseModel):
+    """Request model for resending a password reset code."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request model for completing a password reset."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: EmailStr
+    code: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response model for a completed password reset."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    message: str

@@ -29,6 +29,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.config.app_config import AppConfig
 from src.app.features.refinement.infrastructure.ai.ai_factory import create_ai_service
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
+from src.app.shared.infrastructure.email.email_sender import EmailSender
+from src.app.shared.infrastructure.email.smtp_email_sender import SmtpEmailSender
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.persistence.engine_factory import get_engine
 
@@ -53,6 +55,25 @@ def get_jwt_handler() -> JWTHandler:
         secret_key=secret_key,
         algorithm=algorithm,
         expiration_minutes=int(expiration),
+    )
+
+
+@lru_cache(maxsize=1)
+def get_email_sender() -> EmailSender:
+    """
+    Cached singleton factory for EmailSender.
+
+    Scoped to password-reset-code delivery (EPIC-2); see SmtpEmailSender's
+    docstring for why it stays minimal until EPIC-9-BE-001 lands.
+    """
+    config = AppConfig.instance()
+    return SmtpEmailSender(
+        host=config.get_config("smtp.host", "localhost"),
+        port=int(config.get_config("smtp.port", 587)),
+        username=config.get_config("smtp.username", ""),
+        password=config.get_config("smtp.password", ""),
+        from_address=config.get_config("smtp.from_address", "no-reply@open-projects-hub.local"),
+        use_tls=bool(config.get_config("smtp.use_tls", True)),
     )
 
 

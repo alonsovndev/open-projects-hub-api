@@ -67,7 +67,7 @@ class TestGetUserProfileEndpoint:
         """Test that GET /profile requires authentication."""
         response = client.get("/v1/users/me/profile")
 
-        assert response.status_code == 403  # HTTPBearer returns 403 when missing
+        assert response.status_code == 401
 
     def test_get_profile_not_found(self, client, viewer_token):
         """Test that 404 is returned when user doesn't exist."""
@@ -113,7 +113,7 @@ class TestUpdateUserProfileEndpoint:
         """Test that PATCH /profile requires authentication."""
         response = client.patch("/v1/users/me/profile", json={"displayName": "New Name"})
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_update_profile_empty_display_name_returns_400(self, client, viewer_token):
         """Test that empty display name returns 400."""

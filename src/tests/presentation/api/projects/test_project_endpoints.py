@@ -117,13 +117,13 @@ class TestCreateProjectEndpoint:
         assert "id" in data
 
     def test_create_project_unauthorized_without_token(self, client: TestClient):
-        """Test creating project without token returns 403."""
+        """Test creating project without token returns 401."""
         response = client.post(
             "/v1/projects",
             json={"name": "Test Project"},
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_create_project_conflict_at_active_limit(self, client: TestClient, admin_token: str, mock_project_response):
         """Test creating project at active-project limit returns 409."""
@@ -189,10 +189,10 @@ class TestListProjectsEndpoint:
         assert data["per_page"] == 20
 
     def test_list_projects_unauthorized_without_token(self, client: TestClient):
-        """Test listing projects without token returns 403."""
+        """Test listing projects without token returns 401."""
         response = client.get("/v1/projects")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_list_projects_accepts_filter_parameters(self, client: TestClient, admin_token: str, mock_project_response):
         """Test listing projects forwards filter query parameters."""

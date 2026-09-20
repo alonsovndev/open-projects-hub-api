@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.app.shared.domain.exceptions.domain_exceptions import (
     ConflictError,
@@ -257,6 +258,39 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 
+async def refinement_failed_error_handler(request: Request, exc: RefinementFailedError) -> JSONResponse:
+    """
+    Handle RefinementFailedError exceptions.
+
+    Returns 502 with the Admin's raw notes echoed back, so a provider outage costs no
+    re-entry: the client can resubmit the preserved input as-is (FR-002-04).
+
+    Args:
+        request: The incoming request
+        exc: The refinement failure exception
+
+    Returns:
+        JSONResponse with 502 status, actionable guidance, and the preserved raw notes
+    """
+    log.warning(
+        "Refinement failed",
+        extra={
+            "event_type": "refinement.failed",
+            "provider": exc.provider,
+            "failure_class": exc.failure_class.value,
+        },
+    )
+    return JSONResponse(
+        status_code=502,
+        content={
+            "detail": str(exc),
+            "failureClass": exc.failure_class.value,
+            "provider": exc.provider,
+            "rawNotes": exc.raw_notes,
+        },
+    )
+
+
 def register_exception_handlers(app):
     """
     Register all exception handlers with the FastAPI application.
@@ -277,4 +311,5 @@ def register_exception_handlers(app):
     app.add_exception_handler(Exception, generic_exception_handler)
     app.add_exception_handler(UserNotFoundError, user_not_found_error_handler)
     app.add_exception_handler(UserAlreadyExistsError, user_already_exists_error_handler)
+    app.add_exception_handler(RefinementFailedError, refinement_failed_error_handler)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
