@@ -5,6 +5,7 @@ Centralizes API route registration with versioning and tagging.
 """
 
 from src.app.features.auth.presentation.auth_routes import router as auth_router
+from src.app.features.backlog.presentation.backlog_routes import router as backlog_router
 from src.app.features.clients.presentation.client_routes import router as client_router
 from src.app.features.dashboard.presentation.dashboard_routes import router as dashboard_router
 from src.app.features.projects.presentation.project_routes import router as project_router
@@ -34,6 +35,10 @@ def register_routers(app) -> None:
 
     # Project management routes
     app.include_router(project_router, prefix="/v1/projects", tags=["Projects"])
+
+    # Backlog view and Markdown export routes (project-scoped, so they share the
+    # /v1/projects prefix; their paths do not collide with the project router's)
+    app.include_router(backlog_router, prefix="/v1/projects", tags=["Backlog & Export"])
 
     # Story management routes
     app.include_router(story_router, prefix="/v1/stories", tags=["Stories"])

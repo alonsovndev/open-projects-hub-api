@@ -10,6 +10,7 @@ class StoryValidators:
     MAX_TITLE_LENGTH = 255
     MIN_POINTS = 0
     MAX_POINTS = 100
+    MAX_ACCEPTANCE_CRITERION_LENGTH = 500
 
     @staticmethod
     def validate_title(title: str) -> None:
@@ -42,3 +43,26 @@ class StoryValidators:
             raise ValidationError("Story points cannot be negative")
         if points is not None and points > StoryValidators.MAX_POINTS:
             raise ValidationError(f"Story points cannot exceed {StoryValidators.MAX_POINTS}")
+
+    @staticmethod
+    def validate_acceptance_criteria(acceptance_criteria: list[str]) -> None:
+        """
+        Validate a story's acceptance criteria.
+
+        An empty list is allowed — a story created by hand may have none yet. A blank
+        criterion is not, because it renders as an empty bullet in the Markdown export.
+
+        Args:
+            acceptance_criteria: Criteria to validate
+
+        Raises:
+            ValidationError: If any criterion is blank or too long
+        """
+        for criterion in acceptance_criteria:
+            if not criterion or not criterion.strip():
+                raise ValidationError("Acceptance criteria cannot contain empty entries")
+            if len(criterion) > StoryValidators.MAX_ACCEPTANCE_CRITERION_LENGTH:
+                raise ValidationError(
+                    f"An acceptance criterion cannot exceed "
+                    f"{StoryValidators.MAX_ACCEPTANCE_CRITERION_LENGTH} characters"
+                )

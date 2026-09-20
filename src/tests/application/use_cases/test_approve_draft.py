@@ -163,8 +163,8 @@ class TestApproveDraftUseCase:
             await use_case.execute(str(draft_id.value), created_by="test-user")
 
     @pytest.mark.asyncio
-    async def test_execute_creates_story_with_description_and_criteria(self):
-        """Test that story description includes acceptance criteria."""
+    async def test_execute_carries_acceptance_criteria_as_a_list(self):
+        """Approval must keep criteria structured, not folded into the description."""
         mock_draft_repo = AsyncMock()
         mock_story_repo = AsyncMock()
 
@@ -184,30 +184,19 @@ class TestApproveDraftUseCase:
             updated_at=datetime.now(tz=UTC),
         )
         mock_draft_repo.find_by_id.return_value = existing_draft
-
-        created_story = StoryEntity(
-            id=EntityId.generate(),
-            title="Draft Title",
-            description="User needs to login\n\n**Acceptance Criteria:**\n- User can enter credentials\n- User sees dashboard",
-            project_id=project_id,
-            created_by=created_by,
-            assigned_to=None,
-            status=StoryStatus.TODO,
-            priority=StoryPriority.MEDIUM,
-            points=None,
-            created_at=datetime.now(tz=UTC),
-            updated_at=datetime.now(tz=UTC),
-        )
-        mock_story_repo.save.return_value = created_story
         mock_draft_repo.save.return_value = existing_draft
+        mock_story_repo.save.side_effect = lambda story: story
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value), created_by="test-user")
+        await use_case.execute(str(draft_id.value), created_by="test-user")
 
-        assert result is not None
-        assert "Acceptance Criteria" in result.description
-        assert "User can enter credentials" in result.description
+        # Assert on the entity handed to the repository, not on the mock's return value —
+        # the latter would pass no matter what the use case built.
+        saved_story = mock_story_repo.save.call_args.args[0]
+        assert saved_story.acceptance_criteria == ["User can enter credentials", "User sees dashboard"]
+        assert saved_story.description == "User needs to login"
+        assert "Acceptance Criteria" not in (saved_story.description or "")
 
     @pytest.mark.asyncio
     async def test_execute_creates_story_without_description(self):

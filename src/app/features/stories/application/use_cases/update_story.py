@@ -71,6 +71,7 @@ class UpdateStoryUseCase:
             status=story_status,
             priority=story_priority,
             points=request.points,
+            acceptance_criteria=request.acceptance_criteria,
         )
 
         saved_entity = await self._repository.save(entity)

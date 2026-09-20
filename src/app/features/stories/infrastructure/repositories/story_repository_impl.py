@@ -1,14 +1,18 @@
 """Story repository implementation using SQLAlchemy."""
 
 import time
+from datetime import UTC, datetime, time as time_of_day, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
+from src.app.features.stories.domain.queries.backlog_query import BacklogQuery
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.infrastructure.mappers.story_mapper import StoryMapper
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.shared.logging import get_logger
@@ -131,6 +135,98 @@ class StoryRepositoryImpl(StoryRepository):
             List of StoryEntity objects
         """
         return await self.find_all(limit=limit, offset=offset, project_id=project_id)
+
+    @staticmethod
+    def _apply_backlog_scope(stmt: Select, query: BacklogQuery) -> Select:
+        """Narrow a statement to a backlog scope, without ordering or pagination."""
+        stmt = stmt.where(StoryModel.project_id == query.project_id)
+
+        if query.status:
+            stmt = stmt.where(StoryModel.status == query.status.value)
+        if query.created_from:
+            stmt = stmt.where(
+                StoryModel.created_at >= datetime.combine(query.created_from, time_of_day.min, tzinfo=UTC)
+            )
+        if query.created_to:
+            # created_to is an inclusive calendar day, so compare against the start of the
+            # next one rather than truncating created_at, which would not use the index.
+            next_day = query.created_to + timedelta(days=1)
+            stmt = stmt.where(StoryModel.created_at < datetime.combine(next_day, time_of_day.min, tzinfo=UTC))
+
+        return stmt
+
+    async def find_backlog(self, query: BacklogQuery) -> list[StoryEntity]:
+        """
+        Find a scoped slice of a project's backlog, in reading order.
+
+        Args:
+            query: The backlog scope
+
+        Returns:
+            List of StoryEntity objects ordered by priority then age
+
+        Raises:
+            SQLAlchemyError: If database error occurs
+        """
+        try:
+            # The priority column stores its enum by value, which sorts alphabetically
+            # (high, low, medium) — not by importance. Rank it explicitly instead.
+            #
+            # Written as comparisons rather than case(value=...): the column is a PostgreSQL
+            # `storypriority` enum, and the shorthand binds its whens as bare VARCHAR, which
+            # Postgres refuses to compare against the enum type.
+            priority_rank = case(
+                (StoryModel.priority == StoryPriority.HIGH.value, 0),
+                (StoryModel.priority == StoryPriority.MEDIUM.value, 1),
+                (StoryModel.priority == StoryPriority.LOW.value, 2),
+                else_=3,
+            )
+
+            stmt = self._apply_backlog_scope(select(StoryModel), query)
+            stmt = stmt.order_by(priority_rank, StoryModel.created_at.asc())
+            stmt = stmt.limit(query.limit).offset(query.offset)
+
+            result = await self._session.execute(stmt)
+            models = result.scalars().all()
+
+            return [StoryMapper.to_entity(model) for model in models]
+
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "find_backlog", "table": "stories"})
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching backlog", extra={"operation": "find_backlog", "table": "stories"}
+            )
+            raise
+
+    async def count_backlog(self, query: BacklogQuery) -> int:
+        """
+        Count the stories matching a backlog scope, ignoring its pagination.
+
+        Args:
+            query: The backlog scope
+
+        Returns:
+            Number of stories in scope
+
+        Raises:
+            SQLAlchemyError: If database error occurs
+        """
+        try:
+            stmt = self._apply_backlog_scope(select(func.count(StoryModel.id)), query)
+
+            result = await self._session.execute(stmt)
+            return int(result.scalar_one())
+
+        except OperationalError:
+            self._log.exception("Database connection error", extra={"operation": "count_backlog", "table": "stories"})
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while counting backlog", extra={"operation": "count_backlog", "table": "stories"}
+            )
+            raise
 
     async def find_by_assigned_user(self, user_id: UUID) -> list[StoryEntity]:
         """

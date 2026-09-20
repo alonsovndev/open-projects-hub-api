@@ -30,6 +30,7 @@ class StoryEntity(BaseEntity):
         points: int | None,
         created_at: datetime,
         updated_at: datetime,
+        acceptance_criteria: list[str] | None = None,
     ):
         """
         Initialize StoryEntity.
@@ -46,12 +47,16 @@ class StoryEntity(BaseEntity):
             points: Story points (optional, for agile estimation)
             created_at: Timestamp when story was created
             updated_at: Timestamp when story was last updated
+            acceptance_criteria: Conditions that define the story as complete
 
         Raises:
             ValueError: If validation fails
         """
+        criteria = list(acceptance_criteria or [])
+
         StoryValidators.validate_title(title)
         StoryValidators.validate_points(points)
+        StoryValidators.validate_acceptance_criteria(criteria)
 
         super().__init__(id=id, created_at=created_at, updated_at=updated_at)
 
@@ -63,6 +68,7 @@ class StoryEntity(BaseEntity):
         self._status = status
         self._priority = priority
         self._points = points
+        self._acceptance_criteria = criteria
 
     @property
     def title(self) -> str:
@@ -104,6 +110,11 @@ class StoryEntity(BaseEntity):
         """Get story points."""
         return self._points
 
+    @property
+    def acceptance_criteria(self) -> list[str]:
+        """Get the story's acceptance criteria."""
+        return list(self._acceptance_criteria)
+
     def update_details(
         self,
         title: str | None = None,
@@ -111,6 +122,7 @@ class StoryEntity(BaseEntity):
         status: StoryStatus | None = None,
         priority: StoryPriority | None = None,
         points: int | None = None,
+        acceptance_criteria: list[str] | None = None,
     ) -> None:
         """
         Update story details.
@@ -121,6 +133,7 @@ class StoryEntity(BaseEntity):
             status: New status (if provided)
             priority: New priority (if provided)
             points: New points (if provided)
+            acceptance_criteria: New acceptance criteria (if provided; [] clears them)
 
         Raises:
             ValueError: If validation fails
@@ -141,6 +154,10 @@ class StoryEntity(BaseEntity):
         if points is not None:
             StoryValidators.validate_points(points)
             self._points = points
+
+        if acceptance_criteria is not None:
+            StoryValidators.validate_acceptance_criteria(acceptance_criteria)
+            self._acceptance_criteria = list(acceptance_criteria)
 
         self.mark_as_updated()
 
@@ -179,6 +196,7 @@ class StoryEntity(BaseEntity):
         assigned_to: EntityId | None = None,
         priority: StoryPriority | None = None,
         points: int | None = None,
+        acceptance_criteria: list[str] | None = None,
     ) -> "StoryEntity":
         """
         Factory method to create a new story.
@@ -191,6 +209,7 @@ class StoryEntity(BaseEntity):
             assigned_to: Optional assigned user ID
             priority: Optional priority (defaults to medium)
             points: Optional story points
+            acceptance_criteria: Optional acceptance criteria
 
         Returns:
             New StoryEntity instance
@@ -211,4 +230,5 @@ class StoryEntity(BaseEntity):
             points=points,
             created_at=now,
             updated_at=now,
+            acceptance_criteria=acceptance_criteria,
         )

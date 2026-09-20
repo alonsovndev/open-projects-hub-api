@@ -49,6 +49,11 @@ from src.app.composition.features.auth import (
 )
 
 # ============================================================================
+# Feature: Backlog
+# ============================================================================
+from src.app.composition.features.backlog import get_export_backlog_markdown_use_case, get_get_project_backlog_use_case
+
+# ============================================================================
 # Feature: Clients
 # ============================================================================
 from src.app.composition.features.clients import (
@@ -155,6 +160,9 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_get_client_by_id_use_case",
     "get_get_clients_use_case",
     "get_update_client_use_case",
+    # Backlog
+    "get_export_backlog_markdown_use_case",
+    "get_get_project_backlog_use_case",
     # Dashboard
     "get_dashboard_stats_use_case",
     # Projects

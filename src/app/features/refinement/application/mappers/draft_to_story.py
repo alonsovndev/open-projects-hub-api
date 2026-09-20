@@ -13,8 +13,9 @@ def draft_to_story_entity(draft: StoryDraftEntity) -> StoryEntity:
     """
     Create a StoryEntity from an approved StoryDraftEntity.
 
-    Merges description and acceptance criteria into a single structured
-    description field on the story.
+    Acceptance criteria stay a list rather than being folded into the description: the
+    backlog view and the Markdown export both need them structured, and text merged into
+    a free-text field cannot be read back reliably once an Admin edits it.
 
     Args:
         draft: The approved story draft
@@ -22,23 +23,12 @@ def draft_to_story_entity(draft: StoryDraftEntity) -> StoryEntity:
     Returns:
         A new StoryEntity ready to be persisted
     """
-    description_parts: list[str] = []
-
-    if draft.description:
-        description_parts.append(draft.description)
-
-    if draft.acceptance_criteria:
-        description_parts.append("\n\n**Acceptance Criteria:**")
-        for criterion in draft.acceptance_criteria:
-            description_parts.append(f"- {criterion}")
-
-    full_description = "\n".join(description_parts) if description_parts else None
-
     return StoryEntity.create(
         title=draft.title,
         project_id=draft.project_id,
         created_by=draft.created_by,
-        description=full_description,
+        description=draft.description,
         priority=StoryPriority.MEDIUM,
         points=None,
+        acceptance_criteria=draft.acceptance_criteria,
     )
