@@ -22,9 +22,24 @@ RESET_CODE_LENGTH = 6
 RESET_CODE_TTL_MINUTES = 5
 GENERIC_RESET_MESSAGE = "If an account exists for this email, a reset code has been sent."
 
+# NFR-009-02 caps code requests per email, not per endpoint, so both the initial
+# request and the resend path count against the same window.
+REQUEST_WINDOW_MINUTES = 15
+MAX_REQUESTS_PER_WINDOW = 3
+
 
 def generate_reset_code() -> str:
     return "".join(secrets.choice(RESET_CODE_ALPHABET) for _ in range(RESET_CODE_LENGTH))
+
+
+async def is_request_rate_limited(
+    user_id: EntityId,
+    reset_code_repository: PasswordResetCodeRepository,
+) -> bool:
+    """Whether this user has already been issued the window's allowance of codes."""
+    window_start = datetime.now(UTC) - timedelta(minutes=REQUEST_WINDOW_MINUTES)
+    recent_count = await reset_code_repository.count_created_since(user_id, window_start)
+    return recent_count >= MAX_REQUESTS_PER_WINDOW
 
 
 async def issue_reset_code(

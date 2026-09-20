@@ -1,9 +1,11 @@
 """ResendResetCodeUseCase - Reissue a password reset code within rate limits."""
 
-from datetime import UTC, datetime, timedelta
-
 from src.app.features.auth.application.dtos.auth_dto import ForgotPasswordResponse, ResendResetCodeRequest
-from src.app.features.auth.application.use_cases.issue_reset_code import GENERIC_RESET_MESSAGE, issue_reset_code
+from src.app.features.auth.application.use_cases.issue_reset_code import (
+    GENERIC_RESET_MESSAGE,
+    is_request_rate_limited,
+    issue_reset_code,
+)
 from src.app.features.auth.domain.exceptions.auth_exceptions import ResetCodeRateLimitedError
 from src.app.features.auth.domain.repositories.password_reset_code_repository import PasswordResetCodeRepository
 from src.app.features.user.domain.repositories.user_repository import UserRepository
@@ -12,17 +14,17 @@ from src.app.shared.infrastructure.email.email_sender import EmailSender
 from src.app.shared.logging import get_logger, mask_email
 
 
-RESEND_WINDOW_MINUTES = 15
-MAX_RESENDS_PER_WINDOW = 3
-
-
 class ResendResetCodeUseCase:
     """
     Reissues a password reset code, invalidating the previous one.
 
-    Enforces FR-009-04: at most 3 codes per email within a 15-minute window.
-    Silently no-ops (same generic response) for unknown emails, matching
-    RequestPasswordResetUseCase's non-enumeration behavior.
+    Enforces FR-009-04: at most 3 codes per email within a 15-minute window,
+    counted across both this endpoint and the initial request (see
+    issue_reset_code.is_request_rate_limited). Silently no-ops (same generic
+    response) for unknown emails, matching RequestPasswordResetUseCase's
+    non-enumeration behavior. Reaching the cap here does surface a 429: the
+    caller already identified the account at the forgot-password step, and the
+    UI needs to tell them why no new code arrived.
     """
 
     def __init__(
@@ -43,9 +45,7 @@ class ResendResetCodeUseCase:
         if user_entity is None:
             return ForgotPasswordResponse(message=GENERIC_RESET_MESSAGE)
 
-        window_start = datetime.now(UTC) - timedelta(minutes=RESEND_WINDOW_MINUTES)
-        recent_count = await self.reset_code_repository.count_created_since(user_entity.id, window_start)
-        if recent_count >= MAX_RESENDS_PER_WINDOW:
+        if await is_request_rate_limited(user_entity.id, self.reset_code_repository):
             log.warning(
                 "Password reset resend rate-limited",
                 extra={"event_type": "auth.password_reset.resend_rate_limited", "email": mask_email(email_lower)},

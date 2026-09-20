@@ -33,7 +33,11 @@ def mock_user_repository():
 
 @pytest.fixture
 def mock_reset_code_repository():
-    return AsyncMock()
+    repository = AsyncMock()
+    # Default to "no codes issued in this window" so only the rate-limit tests
+    # exercise that branch; an unset AsyncMock would compare truthy against the cap.
+    repository.count_created_since.return_value = 0
+    return repository
 
 
 @pytest.fixture
@@ -70,6 +74,34 @@ class TestRequestPasswordResetUseCase:
         assert response.message == GENERIC_RESET_MESSAGE
         mock_reset_code_repository.create.assert_not_called()
         mock_email_sender.send.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_request_at_window_cap_issues_no_further_code(
+        self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
+    ):
+        """NFR-009-02 caps code requests per email, not per endpoint — this path counts too."""
+        mock_user_repository.find_by_email.return_value = user_entity
+        mock_reset_code_repository.count_created_since.return_value = 3
+        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+
+        response = await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
+
+        assert response.message == GENERIC_RESET_MESSAGE
+        mock_reset_code_repository.create.assert_not_called()
+        mock_email_sender.send.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_request_below_window_cap_still_issues_a_code(
+        self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
+    ):
+        mock_user_repository.find_by_email.return_value = user_entity
+        mock_reset_code_repository.count_created_since.return_value = 2
+        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+
+        await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
+
+        mock_reset_code_repository.create.assert_awaited_once()
+        mock_email_sender.send.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_email_delivery_failure_still_returns_generic_success(

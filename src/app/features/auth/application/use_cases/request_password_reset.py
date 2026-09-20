@@ -1,7 +1,11 @@
 """RequestPasswordResetUseCase - Initiate password reset via emailed code."""
 
 from src.app.features.auth.application.dtos.auth_dto import ForgotPasswordRequest, ForgotPasswordResponse
-from src.app.features.auth.application.use_cases.issue_reset_code import GENERIC_RESET_MESSAGE, issue_reset_code
+from src.app.features.auth.application.use_cases.issue_reset_code import (
+    GENERIC_RESET_MESSAGE,
+    is_request_rate_limited,
+    issue_reset_code,
+)
 from src.app.features.auth.domain.repositories.password_reset_code_repository import PasswordResetCodeRepository
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.email import Email
@@ -15,6 +19,11 @@ class RequestPasswordResetUseCase:
 
     Always returns the same generic response whether or not the email is
     registered, so the endpoint never discloses account existence (FR-009-01).
+
+    Enforces NFR-009-02's cap of 3 codes per email per 15-minute window. Unlike
+    the resend endpoint, hitting the cap here is answered with the same generic
+    200 rather than a 429: a caller who hasn't yet identified an account must not
+    be able to tell a rate-limited address from an unregistered one.
     """
 
     def __init__(
@@ -36,6 +45,13 @@ class RequestPasswordResetUseCase:
             log.info(
                 "Password reset requested for unknown email",
                 extra={"event_type": "auth.password_reset.unknown_email", "email": mask_email(email_lower)},
+            )
+            return ForgotPasswordResponse(message=GENERIC_RESET_MESSAGE)
+
+        if await is_request_rate_limited(user_entity.id, self.reset_code_repository):
+            log.warning(
+                "Password reset request rate-limited",
+                extra={"event_type": "auth.password_reset.request_rate_limited", "email": mask_email(email_lower)},
             )
             return ForgotPasswordResponse(message=GENERIC_RESET_MESSAGE)
 
