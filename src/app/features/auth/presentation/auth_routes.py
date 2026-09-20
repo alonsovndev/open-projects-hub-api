@@ -33,6 +33,7 @@ from src.app.features.auth.application.use_cases.resend_reset_code import Resend
 from src.app.features.auth.domain.exceptions.auth_exceptions import (
     InvalidCredentialsError,
     InvalidResetCodeError,
+    RegistrationClosedError,
     ResetCodeRateLimitedError,
 )
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
@@ -86,9 +87,10 @@ async def register(
 
     Rate limited to 5 attempts per minute per IP address to prevent abuse.
 
-    Public endpoint - no authentication required. The account is always created with the
-    Admin role; a role supplied in the request body is rejected. Viewer accounts are
-    created by an existing admin through POST /v1/users.
+    Public endpoint - no authentication required, but open only while the instance has no
+    accounts: this exists to bootstrap the first Admin. The account is always created with
+    the Admin role; a role supplied in the request body is rejected. Every later account,
+    Admin or Viewer, is created by an existing admin through POST /v1/users.
 
     Args:
         request: FastAPI request object (required for rate limiting)
@@ -100,12 +102,15 @@ async def register(
 
     Raises:
         400: Validation failed (weak password, invalid email, etc.)
+        403: Registration is closed (the instance already has an account)
         409: Email already exists
         422: Unknown field in the request body (for example an attempted role override)
         500: Internal server error
     """
     try:
         return await register_use_case.execute(payload=payload)
+    except RegistrationClosedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 

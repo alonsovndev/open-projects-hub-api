@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
+from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 
 
@@ -224,3 +225,21 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 422
         execute.assert_not_called()
+
+    def test_register_returns_403_once_the_instance_has_an_account(self, client):
+        """Registration bootstraps the first Admin; afterwards it is closed, not merely rate-limited."""
+        with patch(
+            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
+            new=AsyncMock(side_effect=RegistrationClosedError()),
+        ):
+            response = client.post(
+                "/v1/auth/register",
+                json={
+                    "email": "second@example.com",
+                    "password": "SecurePass1",
+                    "displayName": "Second Person",
+                },
+            )
+
+        assert response.status_code == 403
+        assert "Registration is closed" in response.json()["detail"]

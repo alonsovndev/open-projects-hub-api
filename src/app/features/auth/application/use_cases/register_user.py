@@ -2,7 +2,7 @@
 RegisterUserUseCase - Public registration with auto-login.
 
 Following API spec requirements:
-- Public endpoint (no auth required)
+- Public endpoint (no auth required), open only while the instance has no accounts
 - Role: admin, assigned server-side and never taken from the request
 - Returns JWT token (auto-login behavior)
 - Returns AdminLoginResponse (same format as login)
@@ -10,6 +10,7 @@ Following API spec requirements:
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, RegisterRequest
 from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
+from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
@@ -23,10 +24,10 @@ class RegisterUserUseCase:
     """
     Use case for user registration with auto-login.
 
-    Creates a new admin account and returns a JWT token for immediate authentication
-    (auto-login behavior). The role is fixed here rather than derived from the payload:
-    registration is anonymous, so any role the caller could influence would be a
-    privilege-escalation path.
+    Bootstraps the instance's first Admin and returns a JWT token for immediate
+    authentication (auto-login behavior). Two things are decided here rather than by the
+    caller, because registration is anonymous: whether it is still open at all, and the
+    role. Either one left to the request body would be a privilege-escalation path.
     """
 
     def __init__(self, user_repository: UserRepository, jwt_handler: JWTHandler):
@@ -44,6 +45,7 @@ class RegisterUserUseCase:
             AdminLoginResponse with JWT token and user details
 
         Raises:
+            RegistrationClosedError: If the instance already has an account
             UserAlreadyExistsError: If email already exists
             ValueError: If validation fails
         """
@@ -51,6 +53,13 @@ class RegisterUserUseCase:
         set_user_id(str(payload.email))
 
         try:
+            if await self.user_repository.exists_any():
+                log.warning(
+                    "Registration attempt on an instance that already has accounts",
+                    extra={"event_type": "auth.register.closed", "email": str(payload.email)},
+                )
+                raise RegistrationClosedError
+
             password_hash = await PasswordHandler.hash_password(payload.password)
 
             new_user_entity = UserEntity.create(
@@ -100,7 +109,7 @@ class RegisterUserUseCase:
             )
             return response
 
-        except (ValueError, UserAlreadyExistsError):
+        except (ValueError, UserAlreadyExistsError, RegistrationClosedError):
             raise
         except Exception:
             log.exception(

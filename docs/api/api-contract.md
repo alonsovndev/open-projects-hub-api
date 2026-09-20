@@ -26,7 +26,7 @@ means either role; `Admin Only` means a Viewer receives 403.
 |---|---|---|---|
 | `GET` | `/health` | None | Health check endpoint |
 | `POST` | `/v1/auth/login` | None | User login |
-| `POST` | `/v1/auth/register` | None | Public registration. Always creates an **Admin** account; a `role` field in the body is rejected with 422 |
+| `POST` | `/v1/auth/register` | None | Bootstraps the instance's first account. Always creates an **Admin**; a `role` field in the body is rejected with 422. Returns 403 once any account exists — later accounts come from `POST /v1/users` |
 | `POST` | `/v1/auth/refresh` | None | Refresh access token |
 | `GET` | `/v1/users/{user_id}` | Authenticated | Get user by ID |
 | `GET` | `/v1/users/me/profile` | Authenticated | Get current user profile |

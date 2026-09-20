@@ -14,6 +14,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, RegisterRequest
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
+from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -36,6 +37,7 @@ class TestRegisterUserUseCase:
     async def test_execute_creates_user_with_admin_role(self, jwt_handler):
         """Test that registration creates the account with the admin role."""
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = None
 
         created_entity = UserEntity(
@@ -70,6 +72,7 @@ class TestRegisterUserUseCase:
     async def test_execute_ignores_a_role_supplied_by_the_caller(self, jwt_handler):
         """A role in the request body must not reach the entity: registration is anonymous."""
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = None
         mock_repo.save.return_value = UserEntity(
             id=EntityId.generate(),
@@ -98,6 +101,7 @@ class TestRegisterUserUseCase:
     async def test_execute_returns_jwt_token(self, jwt_handler):
         """Test that registration returns valid JWT token (auto-login)."""
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = None
 
         created_entity = UserEntity(
@@ -132,6 +136,7 @@ class TestRegisterUserUseCase:
         )
 
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = existing_user
 
         use_case = RegisterUserUseCase(mock_repo, jwt_handler)
@@ -148,6 +153,7 @@ class TestRegisterUserUseCase:
     async def test_execute_hashes_password_before_storing(self, jwt_handler):
         """Test that password is hashed, not stored in plain text."""
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = None
 
         created_entity = UserEntity(
@@ -174,6 +180,7 @@ class TestRegisterUserUseCase:
     async def test_execute_converts_email_to_lowercase(self, jwt_handler):
         """Test that email is normalized to lowercase."""
         mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = False
         mock_repo.find_by_email.return_value = None
 
         created_entity = UserEntity(
@@ -196,3 +203,22 @@ class TestRegisterUserUseCase:
         result = await use_case.execute(payload)
 
         assert result.email == "user@example.com"
+
+    @pytest.mark.asyncio
+    async def test_execute_rejects_registration_once_an_account_exists(self, jwt_handler):
+        """Registration bootstraps the first Admin only; after that it is closed.
+
+        Left open it would hand any anonymous caller an Admin account, which would walk
+        straight through every role boundary in F-003.
+        """
+        mock_repo = AsyncMock()
+        mock_repo.exists_any.return_value = True
+
+        use_case = RegisterUserUseCase(mock_repo, jwt_handler)
+
+        payload = RegisterRequest(display_name="New User", email="newuser@example.com", password="SecurePass123")
+
+        with pytest.raises(RegistrationClosedError):
+            await use_case.execute(payload)
+
+        mock_repo.save.assert_not_called()
