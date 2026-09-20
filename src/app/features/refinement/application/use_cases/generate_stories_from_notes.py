@@ -10,7 +10,9 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.services.note_sanitizer import NoteSanitizer
+from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService, AIServiceError
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -56,6 +58,24 @@ class GenerateStoriesFromNotesUseCase:
         set_user_id(created_by)
 
         notes = NoteSanitizer.sanitize(request.raw_notes)
+
+        # Sanitization can empty out a note that was entirely markup or injection payload.
+        # Sending that to the provider would bill a call on nothing, so it is rejected
+        # here; the caller still holds the raw input it submitted.
+        if len(notes.sanitized) < RefinementValidators.MIN_NOTES_LENGTH:
+            log.warning(
+                "Refinement input was left too short after sanitization",
+                extra={
+                    "event_type": "refinement.generate.sanitized_empty",
+                    "project_id": request.project_id,
+                    "redaction_count": notes.redaction_count,
+                },
+            )
+            raise ValidationError(
+                "After removing markup and instruction-like content, too little text remained "
+                f"to refine (minimum {RefinementValidators.MIN_NOTES_LENGTH} characters). "
+                "Rewrite the notes as plain prose or a bullet list."
+            )
 
         try:
             log.info(
@@ -116,6 +136,7 @@ class GenerateStoriesFromNotesUseCase:
             return GenerateStoriesResponse(
                 stories=story_responses,
                 raw_notes=request.raw_notes,
+                redaction_count=notes.redaction_count,
             )
 
         except AIServiceError as e:

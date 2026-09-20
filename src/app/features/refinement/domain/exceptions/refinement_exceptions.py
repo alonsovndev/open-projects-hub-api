@@ -11,6 +11,14 @@ class StoryDraftNotFoundError(Exception):
         super().__init__(f"Story draft not found: {draft_id}")
 
 
+class StoryDraftAlreadyApprovedError(Exception):
+    """Raised when an already-approved draft is approved or discarded again."""
+
+    def __init__(self, draft_id: str):
+        self.draft_id = draft_id
+        super().__init__(f"Story draft has already been approved into the backlog: {draft_id}")
+
+
 class RefinementFailedError(Exception):
     """
     Raised when a refinement run fails before any draft is persisted.

@@ -95,6 +95,9 @@ class GenerateStoriesResponse(BaseModel):
 
     stories: list[GeneratedStoryResponse]
     raw_notes: str
+    # Non-zero when sanitization altered the notes before refining them, so the UI can say
+    # so rather than leaving the Admin to wonder why output ignores part of their input.
+    redaction_count: int = 0
 
 
 class StoryDraftResponse(BaseModel):

@@ -30,7 +30,10 @@ from src.app.features.refinement.application.use_cases.generate_stories_from_not
 )
 from src.app.features.refinement.application.use_cases.list_story_drafts import ListStoryDraftsUseCase
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
-from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import (
+    StoryDraftAlreadyApprovedError,
+    StoryDraftNotFoundError,
+)
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.presentation.auth_dependencies import require_admin
@@ -92,12 +95,18 @@ async def delete_draft(
 
     Raises:
         404: Story draft not found
+        409: Story draft has already been approved into the backlog
     """
     try:
         await use_case.execute(str(draft_id), deleted_by=str(current_user["sub"]))
     except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    except StoryDraftAlreadyApprovedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         ) from e
 
@@ -163,7 +172,7 @@ async def generate_stories(
         GenerateStoriesResponse with generated stories
 
     Raises:
-        400: Invalid or over-length input
+        422: Invalid or over-length input
         502: AI provider failure; the response echoes the raw notes back for retry
         500: Internal server error
     """
@@ -195,6 +204,7 @@ async def approve_draft(
 
     Raises:
         404: Story draft not found
+        409: Story draft has already been approved into the backlog
         500: Internal server error
     """
     user_id = str(current_user["sub"])
@@ -203,6 +213,11 @@ async def approve_draft(
     except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    except StoryDraftAlreadyApprovedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         ) from e
 
