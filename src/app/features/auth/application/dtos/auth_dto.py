@@ -1,5 +1,40 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from pydantic.alias_generators import to_camel
+
+from src.app.features.user.domain.validators.user_validators import UserValidators
+
+
+class RegisterRequest(BaseModel):
+    """
+    Request model for public self-registration.
+
+    Deliberately has no `role` field: registration is anonymous, so a role taken from the
+    request body would let anyone mint an Admin account. The role is assigned server-side.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="forbid",
+    )
+
+    display_name: str
+    email: EmailStr
+    password: str
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, display_name: str) -> str:
+        """Validate display name."""
+        UserValidators.validate_display_name(display_name)
+        return display_name
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, password: str) -> str:
+        """Validate password meets complexity requirements."""
+        UserValidators.validate_password(password)
+        return password
 
 
 class LoginRequest(BaseModel):

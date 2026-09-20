@@ -99,13 +99,13 @@ class TestCreateClientEndpoint:
         assert "id" in data
 
     def test_create_client_unauthorized_without_token(self, client: TestClient):
-        """Test creating client without token returns 403."""
+        """Test creating client without token returns 401."""
         response = client.post(
             "/v1/clients",
             json={"name": "Test Client"},
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_create_client_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test creating client as viewer returns 403."""
@@ -179,10 +179,10 @@ class TestListClientsEndpoint:
         assert data["perPage"] == 20
 
     def test_list_clients_unauthorized_without_token(self, client: TestClient):
-        """Test listing clients without token returns 403."""
+        """Test listing clients without token returns 401."""
         response = client.get("/v1/clients")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_list_clients_with_pagination_params(self, client: TestClient, admin_token: str, mock_client_response):
         """Test listing clients with pagination parameters."""
@@ -241,10 +241,10 @@ class TestGetClientByIdEndpoint:
         assert response.status_code == 404
 
     def test_get_client_by_id_unauthorized(self, client: TestClient):
-        """Test getting client without token returns 403."""
+        """Test getting client without token returns 401."""
         response = client.get("/v1/clients/550e8400-e29b-41d4-a716-446655440200")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestUpdateClientEndpoint:
@@ -387,3 +387,22 @@ class TestCamelCaseJsonSerialization:
         data = response.json()
         assert "createdAt" in data
         assert "updatedAt" in data
+
+
+class TestClientReadBoundaries:
+    """Client records name the freelancer's other business relationships, so the reads are
+    admin-only too — not just the writes. No use case is patched: the 403 has to come from
+    the route guard rather than from a stub that would also hide a missing guard."""
+
+    def test_list_clients_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
+        response = client.get("/v1/clients", headers={"Authorization": f"Bearer {viewer_token}"})
+
+        assert response.status_code == 403
+
+    def test_get_client_by_id_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
+        response = client.get(
+            "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
+            headers={"Authorization": f"Bearer {viewer_token}"},
+        )
+
+        assert response.status_code == 403

@@ -84,6 +84,19 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
+    async def exists_any(self) -> bool:
+        """
+        Check whether any user account exists at all.
+
+        Used to decide whether public registration is still open: the first account
+        bootstraps the instance's Admin, and every account after that is created by an
+        existing Admin.
+
+        Returns:
+            bool: True if at least one user exists, False if the instance has none.
+        """
+
+    @abstractmethod
     async def update(self, user: UserEntity) -> UserEntity | None:
         """
         Update an existing user entity.

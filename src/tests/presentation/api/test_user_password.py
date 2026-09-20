@@ -56,7 +56,7 @@ class TestChangePasswordEndpoint:
             "/v1/users/me/password", json={"currentPassword": "OldPass123", "newPassword": "NewPass456"}
         )
 
-        assert response.status_code == 403  # HTTPBearer returns 403 when missing
+        assert response.status_code == 401
 
     def test_change_password_incorrect_current_password(self, client, viewer_token):
         """Test that incorrect current password returns 400."""

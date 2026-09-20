@@ -18,6 +18,7 @@ from src.app.features.auth.application.dtos.auth_dto import (
     LogoutResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
+    RegisterRequest,
     ResendResetCodeRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
@@ -32,9 +33,9 @@ from src.app.features.auth.application.use_cases.resend_reset_code import Resend
 from src.app.features.auth.domain.exceptions.auth_exceptions import (
     InvalidCredentialsError,
     InvalidResetCodeError,
+    RegistrationClosedError,
     ResetCodeRateLimitedError,
 )
-from src.app.features.user.application.dtos.user_dto import UserCreateRequest
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.presentation.auth_dependencies import get_current_user
@@ -78,21 +79,22 @@ async def login(
 @limiter.limit("5/minute")
 async def register(
     request: Request,
-    payload: UserCreateRequest,
+    payload: RegisterRequest,
     register_use_case: RegisterUserUseCase = Depends(get_register_use_case),
 ) -> AdminLoginResponse:
     """
-    Register new user and return JWT token (auto-login).
+    Register new admin account and return JWT token (auto-login).
 
     Rate limited to 5 attempts per minute per IP address to prevent abuse.
 
-    Public endpoint - no authentication required.
-    New users default to 'viewer' role. To create admin users,
-    use POST /v1/users (requires existing admin authentication).
+    Public endpoint - no authentication required, but open only while the instance has no
+    accounts: this exists to bootstrap the first Admin. The account is always created with
+    the Admin role; a role supplied in the request body is rejected. Every later account,
+    Admin or Viewer, is created by an existing admin through POST /v1/users.
 
     Args:
         request: FastAPI request object (required for rate limiting)
-        payload: UserCreateRequest with email, password, displayName (role defaults to viewer)
+        payload: RegisterRequest with email, password, displayName
         register_use_case: Injected RegisterUserUseCase
 
     Returns:
@@ -100,11 +102,15 @@ async def register(
 
     Raises:
         400: Validation failed (weak password, invalid email, etc.)
+        403: Registration is closed (the instance already has an account)
         409: Email already exists
+        422: Unknown field in the request body (for example an attempted role override)
         500: Internal server error
     """
     try:
         return await register_use_case.execute(payload=payload)
+    except RegistrationClosedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
