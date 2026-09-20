@@ -66,9 +66,16 @@ class MarkdownExport:
     Attributes:
         filename: Suggested download filename
         content: The Markdown document
-        story_count: How many stories the scope matched
+        story_count: How many stories the document actually contains
+        matched_count: How many stories the scope matched, before the export cap
     """
 
     filename: str
     content: str
     story_count: int
+    matched_count: int
+
+    @property
+    def is_truncated(self) -> bool:
+        """Whether the export cap held stories back from the document."""
+        return self.matched_count > self.story_count

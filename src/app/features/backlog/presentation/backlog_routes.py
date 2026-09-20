@@ -54,7 +54,32 @@ async def get_project_backlog(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
 
-@router.post("/{project_id}/exports/markdown")
+@router.post(
+    "/{project_id}/exports/markdown",
+    response_class=Response,
+    # Declared explicitly: without it OpenAPI advertises a JSON body, and generated clients
+    # mis-handle what is really a Markdown attachment carrying three custom headers.
+    responses={
+        200: {
+            "content": {"text/markdown": {"schema": {"type": "string"}}},
+            "description": "The backlog as a Markdown file.",
+            "headers": {
+                "Content-Disposition": {
+                    "description": 'attachment; filename="<project>-backlog-<date>.md"',
+                    "schema": {"type": "string"},
+                },
+                "X-Export-Story-Count": {
+                    "description": "Number of stories in the document.",
+                    "schema": {"type": "integer"},
+                },
+                "X-Export-Warning": {
+                    "description": "Present when the scope matched nothing, or was truncated by the export cap.",
+                    "schema": {"type": "string"},
+                },
+            },
+        }
+    },
+)
 async def export_backlog_markdown(
     project_id: UUID,
     scope: MarkdownExportRequest | None = None,
@@ -96,5 +121,10 @@ async def export_backlog_markdown(
     }
     if export.story_count == 0:
         headers["X-Export-Warning"] = EMPTY_EXPORT_WARNING
+    elif export.is_truncated:
+        headers["X-Export-Warning"] = (
+            f"This export contains the first {export.story_count} of {export.matched_count} matching "
+            f"stories. Narrow the scope by status or date to export the rest."
+        )
 
     return Response(content=export.content, media_type="text/markdown; charset=utf-8", headers=headers)

@@ -53,19 +53,35 @@ class ExportBacklogMarkdownUseCase:
             raise ProjectNotFoundError(str(project_id))
         project, _client_name = found
 
-        stories = await self._story_repository.find_backlog(
-            BacklogQuery(
-                project_id=project_id,
-                status=scope.status,
-                created_from=scope.date_from,
-                created_to=scope.date_to,
-                limit=MAX_EXPORTED_STORIES,
-            )
+        query = BacklogQuery(
+            project_id=project_id,
+            status=scope.status,
+            created_from=scope.date_from,
+            created_to=scope.date_to,
+            limit=MAX_EXPORTED_STORIES,
         )
+
+        # Counted before rendering so a document cut short by the cap can say so. Silently
+        # returning a truncated backlog would be the one place this feature hides something
+        # from the Admin instead of warning.
+        matched = await self._story_repository.count_backlog(query)
+        stories = await self._story_repository.find_backlog(query)
 
         generated_on = datetime.now(tz=UTC).date()
         content = render_backlog_markdown(project, stories, generated_on)
         filename = build_export_filename(project.name, generated_on.isoformat())
+
+        truncated = matched > len(stories)
+        if truncated:
+            log.warning(
+                "Backlog export truncated by the export cap",
+                extra={
+                    "event_type": "backlog.export.truncated",
+                    "project_id": str(project_id),
+                    "matched": matched,
+                    "exported": len(stories),
+                },
+            )
 
         log.info(
             "Backlog exported",
@@ -76,7 +92,12 @@ class ExportBacklogMarkdownUseCase:
             },
         )
 
-        return MarkdownExport(filename=filename, content=content, story_count=len(stories))
+        return MarkdownExport(
+            filename=filename,
+            content=content,
+            story_count=len(stories),
+            matched_count=matched,
+        )
 
 
 def build_export_filename(project_name: str, generated_on: str) -> str:

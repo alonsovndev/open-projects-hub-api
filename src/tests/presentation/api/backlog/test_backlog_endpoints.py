@@ -80,6 +80,7 @@ def mock_export():
         filename="acme-portal-backlog-2026-09-20.md",
         content="# Acme Portal — Requirements Backlog\n",
         story_count=1,
+        matched_count=1,
     )
 
 
@@ -154,6 +155,7 @@ class TestExportBacklogMarkdownEndpoint:
             filename="acme-portal-backlog-2026-09-20.md",
             content="# Acme Portal — Requirements Backlog\n\n_No approved stories match this scope._\n",
             story_count=0,
+            matched_count=0,
         )
 
         with patch(EXPORT_USE_CASE, new=AsyncMock(return_value=empty)):
@@ -163,6 +165,29 @@ class TestExportBacklogMarkdownEndpoint:
         assert response.headers["x-export-story-count"] == "0"
         assert response.headers["x-export-warning"] == "No approved stories match this scope."
         assert "No approved stories" in response.text
+
+    def test_truncated_export_warns_with_the_full_match_count(self, client: TestClient, admin_token):
+        """A capped document must say how much of the scope it left out."""
+        truncated = MarkdownExport(
+            filename="acme-portal-backlog-2026-09-20.md",
+            content="# Acme Portal — Requirements Backlog\n",
+            story_count=1000,
+            matched_count=1200,
+        )
+
+        with patch(EXPORT_USE_CASE, new=AsyncMock(return_value=truncated)):
+            response = client.post(EXPORT_URL, headers={"Authorization": f"Bearer {admin_token}"}, json={})
+
+        assert response.status_code == 200
+        assert response.headers["x-export-story-count"] == "1000"
+        assert "1000 of 1200" in response.headers["x-export-warning"]
+
+    def test_a_complete_export_carries_no_warning(self, client: TestClient, admin_token, mock_export):
+        """Test that an untruncated, non-empty export warns about nothing."""
+        with patch(EXPORT_USE_CASE, new=AsyncMock(return_value=mock_export)):
+            response = client.post(EXPORT_URL, headers={"Authorization": f"Bearer {admin_token}"}, json={})
+
+        assert "x-export-warning" not in response.headers
 
     def test_export_exposes_its_headers_to_the_browser(self, client: TestClient, admin_token, mock_export):
         """The web client reads the filename and count, which CORS hides by default."""

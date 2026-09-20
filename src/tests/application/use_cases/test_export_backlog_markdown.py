@@ -8,6 +8,7 @@ import pytest
 
 from src.app.features.backlog.application.dtos.backlog_dto import MarkdownExportRequest
 from src.app.features.backlog.application.use_cases.export_backlog_markdown import (
+    MAX_EXPORTED_STORIES,
     ExportBacklogMarkdownUseCase,
     build_export_filename,
 )
@@ -45,6 +46,7 @@ def build_use_case(stories: list[StoryEntity], project: ProjectEntity | None = N
     story_repo, project_repo = AsyncMock(), AsyncMock()
     project_repo.find_by_id.return_value = (project or build_project(), "Acme Ltd")
     story_repo.find_backlog.return_value = stories
+    story_repo.count_backlog.return_value = len(stories)
     return ExportBacklogMarkdownUseCase(story_repo, project_repo), story_repo
 
 
@@ -157,6 +159,55 @@ class TestEmptyAndMissing:
             await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
 
         story_repo.find_backlog.assert_not_called()
+
+
+class TestExportTruncation:
+    """The export is capped, and a capped document must say so."""
+
+    @pytest.mark.asyncio
+    async def test_an_uncapped_export_is_not_flagged_as_truncated(self):
+        """Test that a normal export reports no truncation."""
+        use_case, story_repo = build_use_case([build_story(), build_story()])
+        story_repo.count_backlog.return_value = 2
+
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+
+        assert export.matched_count == 2
+        assert export.is_truncated is False
+
+    @pytest.mark.asyncio
+    async def test_a_capped_export_reports_what_was_left_out(self):
+        """A scope larger than the cap must not look complete."""
+        use_case, story_repo = build_use_case([build_story()])
+        story_repo.count_backlog.return_value = 1200
+
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+
+        assert export.story_count == 1
+        assert export.matched_count == 1200
+        assert export.is_truncated is True
+
+    @pytest.mark.asyncio
+    async def test_the_cap_is_applied_to_the_query(self):
+        """Test that the export asks for at most MAX_EXPORTED_STORIES."""
+        use_case, story_repo = build_use_case([])
+
+        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+
+        assert story_repo.find_backlog.call_args.args[0].limit == MAX_EXPORTED_STORIES
+
+    @pytest.mark.asyncio
+    async def test_the_count_ignores_the_cap(self):
+        """The count must describe the scope, not the page, or truncation is invisible."""
+        use_case, story_repo = build_use_case([build_story()])
+        story_repo.count_backlog.return_value = 1200
+
+        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+
+        counted = story_repo.count_backlog.call_args.args[0]
+        queried = story_repo.find_backlog.call_args.args[0]
+        assert counted.project_id == queried.project_id
+        assert counted.status == queried.status
 
 
 class TestExportFilename:

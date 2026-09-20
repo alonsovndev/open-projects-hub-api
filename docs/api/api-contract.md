@@ -124,6 +124,19 @@ header-only template and decides whether to keep it. The filename is the slugifi
 name plus the generation date, reduced to ASCII word characters and hyphens so a project name
 cannot shape the header or the saved path.
 
+A single export is capped at 1000 stories, because it is one document a person reads rather
+than a paged feed. A scope that exceeds the cap is not silently truncated: the document holds
+the first 1000 and `X-Export-Warning` names the full match count and how to narrow the scope.
+
+**Mixed acceptance-criteria formatting in older projects.** Stories approved before the
+`acceptance_criteria` column existed keep their criteria inside `description`, as the
+`**Acceptance Criteria:**` block the refinement approval mapper used to write, and their
+`acceptanceCriteria` array is empty. The migration deliberately does not backfill them, since
+that would mean parsing free text an Admin may since have edited. An export spanning both eras
+therefore renders older stories' criteria as body text and newer ones under a proper
+`### Acceptance Criteria` heading. Re-approving, or editing the story to populate
+`acceptanceCriteria`, normalizes it.
+
 Status codes: `200`, `401`, `403`, `404`, `422`
 
 **Deviation from the architecture docs.** `docs/03-architecture/api/api-contract.md` in the
