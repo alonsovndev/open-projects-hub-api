@@ -5,6 +5,7 @@ from typing import Optional
 from uuid import UUID
 
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
+from src.app.features.stories.domain.queries.backlog_query import BacklogQuery
 
 
 class StoryRepository(ABC):
@@ -64,6 +65,34 @@ class StoryRepository(ABC):
 
         Returns:
             List of StoryEntity objects
+        """
+
+    @abstractmethod
+    async def find_backlog(self, query: BacklogQuery) -> list["StoryEntity"]:
+        """
+        Find a scoped slice of a project's backlog.
+
+        Unlike find_all, results are ordered for reading rather than by recency: highest
+        priority first, then oldest first, so the backlog and its Markdown export present
+        the same sequence.
+
+        Args:
+            query: The backlog scope (project, status, date range, pagination).
+
+        Returns:
+            List of StoryEntity objects in backlog order.
+        """
+
+    @abstractmethod
+    async def count_backlog(self, query: BacklogQuery) -> int:
+        """
+        Count the stories matching a backlog scope, ignoring its pagination.
+
+        Args:
+            query: The backlog scope.
+
+        Returns:
+            Number of stories in scope.
         """
 
     @abstractmethod

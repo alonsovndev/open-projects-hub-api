@@ -45,6 +45,8 @@ means either role; `Admin Only` means a Viewer receives 403.
 | `POST` | `/v1/projects/{project_id}/archive` | Admin Only | Archive project (frees an active-project slot) |
 | `POST` | `/v1/projects/{project_id}/reactivate` | Admin Only | Reactivate archived/completed project (409 if at active limit) |
 | `DELETE` | `/v1/projects/{project_id}` | Admin Only | Delete project (404 if not found) |
+| `GET` | `/v1/projects/{project_id}/backlog` | Authenticated | Get the approved backlog with acceptance criteria |
+| `POST` | `/v1/projects/{project_id}/exports/markdown` | Admin Only | Export the backlog as a Markdown file |
 | `POST` | `/v1/stories` | Admin Only | Create story |
 | `GET` | `/v1/stories` | Authenticated | List stories with pagination and filters |
 | `GET` | `/v1/stories/by-project/{project_id}` | Authenticated | Get stories by project with pagination |
@@ -68,3 +70,65 @@ means either role; `Admin Only` means a Viewer receives 403.
 - **Date/Time Format:** ISO 8601 format with UTC timezone (e.g., `2026-04-30T17:00:00.000Z`).
 - **UUIDs:** All entity IDs use UUID v4 format.
 - **Pagination:** Offset-based with `limit` and `offset` query parameters.
+
+## Backlog and Markdown Export
+
+### `GET /v1/projects/{project_id}/backlog`
+
+Returns the project's approved backlog: each story with its title, body and acceptance
+criteria. Available to Admin and Viewer.
+
+Drafts are excluded structurally rather than by a filter — unapproved work lives in
+`story_drafts` and only reaches the `stories` table once an Admin approves it. Stories are
+ordered for reading: highest priority first, then oldest first, so the view and the export
+present the same sequence.
+
+Query parameters: `limit` (default 50, max 100), `offset` (default 0). The response uses the
+standard pagination envelope; each item carries `acceptanceCriteria` and omits the internal
+`assignedTo` / `createdBy` fields.
+
+Status codes: `200`, `401`, `404`, `422`
+
+### `POST /v1/projects/{project_id}/exports/markdown`
+
+Generates the Markdown artifact from the same backlog and returns it as a file download.
+Admin only: a Viewer may read the backlog but not export it (FR-004-05).
+
+Request body (all fields optional; an absent body exports the whole backlog). Unknown fields
+are rejected, so a misspelled filter fails loudly instead of silently widening the scope:
+
+```json
+{
+  "status": "todo | in_progress | blocked | done",
+  "dateFrom": "2026-01-01",
+  "dateTo": "2026-06-30"
+}
+```
+
+`status` filters the story lifecycle, not the approval state — every story in this table is
+approved by definition. `dateFrom` / `dateTo` are inclusive calendar days applied to
+`createdAt`; an inverted range is rejected with `422` rather than exporting nothing.
+
+Response: `200` with the document itself, not a JSON envelope.
+
+```
+Content-Type: text/markdown; charset=utf-8
+Content-Disposition: attachment; filename="acme-portal-backlog-2026-09-20.md"
+X-Export-Story-Count: 12
+X-Export-Warning: No approved stories match this scope.   (only when the count is 0)
+Access-Control-Expose-Headers: Content-Disposition, X-Export-Story-Count, X-Export-Warning
+```
+
+An empty scope is warned about rather than refused (FR-004-06): the caller still receives a
+header-only template and decides whether to keep it. The filename is the slugified project
+name plus the generation date, reduced to ASCII word characters and hyphens so a project name
+cannot shape the header or the saved path.
+
+Status codes: `200`, `401`, `403`, `404`, `422`
+
+**Deviation from the architecture docs.** `docs/03-architecture/api/api-contract.md` in the
+docs repo describes this endpoint as an async S3 upload returning `201 {exportId, downloadUrl}`,
+with a companion `GET /projects/{projectId}/exports/{exportId}`. The MVP returns the file
+synchronously instead: there is no export bucket, no `exports` table — `database-design.md`
+explicitly dropped export tracking for MVP — and nothing to poll. The companion retrieval
+endpoint does not exist.
