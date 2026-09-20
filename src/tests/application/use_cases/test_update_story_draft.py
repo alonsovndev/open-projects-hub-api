@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from src.app.features.refinement.application.dtos.refinement_dto import UpdateStoryDraftRequest
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
-from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -96,7 +96,7 @@ class TestUpdateStoryDraftUseCase:
         """Test that empty title raises ValidationError at DTO level."""
         mock_repo = AsyncMock()
 
-        with pytest.raises(ValidationError, match="Story title cannot be empty"):
+        with pytest.raises(PydanticValidationError, match="Story title cannot be empty"):
             UpdateStoryDraftRequest(title="")
 
         mock_repo.find_by_id.assert_not_called()
@@ -108,7 +108,7 @@ class TestUpdateStoryDraftUseCase:
 
         long_title = "a" * 501
 
-        with pytest.raises(ValidationError, match="Story title cannot exceed 500 characters"):
+        with pytest.raises(PydanticValidationError, match="Story title cannot exceed 500 characters"):
             UpdateStoryDraftRequest(title=long_title)
 
         mock_repo.find_by_id.assert_not_called()

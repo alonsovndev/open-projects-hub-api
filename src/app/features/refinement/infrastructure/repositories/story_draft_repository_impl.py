@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.refinement.infrastructure.mappers.story_draft_mapper import StoryDraftMapper
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
 from src.app.shared.logging import get_logger
@@ -50,14 +51,19 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
     async def find_by_project(
         self,
         project_id: UUID,
+        status: DraftStatus | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[StoryDraftEntity]:
         """Find story drafts for a project."""
         try:
+            filters = [StoryDraftModel.project_id == project_id]
+            if status is not None:
+                filters.append(StoryDraftModel.status == status)
+
             stmt = (
                 select(StoryDraftModel)
-                .where(StoryDraftModel.project_id == project_id)
+                .where(*filters)
                 .order_by(StoryDraftModel.created_at.desc())
                 .limit(limit)
                 .offset(offset)
@@ -189,10 +195,14 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             self._log.exception("Database error deleting draft", extra={"operation": "delete", "table": "story_drafts"})
             raise
 
-    async def count_by_project(self, project_id: UUID) -> int:
+    async def count_by_project(self, project_id: UUID, status: DraftStatus | None = None) -> int:
         """Count drafts for a project."""
         try:
-            stmt = select(func.count()).select_from(StoryDraftModel).where(StoryDraftModel.project_id == project_id)
+            filters = [StoryDraftModel.project_id == project_id]
+            if status is not None:
+                filters.append(StoryDraftModel.status == status)
+
+            stmt = select(func.count()).select_from(StoryDraftModel).where(*filters)
             result = await self._session.execute(stmt)
             return result.scalar() or 0
 

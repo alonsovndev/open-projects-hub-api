@@ -7,8 +7,10 @@ from src.app.features.refinement.application.dtos.refinement_dto import (
 )
 from src.app.features.refinement.application.mappers.story_draft_mapper import to_generated_story_response
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
-from src.app.features.refinement.infrastructure.ai.ai_service import AIService
+from src.app.features.refinement.domain.services.note_sanitizer import NoteSanitizer
+from src.app.features.refinement.infrastructure.ai.ai_service import AIService, AIServiceError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -47,10 +49,13 @@ class GenerateStoriesFromNotesUseCase:
             GenerateStoriesResponse with generated stories
 
         Raises:
-            AIServiceError: If AI service fails
+            RefinementFailedError: If the AI provider fails; carries the raw notes so the
+                Admin can retry without re-entering them
         """
         log = get_logger(__name__)
         set_user_id(created_by)
+
+        notes = NoteSanitizer.sanitize(request.raw_notes)
 
         try:
             log.info(
@@ -58,11 +63,13 @@ class GenerateStoriesFromNotesUseCase:
                 extra={
                     "event_type": "refinement.generate.started",
                     "project_id": request.project_id,
-                    "notes_length": len(request.raw_notes),
+                    "provider": self._ai_service.provider_name,
+                    "notes_length": len(notes.sanitized),
+                    "redaction_count": notes.redaction_count,
                 },
             )
 
-            result = await self._ai_service.generate_stories_from_notes(request.raw_notes)
+            result = await self._ai_service.generate_stories_from_notes(notes.sanitized)
 
             log.info(
                 "AI service generated stories successfully",
@@ -110,6 +117,23 @@ class GenerateStoriesFromNotesUseCase:
                 stories=story_responses,
                 raw_notes=request.raw_notes,
             )
+
+        except AIServiceError as e:
+            # Logged without the exception message: provider errors can echo request detail.
+            log.error(
+                "AI provider failed during story generation",
+                extra={
+                    "event_type": "refinement.generate.provider_failed",
+                    "project_id": request.project_id,
+                    "provider": self._ai_service.provider_name,
+                    "failure_class": e.failure_class.value,
+                },
+            )
+            raise RefinementFailedError(
+                failure_class=e.failure_class,
+                raw_notes=request.raw_notes,
+                provider=self._ai_service.provider_name,
+            ) from e
 
         except Exception:
             log.exception(

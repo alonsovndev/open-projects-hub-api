@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from src.app.features.refinement.domain.value_objects.refinement_failure_class import RefinementFailureClass
+
 
 @dataclass
 class GeneratedStory:
@@ -23,6 +25,11 @@ class BulkGenerationResult:
 
 class AIService(ABC):
     """Abstract interface for AI-powered story refinement."""
+
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Short identifier of the backing provider, safe to log and return to callers."""
 
     @abstractmethod
     async def generate_stories_from_notes(
@@ -53,4 +60,17 @@ class AIService(ABC):
 
 
 class AIServiceError(Exception):
-    """Raised when AI service encounters an error."""
+    """
+    Raised when an AI service call fails.
+
+    `failure_class` lets the application layer decide whether a retry is worth offering
+    without inspecting provider-specific error text.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        failure_class: RefinementFailureClass = RefinementFailureClass.PROVIDER_ERROR,
+    ):
+        self.failure_class = failure_class
+        super().__init__(message)

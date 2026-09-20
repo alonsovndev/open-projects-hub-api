@@ -3,12 +3,14 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.app.composition import (
     get_approve_draft_use_case,
     get_approve_drafts_bulk_use_case,
+    get_delete_draft_use_case,
     get_generate_stories_use_case,
+    get_list_drafts_use_case,
     get_update_draft_use_case,
 )
 from src.app.features.refinement.application.dtos.refinement_dto import (
@@ -16,22 +18,88 @@ from src.app.features.refinement.application.dtos.refinement_dto import (
     ApproveDraftsBulkResponse,
     GenerateStoriesRequest,
     GenerateStoriesResponse,
+    ListStoryDraftsResponse,
     UpdateStoryDraftRequest,
 )
 from src.app.features.refinement.application.mappers.bulk_approve_mapper import to_approve_drafts_bulk_response
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
+from src.app.features.refinement.application.use_cases.delete_story_draft import DeleteStoryDraftUseCase
 from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
     GenerateStoriesFromNotesUseCase,
 )
+from src.app.features.refinement.application.use_cases.list_story_drafts import ListStoryDraftsUseCase
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
-from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.shared.presentation.auth_dependencies import require_admin
 
 
 router = APIRouter(prefix="/refinement")
+
+
+@router.get("/projects/{project_id}/drafts", response_model=ListStoryDraftsResponse)
+async def list_drafts(
+    project_id: UUID,
+    status_filter: DraftStatus | None = Query(default=None, alias="status"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: dict[str, Any] = Depends(require_admin),
+    use_case: ListStoryDraftsUseCase = Depends(get_list_drafts_use_case),
+) -> ListStoryDraftsResponse:
+    """
+    List story drafts for a project.
+
+    Requires ADMIN role: drafts are unapproved AI output and are never exposed on a
+    Viewer-facing read path.
+
+    Args:
+        project_id: Project UUID
+        status_filter: Restrict to a single draft status, or omit for all
+        limit: Maximum results
+        offset: Number to skip
+        current_user: Current authenticated admin user
+        use_case: Injected ListStoryDraftsUseCase
+
+    Returns:
+        ListStoryDraftsResponse with the page of drafts and the matching total
+    """
+    return await use_case.execute(
+        project_id=str(project_id),
+        status=status_filter,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.delete("/drafts/{draft_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_draft(
+    draft_id: UUID,
+    current_user: dict[str, Any] = Depends(require_admin),
+    use_case: DeleteStoryDraftUseCase = Depends(get_delete_draft_use_case),
+) -> None:
+    """
+    Discard a story draft.
+
+    Requires ADMIN role. A discarded draft is removed outright, so it can never reach the
+    backlog or an export.
+
+    Args:
+        draft_id: Draft UUID
+        current_user: Current authenticated admin user
+        use_case: Injected DeleteStoryDraftUseCase
+
+    Raises:
+        404: Story draft not found
+    """
+    try:
+        await use_case.execute(str(draft_id), deleted_by=str(current_user["sub"]))
+    except StoryDraftNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
 
 
 @router.patch("/drafts/{draft_id}")
@@ -95,20 +163,14 @@ async def generate_stories(
         GenerateStoriesResponse with generated stories
 
     Raises:
-        400: Invalid input
-        502: AI service error
+        400: Invalid or over-length input
+        502: AI provider failure; the response echoes the raw notes back for retry
         500: Internal server error
     """
-    try:
-        return await use_case.execute(
-            request=payload,
-            created_by=str(current_user["sub"]),
-        )
-    except AIServiceError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"AI service error: {e!s}",
-        ) from e
+    return await use_case.execute(
+        request=payload,
+        created_by=str(current_user["sub"]),
+    )
 
 
 @router.post("/drafts/{draft_id}/approve", response_model=StoryResponse)
