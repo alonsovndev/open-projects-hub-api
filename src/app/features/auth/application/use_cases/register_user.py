@@ -78,10 +78,14 @@ class RegisterUserUseCase:
             )
 
             refresh_token = self.jwt_handler.create_refresh_token(
-                user_id=str(created_user.id.value), email=str(created_user.email.value), role=created_user.role.value
+                user_id=str(created_user.id.value),
+                email=str(created_user.email.value),
+                role=created_user.role.value,
+                token_version=created_user.token_version,
             )
+            session_expires_at = self.jwt_handler.get_token_expiry(refresh_token)
 
-            response = to_admin_login_response(created_user, token, refresh_token)
+            response = to_admin_login_response(created_user, token, refresh_token, session_expires_at)
 
             log.info(
                 "User registered successfully",

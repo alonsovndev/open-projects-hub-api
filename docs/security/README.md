@@ -513,15 +513,20 @@ Recommended tools:
 
 ### Phase 2 (Completed)
 - ✅ Refresh token implementation (single-use rotation)
-- ✅ Token revocation (refresh tokens are single-use)
+- ✅ Token revocation (refresh tokens are single-use, Postgres-backed)
+- ✅ Account lockout after failed attempts (progressive, Postgres-backed)
+- ✅ Logout endpoint (server-side refresh-token revocation)
+- ✅ Session lifetime with remember-me (24h standard / 7d extended, sliding on refresh)
+- ✅ Forced logout across devices (`token_version` bump), used after password reset
+- ✅ Password reset flow with emailed 6-digit code (EPIC-2 / F-009)
 
 ### Phase 3 (Future)
 - Two-factor authentication (2FA)
 - OAuth2/OpenID Connect integration
 - API key authentication (for service accounts)
 - Audit logging (who did what when)
-- Password reset flow with email verification
-- Account lockout after failed attempts
+- Generalized transactional email service with retry/backoff (EPIC-9-BE-001) — the
+  password-reset SMTP adapter is intentionally minimal until this lands
 
 ### Phase 4 (Future)
 - Web Application Firewall (WAF) integration

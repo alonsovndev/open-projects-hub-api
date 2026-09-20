@@ -28,3 +28,19 @@ class AccountLockedError(AuthenticationError):
         self.remaining_seconds = remaining_seconds
         self.failed_attempts = failed_attempts
         super().__init__(self.message)
+
+
+class InvalidResetCodeError(AuthenticationError):
+    """Raised when a password reset code is unknown, expired, or already used."""
+
+    def __init__(self, message: str = "Invalid or expired reset code"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class ResetCodeRateLimitedError(AuthenticationError):
+    """Raised when reset-code requests or validation attempts exceed their rate limit."""
+
+    def __init__(self, message: str = "Too many attempts. Please try again later."):
+        self.message = message
+        super().__init__(self.message)

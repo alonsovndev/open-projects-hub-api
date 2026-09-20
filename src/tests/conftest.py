@@ -17,6 +17,13 @@ if str(src_path) not in sys.path:
 # if the referenced model module happened to be imported by an earlier test —
 # making failures depend on test collection order. Mirrors the same "DO NOT
 # REMOVE" import list in alembic/env.py, which exists for the same reason.
+from src.app.features.auth.infrastructure.models.account_lockout_model import AccountLockoutModel  # noqa: F401,E402
+from src.app.features.auth.infrastructure.models.password_reset_code_model import (  # noqa: F401,E402
+    PasswordResetCodeModel,
+)
+from src.app.features.auth.infrastructure.models.revoked_refresh_token_model import (  # noqa: F401,E402
+    RevokedRefreshTokenModel,
+)
 from src.app.features.clients.infrastructure.models.client_model import ClientModel  # noqa: F401,E402
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel  # noqa: F401,E402
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401,E402

@@ -195,3 +195,51 @@ class TestRefreshTokenUseCase:
         # Second use of same token should fail (token revoked)
         with pytest.raises(pyjwt.InvalidTokenError, match="already been used"):
             await use_case.execute(request)
+
+
+class TestRefreshTokenSessionLifetime:
+    """Test remember-me propagation and forced-logout rejection (US-EP2-BE-004)."""
+
+    @pytest.mark.asyncio
+    async def test_remember_me_session_carries_forward_on_rotation(
+        self, jwt_handler, user_entity, mock_user_repository
+    ):
+        """A remember-me refresh token should mint a remember-me token on rotation too."""
+        refresh_token = jwt_handler.create_refresh_token(
+            user_id=str(user_entity.id),
+            email=str(user_entity.email),
+            role=user_entity.role.value,
+            remember_me=True,
+        )
+        mock_user_repository.find_by_email = AsyncMock(return_value=user_entity)
+
+        use_case = RefreshTokenUseCase(mock_user_repository, jwt_handler)
+        response = await use_case.execute(RefreshTokenRequest(refresh_token=refresh_token))
+
+        new_payload = jwt_handler.decode_refresh_token(response.refresh_token)
+        assert new_payload["remember_me"] is True
+        assert response.session_expires_at is not None
+
+    @pytest.mark.asyncio
+    async def test_forced_logout_rejects_stale_token_version(self, jwt_handler, mock_user_repository):
+        """A refresh token issued before a forced logout (token_version bump) is rejected."""
+        current_user = UserEntity(
+            id=EntityId.from_string("550e8400-e29b-41d4-a716-446655440000"),
+            email=Email("test@example.com"),
+            password_hash="hashed_password",
+            display_name="Test User",
+            role=UserRole.VIEWER,
+            token_version=1,  # bumped since the token below was issued at version 0
+        )
+        stale_refresh_token = jwt_handler.create_refresh_token(
+            user_id=str(current_user.id),
+            email=str(current_user.email),
+            role=current_user.role.value,
+            token_version=0,
+        )
+        mock_user_repository.find_by_email = AsyncMock(return_value=current_user)
+
+        use_case = RefreshTokenUseCase(mock_user_repository, jwt_handler)
+
+        with pytest.raises(pyjwt.InvalidTokenError, match="revoked"):
+            await use_case.execute(RefreshTokenRequest(refresh_token=stale_refresh_token))

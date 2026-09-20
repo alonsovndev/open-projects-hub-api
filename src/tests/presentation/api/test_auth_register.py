@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,6 +14,7 @@ def mock_register_response():
         token="mock.jwt.token",
         access_token="mock.jwt.token",
         refresh_token="mock.jwt.refresh.token",
+        session_expires_at=(datetime.now(tz=UTC) + timedelta(hours=24)).isoformat(),
         email="newuser@example.com",
         display_name="New User",
         logged_in_at=datetime.now(tz=UTC).isoformat(),
