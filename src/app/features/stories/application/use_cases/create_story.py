@@ -47,6 +47,7 @@ class CreateStoryUseCase:
             description=request.description,
             priority=story_priority,
             points=request.points,
+            acceptance_criteria=request.acceptance_criteria,
         )
 
         saved_entity = await self._repository.save(entity)

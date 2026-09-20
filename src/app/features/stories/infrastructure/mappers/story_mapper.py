@@ -33,6 +33,7 @@ class StoryMapper:
             points=model.points,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            acceptance_criteria=list(model.acceptance_criteria or []),
         )
 
     @staticmethod
@@ -53,6 +54,7 @@ class StoryMapper:
         if existing_model:
             existing_model.title = entity.title
             existing_model.description = entity.description
+            existing_model.acceptance_criteria = entity.acceptance_criteria
             existing_model.project_id = entity.project_id.value
             existing_model.created_by = entity.created_by.value
             existing_model.assigned_to = entity.assigned_to.value if entity.assigned_to else None
@@ -66,6 +68,7 @@ class StoryMapper:
             id=entity.id.value,
             title=entity.title,
             description=entity.description,
+            acceptance_criteria=entity.acceptance_criteria,
             project_id=entity.project_id.value,
             created_by=entity.created_by.value,
             assigned_to=entity.assigned_to.value if entity.assigned_to else None,

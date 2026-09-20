@@ -19,6 +19,7 @@ class CreateStoryRequest(BaseModel):
 
     title: str
     description: str | None = None
+    acceptance_criteria: list[str] = []
     project_id: str
     priority: str | None = "medium"
     points: int | None = None
@@ -29,6 +30,13 @@ class CreateStoryRequest(BaseModel):
         """Validate story title."""
         StoryValidators.validate_title(title)
         return title
+
+    @field_validator("acceptance_criteria")
+    @classmethod
+    def validate_acceptance_criteria(cls, acceptance_criteria: list[str]) -> list[str]:
+        """Validate acceptance criteria."""
+        StoryValidators.validate_acceptance_criteria(acceptance_criteria)
+        return acceptance_criteria
 
     @field_validator("priority")
     @classmethod
@@ -59,6 +67,7 @@ class UpdateStoryRequest(BaseModel):
 
     title: str | None = None
     description: str | None = None
+    acceptance_criteria: list[str] | None = None
     status: str | None = None
     priority: str | None = None
     points: int | None = None
@@ -70,6 +79,14 @@ class UpdateStoryRequest(BaseModel):
         if title is not None:
             StoryValidators.validate_title(title)
         return title
+
+    @field_validator("acceptance_criteria")
+    @classmethod
+    def validate_acceptance_criteria(cls, acceptance_criteria: list[str] | None) -> list[str] | None:
+        """Validate acceptance criteria if provided."""
+        if acceptance_criteria is not None:
+            StoryValidators.validate_acceptance_criteria(acceptance_criteria)
+        return acceptance_criteria
 
     @field_validator("status")
     @classmethod
@@ -122,6 +139,7 @@ class StoryResponse(BaseModel):
     id: str
     title: str
     description: str | None
+    acceptance_criteria: list[str]
     project_id: str
     created_by: str
     assigned_to: str | None
