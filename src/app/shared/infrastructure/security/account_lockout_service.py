@@ -67,7 +67,8 @@ class AccountLockoutService:
     - MAX_FAILED_ATTEMPTS: Number of failures before lockout (default: 5)
     - LOCKOUT_DURATION_MINUTES: Base lockout duration (default: 15)
     - PROGRESSIVE_LOCKOUT: Use exponential backoff (default: True)
-    - ATTEMPT_WINDOW_MINUTES: Time window for counting attempts (default: 30)
+    - ATTEMPT_WINDOW_MINUTES: Time window for counting attempts (default: 15,
+      per FR-007-04 / NFR-007-01: "5 attempts per 15 minutes per account")
 
     Lockout progression (if PROGRESSIVE_LOCKOUT=True):
     - 5 failures: 15 minutes
@@ -80,7 +81,7 @@ class AccountLockoutService:
     MAX_FAILED_ATTEMPTS = 5
     LOCKOUT_DURATION_MINUTES = 15
     PROGRESSIVE_LOCKOUT = True
-    ATTEMPT_WINDOW_MINUTES = 30
+    ATTEMPT_WINDOW_MINUTES = 15
 
     def __init__(self, repository: AccountLockoutRepository | None = None):
         """
