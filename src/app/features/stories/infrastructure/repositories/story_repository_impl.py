@@ -171,13 +171,14 @@ class StoryRepositoryImpl(StoryRepository):
         try:
             # The priority column stores its enum by value, which sorts alphabetically
             # (high, low, medium) — not by importance. Rank it explicitly instead.
+            #
+            # Written as comparisons rather than case(value=...): the column is a PostgreSQL
+            # `storypriority` enum, and the shorthand binds its whens as bare VARCHAR, which
+            # Postgres refuses to compare against the enum type.
             priority_rank = case(
-                {
-                    StoryPriority.HIGH.value: 0,
-                    StoryPriority.MEDIUM.value: 1,
-                    StoryPriority.LOW.value: 2,
-                },
-                value=StoryModel.priority,
+                (StoryModel.priority == StoryPriority.HIGH.value, 0),
+                (StoryModel.priority == StoryPriority.MEDIUM.value, 1),
+                (StoryModel.priority == StoryPriority.LOW.value, 2),
                 else_=3,
             )
 
