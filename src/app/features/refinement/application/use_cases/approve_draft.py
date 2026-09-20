@@ -1,8 +1,12 @@
 """Approve draft use case - convert draft to story."""
 
 from src.app.features.refinement.application.mappers.draft_to_story import draft_to_story_entity
-from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
+from src.app.features.refinement.domain.exceptions.refinement_exceptions import (
+    StoryDraftAlreadyApprovedError,
+    StoryDraftNotFoundError,
+)
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
@@ -59,6 +63,15 @@ class ApproveDraftUseCase:
                 )
                 raise StoryDraftNotFoundError(draft_id)
 
+            # Marking the draft applied is not enough on its own: without this check a
+            # repeated approval (a double click, a retry) creates a second backlog story.
+            if draft.status is DraftStatus.APPLIED:
+                log.warning(
+                    "Draft already approved",
+                    extra={"event_type": "refinement.approve.already_applied", "entity_id": draft_id},
+                )
+                raise StoryDraftAlreadyApprovedError(draft_id)
+
             story_entity = draft_to_story_entity(draft)
             story = await self._story_repository.save(story_entity)
 
@@ -82,7 +95,7 @@ class ApproveDraftUseCase:
 
             return to_story_response(story)
 
-        except StoryDraftNotFoundError:
+        except (StoryDraftNotFoundError, StoryDraftAlreadyApprovedError):
             raise
         except Exception:
             log.exception(

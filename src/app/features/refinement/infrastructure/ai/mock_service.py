@@ -10,6 +10,11 @@ class MockAIService(AIService):
     Used during development or when no AI provider is configured.
     """
 
+    @property
+    def provider_name(self) -> str:
+        """Provider identifier used in logs and failure responses."""
+        return "mock"
+
     async def is_available(self) -> bool:
         """Mock service is always available."""
         return True

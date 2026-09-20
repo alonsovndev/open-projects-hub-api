@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 
 
 class StoryDraftRepository(ABC):
@@ -25,6 +26,7 @@ class StoryDraftRepository(ABC):
     async def find_by_project(
         self,
         project_id: UUID,
+        status: DraftStatus | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[StoryDraftEntity]:
@@ -33,6 +35,7 @@ class StoryDraftRepository(ABC):
 
         Args:
             project_id: Project UUID
+            status: Restrict to a single draft status, or None for all
             limit: Maximum results
             offset: Number to skip
 
@@ -84,12 +87,13 @@ class StoryDraftRepository(ABC):
         """
 
     @abstractmethod
-    async def count_by_project(self, project_id: UUID) -> int:
+    async def count_by_project(self, project_id: UUID, status: DraftStatus | None = None) -> int:
         """
         Count drafts for a project.
 
         Args:
             project_id: Project UUID
+            status: Restrict to a single draft status, or None for all
 
         Returns:
             Number of drafts

@@ -41,9 +41,11 @@ from src.app.composition.infrastructure import get_ai_service, get_database_sess
 from src.app.composition.repositories import get_story_repository
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
+from src.app.features.refinement.application.use_cases.delete_story_draft import DeleteStoryDraftUseCase
 from src.app.features.refinement.application.use_cases.generate_stories_from_notes import (
     GenerateStoriesFromNotesUseCase,
 )
+from src.app.features.refinement.application.use_cases.list_story_drafts import ListStoryDraftsUseCase
 from src.app.features.refinement.application.use_cases.update_story_draft import UpdateStoryDraftUseCase
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
@@ -78,6 +80,20 @@ async def get_update_draft_use_case(
 ) -> UpdateStoryDraftUseCase:
     """UpdateStoryDraftUseCase factory."""
     return UpdateStoryDraftUseCase(repository)
+
+
+async def get_list_drafts_use_case(
+    repository: StoryDraftRepository = Depends(get_draft_repository),
+) -> ListStoryDraftsUseCase:
+    """ListStoryDraftsUseCase factory."""
+    return ListStoryDraftsUseCase(repository)
+
+
+async def get_delete_draft_use_case(
+    repository: StoryDraftRepository = Depends(get_draft_repository),
+) -> DeleteStoryDraftUseCase:
+    """DeleteStoryDraftUseCase factory."""
+    return DeleteStoryDraftUseCase(repository)
 
 
 async def get_approve_draft_use_case(

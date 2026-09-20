@@ -1,9 +1,26 @@
 """Data transfer objects for refinement operations."""
 
+from collections.abc import Callable
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
+from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
+
+
+def _reject(validate: Callable[[], None]) -> None:
+    """
+    Run a domain validator and re-raise its failure as a ValueError.
+
+    Pydantic only folds ValueError into a 422 field error; a domain ValidationError would
+    escape to the global handler and surface as a 400 without naming the offending field.
+    """
+    try:
+        validate()
+    except ValidationError as e:
+        raise ValueError(str(e)) from e
 
 
 class UpdateStoryDraftRequest(BaseModel):
@@ -23,7 +40,7 @@ class UpdateStoryDraftRequest(BaseModel):
     def validate_title(cls, title: str | None) -> str | None:
         """Validate story title using domain validators."""
         if title is not None:
-            RefinementValidators.validate_title(title)
+            _reject(lambda: RefinementValidators.validate_title(title))
             return title.strip()
         return title
 
@@ -43,14 +60,14 @@ class GenerateStoriesRequest(BaseModel):
     @classmethod
     def validate_project_id(cls, project_id: str) -> str:
         """Validate project ID using domain validators."""
-        RefinementValidators.validate_project_id(project_id)
+        _reject(lambda: RefinementValidators.validate_project_id(project_id))
         return project_id.strip()
 
     @field_validator("raw_notes")
     @classmethod
     def validate_raw_notes(cls, raw_notes: str) -> str:
         """Validate raw notes using domain validators."""
-        RefinementValidators.validate_raw_notes(raw_notes)
+        _reject(lambda: RefinementValidators.validate_raw_notes(raw_notes))
         return raw_notes.strip()
 
 
@@ -78,6 +95,39 @@ class GenerateStoriesResponse(BaseModel):
 
     stories: list[GeneratedStoryResponse]
     raw_notes: str
+    # Non-zero when sanitization altered the notes before refining them, so the UI can say
+    # so rather than leaving the Admin to wonder why output ignores part of their input.
+    redaction_count: int = 0
+
+
+class StoryDraftResponse(BaseModel):
+    """Response model for a persisted story draft."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    id: str
+    project_id: str
+    title: str
+    description: str | None
+    acceptance_criteria: list[str]
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ListStoryDraftsResponse(BaseModel):
+    """Response model for listing a project's story drafts."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    drafts: list[StoryDraftResponse]
+    total: int
 
 
 class ApproveDraftsBulkRequest(BaseModel):
