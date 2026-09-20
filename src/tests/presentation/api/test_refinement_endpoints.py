@@ -125,13 +125,13 @@ class TestUpdateDraftEndpoint:
         assert response.status_code == 404
 
     def test_update_draft_unauthorized_without_token(self, client: TestClient):
-        """Test updating draft without token returns 403."""
+        """Test updating draft without token returns 401."""
         response = client.patch(
             "/v1/refinement/drafts/550e8400-e29b-41d4-a716-446655440100",
             json={"title": "Updated Title"},
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_update_draft_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test updating draft with viewer role returns 403."""
@@ -209,7 +209,7 @@ class TestGenerateStoriesEndpoint:
         assert data["rawNotes"] == "Some raw notes"
 
     def test_generate_stories_unauthorized_without_token(self, client: TestClient):
-        """Test generating stories without token returns 403."""
+        """Test generating stories without token returns 401."""
         response = client.post(
             "/v1/refinement/generate-stories",
             json={
@@ -218,7 +218,7 @@ class TestGenerateStoriesEndpoint:
             },
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_generate_stories_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test generating stories with viewer role returns 403."""
@@ -327,12 +327,12 @@ class TestApproveDraftEndpoint:
         assert response.status_code == 404
 
     def test_approve_draft_unauthorized_without_token(self, client: TestClient):
-        """Test approving draft without token returns 403."""
+        """Test approving draft without token returns 401."""
         response = client.post(
             "/v1/refinement/drafts/550e8400-e29b-41d4-a716-446655440100/approve",
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_approve_draft_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test approving draft with viewer role returns 403."""
@@ -415,7 +415,7 @@ class TestApproveDraftsBulkEndpoint:
         assert response.status_code == 400
 
     def test_approve_drafts_bulk_unauthorized_without_token(self, client: TestClient):
-        """Test bulk approving drafts without token returns 403."""
+        """Test bulk approving drafts without token returns 401."""
         response = client.post(
             "/v1/refinement/approve-drafts",
             json={
@@ -423,7 +423,7 @@ class TestApproveDraftsBulkEndpoint:
             },
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_approve_drafts_bulk_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test bulk approving drafts with viewer role returns 403."""
@@ -519,10 +519,10 @@ class TestListDraftsEndpoint:
         assert response.status_code == 422
 
     def test_list_drafts_unauthorized_without_token(self, client: TestClient):
-        """Test listing drafts without token returns 403."""
+        """Test listing drafts without token returns 401."""
         response = client.get("/v1/refinement/projects/550e8400-e29b-41d4-a716-446655440001/drafts")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_list_drafts_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test that a Viewer can never read unapproved drafts."""

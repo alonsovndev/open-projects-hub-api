@@ -86,10 +86,10 @@ class TestGetDashboardStatsEndpoint:
         assert len(data["recentStories"]) == 1
 
     def test_get_dashboard_stats_unauthorized_without_token(self, client: TestClient):
-        """Test getting dashboard stats without token returns 403."""
+        """Test getting dashboard stats without token returns 401."""
         response = client.get("/v1/dashboard/stats")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_dashboard_stats_with_empty_stats(self, client: TestClient, user_token: str):
         """Test getting dashboard stats with no data."""

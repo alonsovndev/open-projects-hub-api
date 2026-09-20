@@ -34,10 +34,10 @@ def admin_refresh_token(app_jwt_handler):
 
 
 class TestLogoutEndpoint:
-    def test_logout_without_auth_header_returns_403(self, client, admin_refresh_token):
+    def test_logout_without_auth_header_returns_401(self, client, admin_refresh_token):
         response = client.post("/v1/auth/logout", json={"refreshToken": admin_refresh_token})
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_logout_revokes_refresh_token_and_rejects_replay(self, client, admin_access_token, admin_refresh_token):
         logout_response = client.post(
