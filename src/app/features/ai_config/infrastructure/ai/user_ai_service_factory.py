@@ -13,14 +13,15 @@ _DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 
 def create_user_ai_service(provider: AIProvider, api_key: str) -> AIService:
     """
-    Build a provider client for a refinement run charged to the user's own key.
+    Build a provider client bound to `api_key`, using the provider's configured model.
 
-    Unlike the platform service in `composition/infrastructure.py`, these are never cached:
-    each carries one user's decrypted key and must not outlive the request that built it.
+    Called per request with a user's decrypted key — never cache that result, it must not
+    outlive the request. The platform factory also builds its (cached) client through here,
+    but with the platform's own key.
 
     Args:
         provider: The provider the key belongs to.
-        api_key: The user's decrypted provider key.
+        api_key: The provider key to authenticate with.
 
     Returns:
         An AIService ready to generate stories against that provider.
@@ -31,19 +32,19 @@ def create_user_ai_service(provider: AIProvider, api_key: str) -> AIService:
         case AIProvider.GEMINI:
             return GeminiService(
                 api_key=api_key,
-                model=config.get_config("ai.gemini_model", "gemini-2.5-flash"),
+                model=config.get_config("ai.providers.gemini.model", "gemini-2.5-flash"),
             )
         case AIProvider.OPENAI:
             return OpenAICompatibleService(
                 api_key=api_key,
-                model=config.get_config("ai.openai_model", "gpt-4o-mini"),
+                model=config.get_config("ai.providers.openai.model", "gpt-4o-mini"),
                 base_url=_OPENAI_BASE_URL,
                 provider_label=AIProvider.OPENAI.value,
             )
         case AIProvider.DEEPSEEK:
             return OpenAICompatibleService(
                 api_key=api_key,
-                model=config.get_config("ai.deepseek_model", "deepseek-chat"),
+                model=config.get_config("ai.providers.deepseek.model", "deepseek-chat"),
                 base_url=_DEEPSEEK_BASE_URL,
                 provider_label=AIProvider.DEEPSEEK.value,
             )
