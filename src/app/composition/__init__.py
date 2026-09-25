@@ -35,6 +35,21 @@ Design Pattern:
 # Infrastructure (Level 1) - DB session, external services
 # ============================================================================
 # ============================================================================
+# Feature: AI Credits & API Keys
+# ============================================================================
+from src.app.composition.features.ai_config import (
+    get_api_key_cipher,
+    get_credit_balance_use_case,
+    get_delete_api_key_use_case,
+    get_key_validation_throttle,
+    get_list_api_keys_use_case,
+    get_refinement_provider_resolver,
+    get_save_api_key_use_case,
+    get_user_api_key_repository,
+    get_validate_api_key_use_case,
+)
+
+# ============================================================================
 # Feature: Auth
 # ============================================================================
 from src.app.composition.features.auth import (
@@ -154,6 +169,16 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_request_password_reset_use_case",
     "get_resend_reset_code_use_case",
     "get_revoke_all_user_tokens_use_case",
+    # AI Credits & API Keys
+    "get_api_key_cipher",
+    "get_credit_balance_use_case",
+    "get_delete_api_key_use_case",
+    "get_key_validation_throttle",
+    "get_list_api_keys_use_case",
+    "get_refinement_provider_resolver",
+    "get_save_api_key_use_case",
+    "get_user_api_key_repository",
+    "get_validate_api_key_use_case",
     # Clients
     "get_create_client_use_case",
     "get_delete_client_use_case",

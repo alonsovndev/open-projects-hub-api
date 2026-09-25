@@ -20,6 +20,8 @@ class UserMapper:
             password_hash=model.password_hash,
             role=UserRole(model.role),
             token_version=model.token_version or 0,
+            ai_credits_remaining=model.ai_credits_remaining,
+            ai_credits_granted=model.ai_credits_granted,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -34,6 +36,8 @@ class UserMapper:
             password_hash=entity.password_hash,
             role=entity.role.value,
             token_version=entity.token_version,
+            ai_credits_remaining=entity.ai_credits_remaining,
+            ai_credits_granted=entity.ai_credits_granted,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

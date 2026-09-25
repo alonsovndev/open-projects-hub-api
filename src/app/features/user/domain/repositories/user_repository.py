@@ -119,3 +119,25 @@ class UserRepository(ABC):
         Returns:
             bool: True if the user was deleted, False if not found.
         """
+
+    @abstractmethod
+    async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
+        """
+        Atomically spend one AI credit and return the new balance.
+
+        A read-modify-write through `find_by_id` + `update` cannot be used here. A
+        refinement holds its user snapshot across a 10-45 second provider call, so two
+        concurrent runs would both read the same balance and both write it minus one —
+        charging one credit for two refinements. A full-row `update` would also rewrite
+        `password_hash` and `token_version` from that stale snapshot, undoing a password
+        change or a forced logout that happened while the provider was working.
+
+        Implementations must therefore perform a single conditional UPDATE.
+
+        Args:
+            entity_id: The user to charge.
+
+        Returns:
+            The remaining balance after the charge, or None if the user does not exist or
+            had no credits left to spend.
+        """

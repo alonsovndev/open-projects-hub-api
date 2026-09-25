@@ -1,7 +1,7 @@
 import time
 
 import sqlalchemy.exc
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -263,6 +263,8 @@ class UserRepositoryImpl(UserRepository):
             user_model.password_hash = user.password_hash
             user_model.role = user.role.value
             user_model.token_version = user.token_version
+            user_model.ai_credits_remaining = user.ai_credits_remaining
+            user_model.ai_credits_granted = user.ai_credits_granted
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)
@@ -345,4 +347,53 @@ class UserRepositoryImpl(UserRepository):
         except Exception:
             await self.db_session.rollback()
             self._log.exception("Error deleting user", extra={"operation": "delete", "table": "users"})
+            raise
+
+    async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
+        """
+        Atomically spend one AI credit and return the new balance.
+
+        A single conditional UPDATE: the `ai_credits_remaining > 0` guard makes the check
+        and the decrement one operation, so concurrent refinements cannot both spend the
+        same credit, and touching only the credit column means a password change or forced
+        logout racing this write is not clobbered.
+        """
+        start = time.time()
+        try:
+            result = await self.db_session.execute(
+                update(UserModel)
+                .where(UserModel.id == entity_id.value, UserModel.ai_credits_remaining > 0)
+                .values(ai_credits_remaining=UserModel.ai_credits_remaining - 1)
+                .returning(UserModel.ai_credits_remaining)
+            )
+            remaining = result.scalar_one_or_none()
+            await self.db_session.commit()
+
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.update",
+                    "success": remaining is not None,
+                    "duration_ms": (time.time() - start) * 1000,
+                    "table": "users",
+                    "operation": "consume_ai_credit",
+                    "entity_id": str(entity_id.value),
+                },
+            )
+            return remaining
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            await self.db_session.rollback()
+            self._log.exception(
+                "Database connection error",
+                extra={"operation": "consume_ai_credit", "table": "users"},
+            )
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
+
+        except Exception:
+            await self.db_session.rollback()
+            self._log.exception(
+                "Unexpected error while consuming an AI credit",
+                extra={"operation": "consume_ai_credit", "table": "users"},
+            )
             raise
