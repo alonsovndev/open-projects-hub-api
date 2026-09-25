@@ -130,7 +130,7 @@ async def get_ai_service() -> AIService:
             return GenerateStoriesUseCase(ai_service)
 
     Returns:
-        AIService: Gemini AI service or MockAIService based on configuration
+        AIService: The provider named by `ai.provider`, or MockAIService based on configuration
     """
     global _ai_service_instance
     if _ai_service_instance is None:
