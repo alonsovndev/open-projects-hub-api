@@ -1,9 +1,14 @@
 from datetime import datetime
 
+from src.app.features.user.domain.exceptions.user_exceptions import AICreditsExhaustedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.entities.base_entity import BaseEntity
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+
+
+# Free platform refinements granted to a new account (F-010 FR-010-01).
+INITIAL_AI_CREDITS = 5
 
 
 class UserEntity(BaseEntity):
@@ -15,6 +20,8 @@ class UserEntity(BaseEntity):
         password_hash: str,
         role: UserRole = UserRole.VIEWER,
         token_version: int = 0,
+        ai_credits_remaining: int = INITIAL_AI_CREDITS,
+        ai_credits_granted: int = INITIAL_AI_CREDITS,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -23,6 +30,8 @@ class UserEntity(BaseEntity):
         self._password_hash = password_hash
         self._role = role
         self._token_version = token_version
+        self._ai_credits_remaining = ai_credits_remaining
+        self._ai_credits_granted = ai_credits_granted
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -45,6 +54,14 @@ class UserEntity(BaseEntity):
     def token_version(self) -> int:
         return self._token_version
 
+    @property
+    def ai_credits_remaining(self) -> int:
+        return self._ai_credits_remaining
+
+    @property
+    def ai_credits_granted(self) -> int:
+        return self._ai_credits_granted
+
     @classmethod
     def create(
         cls,
@@ -59,6 +76,8 @@ class UserEntity(BaseEntity):
             display_name=display_name,
             password_hash=password_hash,
             role=role or UserRole.default(),
+            ai_credits_remaining=INITIAL_AI_CREDITS,
+            ai_credits_granted=INITIAL_AI_CREDITS,
         )
 
     def update_details(
@@ -76,6 +95,26 @@ class UserEntity(BaseEntity):
             self._password_hash = password_hash
         if role is not None:
             self._role = role
+        self.mark_as_updated()
+
+    def has_ai_credits(self) -> bool:
+        """Whether a platform refinement can still be charged to this account."""
+        return self._ai_credits_remaining > 0
+
+    def consume_ai_credit(self) -> None:
+        """
+        Spend one free platform credit.
+
+        Callers must invoke this only after the provider has returned successfully:
+        FR-010-02 requires a failed refinement to leave the balance untouched.
+
+        Raises:
+            AICreditsExhaustedError: If no credits remain.
+        """
+        if not self.has_ai_credits():
+            raise AICreditsExhaustedError
+
+        self._ai_credits_remaining -= 1
         self.mark_as_updated()
 
     def is_admin(self) -> bool:

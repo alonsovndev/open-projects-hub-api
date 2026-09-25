@@ -4,6 +4,7 @@ Router registration for FastAPI application.
 Centralizes API route registration with versioning and tagging.
 """
 
+from src.app.features.ai_config.presentation.ai_config_routes import router as ai_config_router
 from src.app.features.auth.presentation.auth_routes import router as auth_router
 from src.app.features.backlog.presentation.backlog_routes import router as backlog_router
 from src.app.features.clients.presentation.client_routes import router as client_router
@@ -29,6 +30,10 @@ def register_routers(app) -> None:
 
     # User management routes
     app.include_router(user_router, prefix="/v1/users", tags=["Users"])
+
+    # AI credit balance and provider API key routes (self-service, so they share the
+    # /v1/users prefix; their /me/* paths do not collide with the user router's)
+    app.include_router(ai_config_router, prefix="/v1/users", tags=["AI Credits & API Keys"])
 
     # Client management routes
     app.include_router(client_router, prefix="/v1/clients", tags=["Clients"])

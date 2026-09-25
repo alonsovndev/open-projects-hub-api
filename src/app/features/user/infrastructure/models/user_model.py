@@ -29,6 +29,11 @@ class UserModel(Base):
     # Bumped on forced logout (e.g. after a password reset) to invalidate every
     # refresh token issued before that point, without needing a token ledger.
     token_version = Column(Integer, nullable=False, server_default="0", default=0)
+    # Free platform refinements (F-010). `granted` is retained alongside `remaining` so the
+    # UI can render "3 of 5" without hardcoding the grant size, and so a future change to
+    # the grant does not retroactively rewrite what existing accounts were given.
+    ai_credits_remaining = Column(Integer, nullable=False, server_default="5", default=5)
+    ai_credits_granted = Column(Integer, nullable=False, server_default="5", default=5)
 
     # Relationships
     created_projects = relationship("ProjectModel", foreign_keys="ProjectModel.created_by", backref="creator")

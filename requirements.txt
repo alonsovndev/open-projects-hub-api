@@ -19,6 +19,8 @@ greenlet==3.3.0
 pyjwt==2.10.1
 bcrypt==5.0.0
 slowapi==0.1.9
+# AES-256-GCM envelope for user-supplied provider API keys (F-010 NFR-010-01)
+cryptography==46.0.7
 
 # Configuration
 python-dotenv==1.0.1

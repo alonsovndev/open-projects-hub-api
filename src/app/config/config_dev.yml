@@ -64,6 +64,14 @@ ai:
   provider: gemini    # gemini
   gemini_api_key: !ENV ${GEMINI_API_KEY}
   gemini_model: gemini-2.5-flash
+  openai_model: gpt-4o-mini
+  deepseek_model: deepseek-chat
 
 project_limits:
   max_active_per_admin: 3
+
+security:
+  # Base64-encoded 32-byte master key for AES-256-GCM encryption of user-supplied
+  # provider API keys (F-010 NFR-010-01). Generate with:
+  #   python -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
+  api_key_encryption_key: !ENV ${API_KEY_ENCRYPTION_KEY}

@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
+from src.app.features.ai_config.domain.value_objects.ai_provider import RefinementProvider
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 
@@ -55,6 +56,9 @@ class GenerateStoriesRequest(BaseModel):
 
     project_id: str
     raw_notes: str
+    # Which provider to charge this run to. Defaults to the platform's free credits so
+    # existing callers keep working unchanged (EPIC-3 predates provider selection).
+    provider: RefinementProvider = RefinementProvider.PLATFORM
 
     @field_validator("project_id")
     @classmethod
@@ -98,6 +102,11 @@ class GenerateStoriesResponse(BaseModel):
     # Non-zero when sanitization altered the notes before refining them, so the UI can say
     # so rather than leaving the Admin to wonder why output ignores part of their input.
     redaction_count: int = 0
+    # Which provider actually served the run, echoed so the UI can label the result.
+    provider: RefinementProvider = RefinementProvider.PLATFORM
+    # Credits left after this run. None when a user's own key served it and no credit was
+    # spent, which is how the UI knows to keep the balance display unchanged (FR-010-08).
+    credits_remaining: int | None = None
 
 
 class StoryDraftResponse(BaseModel):
