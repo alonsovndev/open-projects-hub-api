@@ -49,7 +49,9 @@ cp .env.example .env
 Edit `.env` with production values:
 
 ```bash
-# Application Environment
+# Application Environment — note: the bundled compose.yml sets APP_ENV=container on the
+# app service, which overrides this value. To run with config_prod.yml under Compose,
+# change `environment.APP_ENV` in compose.yml.
 APP_ENV=prod
 
 # Logging
@@ -69,12 +71,25 @@ SECRET_KEY=<GENERATE_STRONG_SECRET_KEY>
 # CORS (restrict to your frontend domains)
 CORS_ORIGINS=https://app.yourdomain.com,https://admin.yourdomain.com
 CORS_ALLOW_CREDENTIALS=true
+
+# Encryption of user-supplied AI provider keys (required, no default; see ADR-018 —
+# losing or changing it makes every stored user key undecryptable)
+API_KEY_ENCRYPTION_KEY=<GENERATE_BASE64_32_BYTES>
+
+# Platform AI provider keys — only the one named by `ai.provider` in config_<env>.yml is used;
+# without it, story refinement falls back to the mock AI service
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+DEEPSEEK_API_KEY=
 ```
 
 **Generate strong secrets:**
 ```bash
 # JWT secret (32+ characters)
 python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# API key encryption key (base64-encoded 32 bytes)
+python -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
 
 # Database password (16+ characters)
 python -c "import secrets; print(secrets.token_urlsafe(16))"
@@ -83,8 +98,9 @@ python -c "import secrets; print(secrets.token_urlsafe(16))"
 ### 3. Build and Start Services
 
 ```bash
-# Build and start in detached mode
-docker compose up -d
+# Build and start in detached mode (--build picks up code/dependency changes;
+# without it Compose reuses the previously built image)
+docker compose up --build -d
 
 # Check logs
 docker compose logs -f app
