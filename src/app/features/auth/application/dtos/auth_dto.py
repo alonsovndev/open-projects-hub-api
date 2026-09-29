@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from src.app.features.user.domain.validators.user_validators import UserValidators
@@ -64,7 +64,9 @@ class VerifyEmailRequest(BaseModel):
     )
 
     email: EmailStr
-    code: str
+    # Bounded so oversized input is rejected before it reaches bcrypt; the slack over 6
+    # allows surrounding whitespace, which the use case strips.
+    code: str = Field(min_length=6, max_length=16)
 
 
 class VerifyEmailResponse(BaseModel):

@@ -75,3 +75,13 @@ class TestLoginBeforeVerification:
             "detail": "Please verify your email before signing in.",
             "code": "EMAIL_NOT_VERIFIED",
         }
+
+
+class TestVerifyEmailRequestBounds:
+    def test_oversized_code_is_rejected_before_reaching_the_use_case(self, client):
+        execute = AsyncMock()
+        with patch(VERIFY_EXECUTE, new=execute):
+            response = client.post("/v1/auth/verify-email", json={"email": "new@example.com", "code": "A" * 100})
+
+        assert response.status_code == 422
+        execute.assert_not_called()

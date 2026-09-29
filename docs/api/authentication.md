@@ -269,6 +269,11 @@ in only after `POST /v1/auth/verify-email` succeeds.
 **Errors:** 403 registration closed · 409 email already registered · 422 invalid body
 (including a `role` field).
 
+**Recovering a stuck instance:** the first registration closes registration even while it is
+unverified. If its code can never be delivered (mistyped email, SMTP failure, or Resend's
+`onboarding@resend.dev` sender, which only reaches the Resend account owner), run
+`make seed-admin` (`scripts/seed_admin.py`) to create a verified admin.
+
 The code is 6 characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, stored only as a bcrypt
 hash, and expires after 5 minutes. It is sent through the SMTP relay configured in
 `SMTP_*` (Resend in dev); a delivery failure is logged and the user can resend.

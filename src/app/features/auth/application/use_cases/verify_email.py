@@ -59,11 +59,13 @@ class VerifyEmailUseCase:
             )
             raise InvalidVerificationCodeError
 
-        verification_code.mark_used()
-        await self.verification_code_repository.save(verification_code)
-
+        # Verify the account before consuming the code: if the user update fails, the code
+        # is still valid and the user can simply retry.
         user_entity.verify_email()
         await self.user_repository.update(user_entity)
+
+        verification_code.mark_used()
+        await self.verification_code_repository.save(verification_code)
 
         log.info(
             "Email verified",
