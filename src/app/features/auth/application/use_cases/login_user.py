@@ -6,6 +6,7 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
     InvalidCredentialsError,
 )
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import (
     AccountLockoutService,
@@ -31,10 +32,12 @@ class LoginUserUseCase:
         user_repository: UserRepository,
         jwt_handler: JWTHandler,
         lockout_service: AccountLockoutService | None = None,
+        workspace_repository: WorkspaceRepository | None = None,
     ):
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
         self.lockout_service = lockout_service or get_account_lockout_service()
+        self.workspace_repository = workspace_repository
 
     async def execute(self, payload: LoginRequest) -> AdminLoginResponse:
         """
@@ -125,6 +128,7 @@ class LoginUserUseCase:
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
                 role=user_entity.role.value,
+                workspace_id=str(user_entity.workspace_id) if user_entity.workspace_id else None,
             )
 
             refresh_token = self.jwt_handler.create_refresh_token(
@@ -136,7 +140,12 @@ class LoginUserUseCase:
             )
             session_expires_at = self.jwt_handler.get_token_expiry(refresh_token)
 
-            response = to_admin_login_response(user_entity, token, refresh_token, session_expires_at)
+            workspace = (
+                await self.workspace_repository.find_by_id(user_entity.workspace_id)
+                if self.workspace_repository and user_entity.workspace_id
+                else None
+            )
+            response = to_admin_login_response(user_entity, token, refresh_token, session_expires_at, workspace)
 
             log.info(
                 "User logged in successfully",

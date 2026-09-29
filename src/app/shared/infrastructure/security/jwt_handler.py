@@ -115,6 +115,7 @@ class JWTHandler:
         email: str,
         role: str,
         additional_claims: dict[str, Any] | None = None,
+        workspace_id: str | None = None,
     ) -> str:
         """
         Creates a JWT access token with user claims.
@@ -122,8 +123,10 @@ class JWTHandler:
         Args:
             user_id: User's unique identifier
             email: User's email address
-            role: User's role (ADMIN or USER)
+            role: User's role (admin, member or viewer)
             additional_claims: Optional additional claims to include
+            workspace_id: Tenant the user belongs to, carried as the `wid` claim. Tenant-scoped
+                routes reject a token without it (401), so omit it only for non-user tokens.
 
         Returns:
             Encoded JWT token string
@@ -140,6 +143,9 @@ class JWTHandler:
             "aud": self.audience,
             "iss": self.issuer,
         }
+
+        if workspace_id is not None:
+            payload["wid"] = workspace_id
 
         if additional_claims:
             payload.update(additional_claims)

@@ -107,6 +107,7 @@ class RefreshTokenUseCase:
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
                 role=user_entity.role.value,
+                workspace_id=str(user_entity.workspace_id) if user_entity.workspace_id else None,
             )
 
             # Generate new refresh token (token rotation) — carries the same

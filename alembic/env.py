@@ -28,6 +28,7 @@ from src.app.features.projects.infrastructure.models.project_model import Projec
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.user.infrastructure.models.user_model import UserModel
+from src.app.features.workspaces.infrastructure.models.workspace_model import WorkspaceModel
 from src.app.shared.persistence import Base
 
 

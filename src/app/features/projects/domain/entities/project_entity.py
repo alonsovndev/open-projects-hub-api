@@ -33,6 +33,7 @@ class ProjectEntity(BaseEntity):
         created_at: datetime,
         updated_at: datetime,
         phase: ProjectPhase = ProjectPhase.default(),
+        workspace_id: EntityId | None = None,
     ):
         """
         Initialize ProjectEntity.
@@ -72,6 +73,7 @@ class ProjectEntity(BaseEntity):
         self._start_date = start_date
         self._end_date = end_date
         self._phase = phase
+        self._workspace_id = workspace_id
 
     @property
     def name(self) -> str:
@@ -122,6 +124,10 @@ class ProjectEntity(BaseEntity):
     def phase(self) -> ProjectPhase:
         """Get project phase."""
         return self._phase
+
+    @property
+    def workspace_id(self) -> EntityId | None:
+        return self._workspace_id
 
     def update_details(
         self,
@@ -206,6 +212,7 @@ class ProjectEntity(BaseEntity):
         code: str,
         created_by: EntityId,
         client_id: EntityId,
+        workspace_id: EntityId,
         description: str | None = None,
         priority: ProjectPriority | None = None,
         start_date: date | None = None,
@@ -247,4 +254,5 @@ class ProjectEntity(BaseEntity):
             created_at=now,
             updated_at=now,
             phase=phase or ProjectPhase.default(),
+            workspace_id=workspace_id,
         )

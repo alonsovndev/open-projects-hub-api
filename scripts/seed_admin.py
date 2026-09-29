@@ -36,6 +36,8 @@ from src.app.config.app_config import AppConfig
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
+from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
+from src.app.features.workspaces.infrastructure.repositories.workspace_repository_impl import WorkspaceRepositoryImpl
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.persistence.engine_factory import close_engine, get_engine
@@ -81,14 +83,16 @@ async def seed_admin():
 
             password_hash = await PasswordHandler.hash_password(admin_password)
 
+            workspace = WorkspaceEntity.create(WorkspaceEntity.default_name_for(admin_display_name))
             admin_entity = UserEntity.create(
                 email=admin_email,
                 display_name=admin_display_name,
                 password_hash=password_hash,
                 role=UserRole.ADMIN,
+                workspace_id=workspace.id,
             )
 
-            saved_user = await repository.save(admin_entity)
+            saved_user = await WorkspaceRepositoryImpl(session).create_with_admin(workspace, admin_entity)
 
             if saved_user is None:
                 print(f"❌ ERROR: Failed to create admin user - email may already be in use: {admin_email}")
@@ -99,6 +103,7 @@ async def seed_admin():
             print(f"   Email: {saved_user.email}")
             print(f"   Display Name: {saved_user.display_name}")
             print(f"   Role: {saved_user.role}")
+            print(f"   Workspace: {workspace.name}")
             print(f"   Created At: {saved_user.created_at}")
             print("=" * 60)
             print("🎉 You can now login with these credentials:")

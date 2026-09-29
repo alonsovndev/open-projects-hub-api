@@ -134,6 +134,7 @@ from src.app.composition.features.users import (
     get_create_user_use_case,
     get_get_user_by_id_use_case,
     get_get_user_profile_use_case,
+    get_list_workspace_users_use_case,
     get_update_user_profile_use_case,
 )
 from src.app.composition.infrastructure import get_ai_service, get_database_session, get_email_sender
@@ -146,6 +147,7 @@ from src.app.composition.repositories import (
     get_client_repository,
     get_story_repository,
     get_user_repository,
+    get_workspace_repository,
 )
 
 
@@ -162,6 +164,7 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_client_repository",
     "get_story_repository",
     "get_user_repository",
+    "get_workspace_repository",
     # Auth
     "get_confirm_password_reset_use_case",
     "get_login_use_case",
@@ -224,5 +227,6 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_create_user_use_case",
     "get_get_user_by_id_use_case",
     "get_get_user_profile_use_case",
+    "get_list_workspace_users_use_case",
     "get_update_user_profile_use_case",
 ]
