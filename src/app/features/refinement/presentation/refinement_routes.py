@@ -1,6 +1,5 @@
 """Refinement API routes."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -36,7 +35,8 @@ from src.app.features.refinement.domain.exceptions.refinement_exceptions import 
 )
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
-from src.app.shared.presentation.auth_dependencies import require_admin
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.presentation.auth_dependencies import require_editor
 
 
 router = APIRouter(prefix="/refinement")
@@ -48,7 +48,7 @@ async def list_drafts(
     status_filter: DraftStatus | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ListStoryDraftsUseCase = Depends(get_list_drafts_use_case),
 ) -> ListStoryDraftsResponse:
     """
@@ -62,7 +62,7 @@ async def list_drafts(
         status_filter: Restrict to a single draft status, or omit for all
         limit: Maximum results
         offset: Number to skip
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ListStoryDraftsUseCase
 
     Returns:
@@ -70,6 +70,7 @@ async def list_drafts(
     """
     return await use_case.execute(
         project_id=str(project_id),
+        ctx=ctx,
         status=status_filter,
         limit=limit,
         offset=offset,
@@ -79,7 +80,7 @@ async def list_drafts(
 @router.delete("/drafts/{draft_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_draft(
     draft_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: DeleteStoryDraftUseCase = Depends(get_delete_draft_use_case),
 ) -> None:
     """
@@ -90,7 +91,7 @@ async def delete_draft(
 
     Args:
         draft_id: Draft UUID
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected DeleteStoryDraftUseCase
 
     Raises:
@@ -98,7 +99,7 @@ async def delete_draft(
         409: Story draft has already been approved into the backlog
     """
     try:
-        await use_case.execute(str(draft_id), deleted_by=str(current_user["sub"]))
+        await use_case.execute(str(draft_id), ctx=ctx)
     except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -115,7 +116,7 @@ async def delete_draft(
 async def update_draft(
     draft_id: UUID,
     payload: UpdateStoryDraftRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: UpdateStoryDraftUseCase = Depends(get_update_draft_use_case),
 ) -> dict[str, str]:
     """
@@ -126,7 +127,7 @@ async def update_draft(
     Args:
         draft_id: Draft UUID
         payload: UpdateStoryDraftRequest with fields to update
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected UpdateStoryDraftUseCase
 
     Returns:
@@ -136,12 +137,11 @@ async def update_draft(
         404: Story draft not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
         result = await use_case.execute(
             draft_id=str(draft_id),
             request=payload,
-            created_by=user_id,
+            ctx=ctx,
         )
         return {"id": str(result.id.value)}
 
@@ -155,7 +155,7 @@ async def update_draft(
 @router.post("/generate-stories", response_model=GenerateStoriesResponse)
 async def generate_stories(
     payload: GenerateStoriesRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: GenerateStoriesFromNotesUseCase = Depends(get_generate_stories_use_case),
 ) -> GenerateStoriesResponse:
     """
@@ -165,7 +165,7 @@ async def generate_stories(
 
     Args:
         payload: GenerateStoriesRequest with project_id and raw_notes
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GenerateStoriesFromNotesUseCase
 
     Returns:
@@ -178,14 +178,14 @@ async def generate_stories(
     """
     return await use_case.execute(
         request=payload,
-        created_by=str(current_user["sub"]),
+        ctx=ctx,
     )
 
 
 @router.post("/drafts/{draft_id}/approve", response_model=StoryResponse)
 async def approve_draft(
     draft_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ApproveDraftUseCase = Depends(get_approve_draft_use_case),
 ) -> StoryResponse:
     """
@@ -196,7 +196,7 @@ async def approve_draft(
 
     Args:
         draft_id: Draft UUID
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ApproveDraftUseCase
 
     Returns:
@@ -207,9 +207,8 @@ async def approve_draft(
         409: Story draft has already been approved into the backlog
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(str(draft_id), created_by=user_id)
+        return await use_case.execute(str(draft_id), ctx=ctx)
     except StoryDraftNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -225,7 +224,7 @@ async def approve_draft(
 @router.post("/approve-drafts", response_model=ApproveDraftsBulkResponse)
 async def approve_drafts_bulk(
     payload: ApproveDraftsBulkRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ApproveDraftsBulkUseCase = Depends(get_approve_drafts_bulk_use_case),
 ) -> ApproveDraftsBulkResponse:
     """
@@ -235,7 +234,7 @@ async def approve_drafts_bulk(
 
     Args:
         payload: ApproveDraftsBulkRequest with list of draft IDs
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ApproveDraftsBulkUseCase
 
     Returns:
@@ -245,8 +244,7 @@ async def approve_drafts_bulk(
         400: Invalid input or no drafts found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
-    stories = await use_case.execute(payload.draft_ids, created_by=user_id)
+    stories = await use_case.execute(payload.draft_ids, ctx=ctx)
 
     if not stories:
         raise HTTPException(

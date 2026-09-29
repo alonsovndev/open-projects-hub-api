@@ -5,6 +5,7 @@ from src.app.features.clients.application.mappers.client_mapper import to_client
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, mask_email, set_user_id
 
 
@@ -14,15 +15,18 @@ class CreateClientUseCase:
     def __init__(self, client_repository: ClientRepository):
         self.client_repository = client_repository
 
-    async def execute(self, request: CreateClientRequest, created_by: str) -> ClientResponse:
+    async def execute(self, request: CreateClientRequest, ctx: RequestContext) -> ClientResponse:
         """Execute the create client use case."""
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        saved_client = None
 
         try:
             # Enforce email uniqueness constraint at application layer
             if request.email:
-                existing_client = await self.client_repository.find_by_email(request.email)
+                existing_client = await self.client_repository.find_by_email(
+                    request.email, workspace_id=ctx.workspace_id.value
+                )
                 if existing_client:
                     log.error(
                         "Client email already exists",
@@ -36,6 +40,7 @@ class CreateClientUseCase:
 
             client = ClientEntity.create(
                 name=request.name,
+                workspace_id=ctx.workspace_id,
                 email=request.email,
                 phone=request.phone,
                 company=request.company,

@@ -8,6 +8,7 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Activ
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
@@ -26,35 +27,34 @@ class CreateProjectUseCase:
         self._client_repository = client_repository
         self._max_active_projects = max_active_projects
 
-    async def execute(self, request: CreateProjectRequest, created_by: str) -> ProjectResponse:
+    async def execute(self, request: CreateProjectRequest, ctx: RequestContext) -> ProjectResponse:
         """
         Execute create project use case.
 
         Args:
             request: CreateProjectRequest DTO with project data
-            created_by: User ID of creator (from JWT token)
+            ctx: Caller identity and workspace (from JWT token)
 
         Returns:
             ProjectResponse with created project data
 
         Raises:
-            ActiveProjectLimitExceededError: If admin is at the active project limit
+            ActiveProjectLimitExceededError: If the workspace is at the active project limit
             NotFoundError: If client is not found
             RuntimeError: If save fails unexpectedly
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
-
-        created_by_id = EntityId.from_string(created_by)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
 
         # Enforce active project limit before creating
-        active_count = await self._project_repository.count_active_by_user(created_by_id.value)
+        active_count = await self._project_repository.count_active_by_workspace(workspace_id)
         if active_count >= self._max_active_projects:
             log.warning(
                 "Active project limit reached",
                 extra={
                     "event_type": "project.create.limit_exceeded",
-                    "user_id": created_by,
+                    "user_id": str(ctx.user_id),
                     "active_count": active_count,
                     "limit": self._max_active_projects,
                 },
@@ -63,7 +63,7 @@ class CreateProjectUseCase:
 
         # Ensure client exists before creating project to maintain referential integrity
         client_entity_id = EntityId.from_string(request.client_id)
-        client = await self._client_repository.find_by_id(client_entity_id.value)
+        client = await self._client_repository.find_by_id(client_entity_id.value, workspace_id=workspace_id)
         if not client:
             log.error(
                 "Client not found for project creation",
@@ -77,8 +77,9 @@ class CreateProjectUseCase:
         entity = ProjectEntity.create(
             name=request.name,
             code=request.code,
-            created_by=created_by_id,
+            created_by=ctx.user_id,
             client_id=client_entity_id,
+            workspace_id=ctx.workspace_id,
             description=request.description,
             priority=priority_enum,
             start_date=request.start_date,

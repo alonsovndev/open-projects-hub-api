@@ -1,4 +1,8 @@
-"""Story draft repository interface."""
+"""Story draft repository interface.
+
+Drafts belong to a workspace through their project. Reads, counts and deletes are confined
+to one workspace; a draft of another workspace behaves like one that does not exist.
+"""
 
 from abc import ABC, abstractmethod
 from uuid import UUID
@@ -11,7 +15,7 @@ class StoryDraftRepository(ABC):
     """Repository interface for StoryDraft aggregate."""
 
     @abstractmethod
-    async def find_by_id(self, draft_id: UUID) -> StoryDraftEntity | None:
+    async def find_by_id(self, draft_id: UUID, *, workspace_id: UUID) -> StoryDraftEntity | None:
         """
         Find story draft by ID.
 
@@ -26,6 +30,8 @@ class StoryDraftRepository(ABC):
     async def find_by_project(
         self,
         project_id: UUID,
+        *,
+        workspace_id: UUID,
         status: DraftStatus | None = None,
         limit: int = 20,
         offset: int = 0,
@@ -44,28 +50,12 @@ class StoryDraftRepository(ABC):
         """
 
     @abstractmethod
-    async def find_active_by_user(
-        self,
-        user_id: UUID,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[StoryDraftEntity]:
-        """
-        Find active (non-applied) drafts by user.
-
-        Args:
-            user_id: User UUID
-            limit: Maximum results
-            offset: Number to skip
-
-        Returns:
-            List of StoryDraftEntity objects
-        """
-
-    @abstractmethod
     async def save(self, draft: StoryDraftEntity) -> StoryDraftEntity:
         """
         Save or update a story draft.
+
+        Callers must have confirmed the draft's project is in their workspace (generate) or
+        loaded the draft through a scoped read (edit/approve); save does not re-check.
 
         Args:
             draft: StoryDraftEntity to save
@@ -75,7 +65,7 @@ class StoryDraftRepository(ABC):
         """
 
     @abstractmethod
-    async def delete(self, draft_id: UUID) -> bool:
+    async def delete(self, draft_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Delete a story draft.
 
@@ -87,7 +77,7 @@ class StoryDraftRepository(ABC):
         """
 
     @abstractmethod
-    async def count_by_project(self, project_id: UUID, status: DraftStatus | None = None) -> int:
+    async def count_by_project(self, project_id: UUID, *, workspace_id: UUID, status: DraftStatus | None = None) -> int:
         """
         Count drafts for a project.
 

@@ -4,6 +4,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.mappers.project_mapper import to_project_response
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -14,13 +15,13 @@ class ArchiveProjectUseCase:
     def __init__(self, project_repository: ProjectRepository):
         self._repository = project_repository
 
-    async def execute(self, project_id: str, created_by: str) -> ProjectResponse:
+    async def execute(self, project_id: str, ctx: RequestContext) -> ProjectResponse:
         """
         Archive a project, making it inactive.
 
         Args:
             project_id: Project UUID string
-            created_by: User ID performing the action
+            ctx: Caller identity and workspace
 
         Returns:
             ProjectResponse with updated project data
@@ -29,10 +30,11 @@ class ArchiveProjectUseCase:
             ProjectNotFoundError: If project is not found
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
 
         entity_id = EntityId.from_string(project_id)
-        result = await self._repository.find_by_id(entity_id.value)
+        result = await self._repository.find_by_id(entity_id.value, workspace_id=workspace_id)
 
         if not result:
             log.error(
@@ -45,7 +47,9 @@ class ArchiveProjectUseCase:
         entity.archive()
 
         updated_entity = await self._repository.save(entity)
-        total_stories, completed_stories = await self._repository.get_story_counts(entity_id.value)
+        total_stories, completed_stories = await self._repository.get_story_counts(
+            entity_id.value, workspace_id=workspace_id
+        )
 
         log.info(
             "Project archived",

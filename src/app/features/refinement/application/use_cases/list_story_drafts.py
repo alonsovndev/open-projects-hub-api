@@ -4,6 +4,7 @@ from src.app.features.refinement.application.dtos.refinement_dto import ListStor
 from src.app.features.refinement.application.mappers.story_draft_mapper import to_story_draft_response
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
@@ -22,6 +23,7 @@ class ListStoryDraftsUseCase:
     async def execute(
         self,
         project_id: str,
+        ctx: RequestContext,
         status: DraftStatus | None = None,
         limit: int = 50,
         offset: int = 0,
@@ -31,6 +33,7 @@ class ListStoryDraftsUseCase:
 
         Args:
             project_id: Project UUID string
+            ctx: Caller identity and workspace
             status: Restrict to a single draft status, or None for all
             limit: Maximum results
             offset: Number to skip
@@ -40,13 +43,15 @@ class ListStoryDraftsUseCase:
         """
         project_uuid = EntityId.from_string(project_id).value
 
+        workspace_id = ctx.workspace_id.value
         drafts = await self._repository.find_by_project(
             project_id=project_uuid,
+            workspace_id=workspace_id,
             status=status,
             limit=limit,
             offset=offset,
         )
-        total = await self._repository.count_by_project(project_uuid, status=status)
+        total = await self._repository.count_by_project(project_uuid, workspace_id=workspace_id, status=status)
 
         return ListStoryDraftsResponse(
             drafts=[to_story_draft_response(draft) for draft in drafts],

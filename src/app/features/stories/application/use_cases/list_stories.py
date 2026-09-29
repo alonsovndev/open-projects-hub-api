@@ -8,6 +8,7 @@ from src.app.features.stories.domain.repositories.story_repository import StoryR
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -26,7 +27,7 @@ class ListStoriesUseCase:
 
     async def execute(
         self,
-        user_id: str,
+        ctx: RequestContext,
         limit: int = 20,
         offset: int = 0,
         project_id: str | None = None,
@@ -38,7 +39,7 @@ class ListStoriesUseCase:
         Execute list stories use case.
 
         Args:
-            user_id: Current user ID
+            ctx: Caller identity and workspace
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
             project_id: Optional project filter
@@ -61,7 +62,7 @@ class ListStoriesUseCase:
             raise ValidationError(f"Priority must be one of: {', '.join(p.value for p in StoryPriority)}")
 
         log = get_logger(__name__)
-        set_user_id(user_id)
+        set_user_id(str(ctx.user_id))
         log.info(
             "Listing stories",
             extra={
@@ -79,12 +80,14 @@ class ListStoriesUseCase:
         assigned_to_uuid = UUID(assigned_to) if assigned_to else None
 
         total = await self._repository.count(
+            workspace_id=ctx.workspace_id.value,
             project_id=project_uuid,
             status=status,
             priority=priority,
             assigned_to=assigned_to_uuid,
         )
         entities = await self._repository.find_all(
+            workspace_id=ctx.workspace_id.value,
             limit=limit,
             offset=offset,
             project_id=project_uuid,

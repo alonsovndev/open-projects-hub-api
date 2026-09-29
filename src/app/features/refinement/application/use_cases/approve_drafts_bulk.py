@@ -5,6 +5,7 @@ from src.app.features.refinement.domain.repositories.story_draft_repository impo
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -27,7 +28,7 @@ class ApproveDraftsBulkUseCase:
         self._draft_repository = draft_repository
         self._story_repository = story_repository
 
-    async def execute(self, draft_ids: list[str], created_by: str) -> list[StoryResponse]:
+    async def execute(self, draft_ids: list[str], ctx: RequestContext) -> list[StoryResponse]:
         """
         Execute bulk approve drafts use case.
 
@@ -35,7 +36,7 @@ class ApproveDraftsBulkUseCase:
 
         Args:
             draft_ids: List of draft IDs
-            created_by: User ID approving the drafts
+            ctx: Caller identity and workspace; drafts of other workspaces count as not found
 
         Returns:
             List of StoryResponse with created story data
@@ -44,7 +45,7 @@ class ApproveDraftsBulkUseCase:
             ValueError: If any draft validation fails
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
 
         if not draft_ids:
             log.warning(
@@ -57,7 +58,7 @@ class ApproveDraftsBulkUseCase:
 
         for draft_id in draft_ids:
             draft_entity_id = EntityId.from_string(draft_id)
-            draft = await self._draft_repository.find_by_id(draft_entity_id.value)
+            draft = await self._draft_repository.find_by_id(draft_entity_id.value, workspace_id=ctx.workspace_id.value)
 
             if not draft:
                 log.warning(

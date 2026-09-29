@@ -10,6 +10,7 @@ from src.app.features.refinement.domain.value_objects.draft_status import DraftS
 from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -32,7 +33,7 @@ class ApproveDraftUseCase:
         self._draft_repository = draft_repository
         self._story_repository = story_repository
 
-    async def execute(self, draft_id: str, created_by: str) -> StoryResponse:
+    async def execute(self, draft_id: str, ctx: RequestContext) -> StoryResponse:
         """
         Execute approve draft use case.
 
@@ -40,7 +41,7 @@ class ApproveDraftUseCase:
 
         Args:
             draft_id: Draft ID
-            created_by: User ID approving the draft
+            ctx: Caller identity and workspace
 
         Returns:
             StoryResponse with created story data
@@ -50,11 +51,11 @@ class ApproveDraftUseCase:
             ValueError: If draft validation fails
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
 
         try:
             draft_entity_id = EntityId.from_string(draft_id)
-            draft = await self._draft_repository.find_by_id(draft_entity_id.value)
+            draft = await self._draft_repository.find_by_id(draft_entity_id.value, workspace_id=ctx.workspace_id.value)
 
             if not draft:
                 log.error(

@@ -10,6 +10,7 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Proje
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.stories.domain.queries.backlog_query import BacklogQuery
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger
 
 
@@ -25,7 +26,7 @@ class ExportBacklogMarkdownUseCase:
         self._story_repository = story_repository
         self._project_repository = project_repository
 
-    async def execute(self, project_id: UUID, scope: MarkdownExportRequest) -> MarkdownExport:
+    async def execute(self, project_id: UUID, scope: MarkdownExportRequest, ctx: RequestContext) -> MarkdownExport:
         """
         Render the project's backlog within the requested scope.
 
@@ -35,12 +36,13 @@ class ExportBacklogMarkdownUseCase:
         Args:
             project_id: The project to export
             scope: Optional status and date-range narrowing
+            ctx: Caller identity and workspace
 
         Returns:
             The rendered export with its suggested filename and story count
 
         Raises:
-            ProjectNotFoundError: If the project does not exist
+            ProjectNotFoundError: If the project is not in the caller's workspace
         """
         log = get_logger(__name__)
         log.info(
@@ -48,13 +50,15 @@ class ExportBacklogMarkdownUseCase:
             extra={"event_type": "backlog.export.started", "project_id": str(project_id)},
         )
 
-        found = await self._project_repository.find_by_id(project_id)
+        workspace_id = ctx.workspace_id.value
+        found = await self._project_repository.find_by_id(project_id, workspace_id=workspace_id)
         if found is None:
             raise ProjectNotFoundError(str(project_id))
         project, _client_name = found
 
         query = BacklogQuery(
             project_id=project_id,
+            workspace_id=workspace_id,
             status=scope.status,
             created_from=scope.date_from,
             created_to=scope.date_to,

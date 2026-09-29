@@ -9,6 +9,7 @@ from src.app.features.projects.domain.repositories.project_repository import Pro
 from src.app.features.stories.domain.queries.backlog_query import BacklogQuery
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger
 
 
@@ -25,13 +26,14 @@ class GetProjectBacklogUseCase:
         self._project_repository = project_repository
 
     async def execute(
-        self, project_id: UUID, limit: int = 50, offset: int = 0
+        self, project_id: UUID, ctx: RequestContext, limit: int = 50, offset: int = 0
     ) -> PaginatedResponse[BacklogStoryResponse]:
         """
         Fetch a page of the project's backlog.
 
         Args:
             project_id: The project to read
+            ctx: Caller identity and workspace
             limit: Maximum number of stories to return
             offset: Number of stories to skip
 
@@ -39,17 +41,18 @@ class GetProjectBacklogUseCase:
             Paginated backlog stories in priority-then-age order
 
         Raises:
-            ProjectNotFoundError: If the project does not exist
+            ProjectNotFoundError: If the project is not in the caller's workspace
         """
         log = get_logger(__name__)
         log.info(
             "Fetching project backlog", extra={"event_type": "backlog.fetch.started", "project_id": str(project_id)}
         )
 
-        if await self._project_repository.find_by_id(project_id) is None:
+        workspace_id = ctx.workspace_id.value
+        if await self._project_repository.find_by_id(project_id, workspace_id=workspace_id) is None:
             raise ProjectNotFoundError(str(project_id))
 
-        query = BacklogQuery(project_id=project_id, limit=limit, offset=offset)
+        query = BacklogQuery(project_id=project_id, workspace_id=workspace_id, limit=limit, offset=offset)
 
         total = await self._story_repository.count_backlog(query)
         stories = await self._story_repository.find_backlog(query)

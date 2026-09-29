@@ -1,6 +1,5 @@
 """Story routes."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -30,8 +29,9 @@ from src.app.features.stories.application.use_cases.list_stories import ListStor
 from src.app.features.stories.application.use_cases.update_story import UpdateStoryUseCase
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
-from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.shared.presentation.auth_dependencies import get_request_context, require_editor
 
 
 router = APIRouter()
@@ -40,7 +40,7 @@ router = APIRouter()
 @router.post("", response_model=StoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_story(
     payload: CreateStoryRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: CreateStoryUseCase = Depends(get_create_story_use_case),
 ) -> StoryResponse:
     """
@@ -50,7 +50,7 @@ async def create_story(
 
     Args:
         payload: CreateStoryRequest with story details (title, description, project_id, etc.)
-        current_user: Current authenticated admin (from JWT)
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected CreateStoryUseCase
 
     Returns:
@@ -62,9 +62,8 @@ async def create_story(
         403: Forbidden (admin only)
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(request=payload, created_by=user_id)
+        return await use_case.execute(request=payload, ctx=ctx)
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
@@ -77,7 +76,7 @@ async def list_stories(
     story_status: str | None = Query(default=None, alias="status"),
     priority: str | None = Query(default=None),
     assigned_to: str | None = Query(default=None),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: ListStoriesUseCase = Depends(get_list_stories_use_case),
 ) -> PaginatedResponse[StoryResponse]:
     """
@@ -92,7 +91,7 @@ async def list_stories(
         story_status: Optional status filter (todo, in_progress, done)
         priority: Optional priority filter (low, medium, high)
         assigned_to: Optional assigned user filter
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ListStoriesUseCase
 
     Returns:
@@ -103,9 +102,8 @@ async def list_stories(
         401: Unauthorized
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     return await use_case.execute(
-        user_id=user_id,
+        ctx=ctx,
         limit=limit,
         offset=offset,
         project_id=project_id,
@@ -120,7 +118,7 @@ async def get_stories_by_project(
     project_id: UUID,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: GetStoriesByProjectUseCase = Depends(get_get_stories_by_project_use_case),
 ) -> PaginatedResponse[StoryResponse]:
     """
@@ -132,7 +130,7 @@ async def get_stories_by_project(
         project_id: Project UUID
         limit: Maximum number of results (1-100, default 20)
         offset: Number of results to skip (default 0)
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetStoriesByProjectUseCase
 
     Returns:
@@ -142,10 +140,9 @@ async def get_stories_by_project(
         401: Unauthorized
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     return await use_case.execute(
         project_id=str(project_id),
-        user_id=user_id,
+        ctx=ctx,
         limit=limit,
         offset=offset,
     )
@@ -154,7 +151,7 @@ async def get_stories_by_project(
 @router.get("/{story_id}", response_model=StoryResponse)
 async def get_story_by_id(
     story_id: UUID,
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: GetStoryByIdUseCase = Depends(get_get_story_by_id_use_case),
 ) -> StoryResponse:
     """
@@ -164,7 +161,7 @@ async def get_story_by_id(
 
     Args:
         story_id: Story UUID
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetStoryByIdUseCase
 
     Returns:
@@ -176,9 +173,8 @@ async def get_story_by_id(
         404: Story not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(str(story_id), user_id=user_id)
+        return await use_case.execute(str(story_id), ctx=ctx)
     except StoryNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
@@ -187,7 +183,7 @@ async def get_story_by_id(
 async def update_story(
     story_id: UUID,
     payload: UpdateStoryRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: UpdateStoryUseCase = Depends(get_update_story_use_case),
 ) -> StoryResponse:
     """
@@ -198,7 +194,7 @@ async def update_story(
     Args:
         story_id: Story UUID
         payload: UpdateStoryRequest with fields to update
-        current_user: Current authenticated admin
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected UpdateStoryUseCase
 
     Returns:
@@ -211,9 +207,8 @@ async def update_story(
         404: Story not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(story_id=str(story_id), request=payload, created_by=user_id)
+        return await use_case.execute(story_id=str(story_id), request=payload, ctx=ctx)
     except StoryNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ValidationError as e:
@@ -223,7 +218,7 @@ async def update_story(
 @router.delete("/{story_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_story(
     story_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: DeleteStoryUseCase = Depends(get_delete_story_use_case),
 ) -> None:
     """
@@ -233,7 +228,7 @@ async def delete_story(
 
     Args:
         story_id: Story UUID
-        current_user: Current authenticated admin
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected DeleteStoryUseCase
 
     Raises:
@@ -243,9 +238,8 @@ async def delete_story(
         404: Story not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        await use_case.execute(story_id=str(story_id), created_by=user_id)
+        await use_case.execute(story_id=str(story_id), ctx=ctx)
     except StoryNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
@@ -254,7 +248,7 @@ async def delete_story(
 async def assign_story(
     story_id: UUID,
     payload: AssignStoryRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: AssignStoryUseCase = Depends(get_assign_story_use_case),
 ) -> StoryResponse:
     """
@@ -265,7 +259,7 @@ async def assign_story(
     Args:
         story_id: Story UUID
         payload: AssignStoryRequest with user_id to assign
-        current_user: Current authenticated admin
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected AssignStoryUseCase
 
     Returns:
@@ -278,12 +272,11 @@ async def assign_story(
         404: Story not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
         return await use_case.execute(
             story_id=str(story_id),
             user_id=payload.user_id,
-            created_by=user_id,
+            ctx=ctx,
         )
     except StoryNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

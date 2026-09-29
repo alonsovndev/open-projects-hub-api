@@ -8,6 +8,7 @@ from src.app.features.clients.domain.exceptions.client_exceptions import (
 )
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, set_user_id
 
 
@@ -18,7 +19,7 @@ class DeleteClientUseCase:
         self.client_repository = client_repository
         self.project_repository = project_repository
 
-    async def execute(self, client_id: UUID, created_by: str) -> bool:
+    async def execute(self, client_id: UUID, ctx: RequestContext) -> bool:
         """Execute the delete client use case.
 
         Clients with active projects cannot be deleted. Archived projects
@@ -26,7 +27,7 @@ class DeleteClientUseCase:
 
         Args:
             client_id: UUID of the client to delete.
-            created_by: User ID performing the deletion.
+            ctx: Caller identity and workspace.
 
         Returns:
             bool: True if client was deleted.
@@ -36,10 +37,20 @@ class DeleteClientUseCase:
             ClientNotFoundError: If the client does not exist.
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
 
         try:
-            if await self.project_repository.has_active_projects_for_client(client_id):
+            # Ownership first: the project checks below must never run (or delete) for a
+            # client of another workspace.
+            if await self.client_repository.find_by_id(client_id, workspace_id=workspace_id) is None:
+                log.error(
+                    "Client not found for deletion",
+                    extra={"event_type": "client.delete.not_found", "entity_id": str(client_id)},
+                )
+                raise ClientNotFoundError(str(client_id))
+
+            if await self.project_repository.has_active_projects_for_client(client_id, workspace_id=workspace_id):
                 log.warning(
                     "Client deletion blocked: active projects exist",
                     extra={
@@ -49,7 +60,9 @@ class DeleteClientUseCase:
                 )
                 raise ClientHasActiveProjectsError(str(client_id))
 
-            deleted_archived = await self.project_repository.delete_archived_by_client(client_id)
+            deleted_archived = await self.project_repository.delete_archived_by_client(
+                client_id, workspace_id=workspace_id
+            )
             if deleted_archived:
                 log.info(
                     "Deleted archived projects before client deletion",
@@ -60,7 +73,7 @@ class DeleteClientUseCase:
                     },
                 )
 
-            deleted = await self.client_repository.delete(client_id)
+            deleted = await self.client_repository.delete(client_id, workspace_id=workspace_id)
 
             if not deleted:
                 log.error(
