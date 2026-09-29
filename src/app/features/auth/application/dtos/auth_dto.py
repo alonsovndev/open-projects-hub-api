@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 from src.app.features.user.domain.validators.user_validators import UserValidators
+from src.app.features.workspaces.domain.entities.workspace_entity import WORKSPACE_NAME_MAX_LENGTH
 
 
 class RegisterRequest(BaseModel):
@@ -21,6 +22,7 @@ class RegisterRequest(BaseModel):
     display_name: str
     email: EmailStr
     password: str
+    workspace_name: str | None = Field(default=None, max_length=WORKSPACE_NAME_MAX_LENGTH)
 
     @field_validator("display_name")
     @classmethod
@@ -28,6 +30,14 @@ class RegisterRequest(BaseModel):
         """Validate display name."""
         UserValidators.validate_display_name(display_name)
         return display_name
+
+    @field_validator("workspace_name")
+    @classmethod
+    def blank_workspace_name_means_default(cls, workspace_name: str | None) -> str | None:
+        """An empty or whitespace-only name falls back to the default derived from the display name."""
+        if workspace_name is None:
+            return None
+        return workspace_name.strip() or None
 
     @field_validator("password")
     @classmethod
@@ -144,6 +154,15 @@ class RefreshTokenResponse(BaseModel):
     session_expires_at: str
 
 
+class WorkspaceDetail(BaseModel):
+    """The workspace the signed-in user belongs to."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    id: str
+    name: str
+
+
 class UserDetail(BaseModel):
     """Nested user details in login response."""
 
@@ -156,6 +175,7 @@ class UserDetail(BaseModel):
     display_name: str
     name: str
     role: str
+    workspace: WorkspaceDetail | None = None
 
 
 class AdminLoginResponse(BaseModel):

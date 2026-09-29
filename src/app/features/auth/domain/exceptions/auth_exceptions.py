@@ -46,22 +46,6 @@ class ResetCodeRateLimitedError(AuthenticationError):
         super().__init__(self.message)
 
 
-class RegistrationClosedError(AuthenticationError):
-    """Raised when public registration is attempted after the instance already has a user.
-
-    Registration exists to bootstrap the first Admin. Leaving it open afterwards would let
-    any anonymous caller mint an Admin account and walk through every role boundary, so
-    later accounts are created by an existing Admin through POST /v1/users.
-    """
-
-    def __init__(
-        self,
-        message: str = "Registration is closed. Ask an administrator to create your account.",
-    ):
-        self.message = message
-        super().__init__(self.message)
-
-
 class EmailNotVerifiedError(AuthenticationError):
     """Raised on login when the password is correct but the account's email is unconfirmed.
 

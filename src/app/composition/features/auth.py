@@ -28,7 +28,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.composition.infrastructure import get_database_session, get_email_sender, get_jwt_handler
-from src.app.composition.repositories import get_user_repository
+from src.app.composition.repositories import get_user_repository, get_workspace_repository
 from src.app.config.app_config import AppConfig
 from src.app.features.auth.application.use_cases.confirm_password_reset import ConfirmPasswordResetUseCase
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
@@ -53,6 +53,7 @@ from src.app.features.auth.infrastructure.repositories.sql_token_revocation_repo
     SqlTokenRevocationRepository,
 )
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
 from src.app.shared.infrastructure.email.email_sender import EmailSender
 from src.app.shared.infrastructure.security.account_lockout_service import (
     AccountLockoutService,
@@ -78,6 +79,7 @@ def _persist_session_state() -> bool:
 # Use case factories
 async def get_login_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
+    workspace_repository: WorkspaceRepository = Depends(get_workspace_repository),
     session: AsyncSession = Depends(get_database_session),
 ) -> LoginUserUseCase:
     """LoginUserUseCase factory."""
@@ -87,7 +89,7 @@ async def get_login_use_case(
         if _persist_session_state()
         else get_account_lockout_service()  # shared in-memory singleton — state must survive across requests
     )
-    return LoginUserUseCase(user_repository, jwt_handler, lockout_service)
+    return LoginUserUseCase(user_repository, jwt_handler, lockout_service, workspace_repository)
 
 
 async def get_verification_code_repository(
@@ -99,11 +101,12 @@ async def get_verification_code_repository(
 
 async def get_register_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
+    workspace_repository: WorkspaceRepository = Depends(get_workspace_repository),
     verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
     email_sender: EmailSender = Depends(get_email_sender),
 ) -> RegisterUserUseCase:
     """RegisterUserUseCase factory."""
-    return RegisterUserUseCase(user_repository, verification_code_repository, email_sender)
+    return RegisterUserUseCase(user_repository, workspace_repository, verification_code_repository, email_sender)
 
 
 async def get_verify_email_use_case(
