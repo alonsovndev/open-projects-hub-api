@@ -60,7 +60,9 @@ from src.app.composition.features.auth import (
     get_register_use_case,
     get_request_password_reset_use_case,
     get_resend_reset_code_use_case,
+    get_resend_verification_use_case,
     get_revoke_all_user_tokens_use_case,
+    get_verify_email_use_case,
 )
 
 # ============================================================================
@@ -168,7 +170,9 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_register_use_case",
     "get_request_password_reset_use_case",
     "get_resend_reset_code_use_case",
+    "get_resend_verification_use_case",
     "get_revoke_all_user_tokens_use_case",
+    "get_verify_email_use_case",
     # AI Credits & API Keys
     "get_api_key_cipher",
     "get_credit_balance_use_case",

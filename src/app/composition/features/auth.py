@@ -10,7 +10,8 @@ Dependencies:
 
 Use Cases:
 - Login: Authenticate user credentials
-- Register: Create new user account
+- Register: Create new user account pending email verification
+- Verify Email / Resend Verification: Confirm a self-registered account's email
 - Refresh Token: Issue new access/refresh token pair
 
 Usage:
@@ -36,8 +37,14 @@ from src.app.features.auth.application.use_cases.refresh_token import RefreshTok
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from src.app.features.auth.application.use_cases.resend_reset_code import ResendResetCodeUseCase
+from src.app.features.auth.application.use_cases.resend_verification import ResendVerificationUseCase
 from src.app.features.auth.application.use_cases.revoke_all_user_tokens import RevokeAllUserTokensUseCase
+from src.app.features.auth.application.use_cases.verify_email import VerifyEmailUseCase
+from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.auth.domain.repositories.password_reset_code_repository import PasswordResetCodeRepository
+from src.app.features.auth.infrastructure.repositories.email_verification_code_repository_impl import (
+    EmailVerificationCodeRepositoryImpl,
+)
 from src.app.features.auth.infrastructure.repositories.password_reset_code_repository_impl import (
     PasswordResetCodeRepositoryImpl,
 )
@@ -83,12 +90,37 @@ async def get_login_use_case(
     return LoginUserUseCase(user_repository, jwt_handler, lockout_service)
 
 
+async def get_verification_code_repository(
+    session: AsyncSession = Depends(get_database_session),
+) -> EmailVerificationCodeRepository:
+    """EmailVerificationCodeRepository factory (auth-feature-specific, not shared)."""
+    return EmailVerificationCodeRepositoryImpl(session)
+
+
 async def get_register_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
+    verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
+    email_sender: EmailSender = Depends(get_email_sender),
 ) -> RegisterUserUseCase:
     """RegisterUserUseCase factory."""
-    jwt_handler = get_jwt_handler()
-    return RegisterUserUseCase(user_repository, jwt_handler)
+    return RegisterUserUseCase(user_repository, verification_code_repository, email_sender)
+
+
+async def get_verify_email_use_case(
+    user_repository: UserRepository = Depends(get_user_repository),
+    verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
+) -> VerifyEmailUseCase:
+    """VerifyEmailUseCase factory."""
+    return VerifyEmailUseCase(user_repository, verification_code_repository)
+
+
+async def get_resend_verification_use_case(
+    user_repository: UserRepository = Depends(get_user_repository),
+    verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
+    email_sender: EmailSender = Depends(get_email_sender),
+) -> ResendVerificationUseCase:
+    """ResendVerificationUseCase factory."""
+    return ResendVerificationUseCase(user_repository, verification_code_repository, email_sender)
 
 
 async def get_refresh_token_use_case(

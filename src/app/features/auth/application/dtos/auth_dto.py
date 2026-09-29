@@ -37,6 +37,74 @@ class RegisterRequest(BaseModel):
         return password
 
 
+class RegisterResponse(BaseModel):
+    """
+    Response model for a registration awaiting email verification.
+
+    Carries no tokens: the account cannot sign in until its email is verified (FR-008-06).
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: str
+    verification_required: bool = True
+    next_step: str = "verify-email"
+    code_expires_at: str
+
+
+class VerifyEmailRequest(BaseModel):
+    """Request model for confirming an account's email with its verification code."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: EmailStr
+    code: str
+
+
+class VerifyEmailResponse(BaseModel):
+    """Response model for a verified email."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    verified: bool = True
+
+
+class ResendVerificationRequest(BaseModel):
+    """Request model for resending an email verification code."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    """
+    Response model for a verification code resend.
+
+    Always the same generic message, so the endpoint never discloses whether the email
+    belongs to a pending account.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    message: str
+
+
 class LoginRequest(BaseModel):
     """Request model for user login."""
 

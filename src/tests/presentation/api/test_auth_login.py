@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,6 +27,7 @@ def mock_admin_user():
         display_name="Admin User",
         password_hash=password_hash,
         role=UserRole.ADMIN,
+        email_verified_at=datetime.now(UTC),
     )
 
 
@@ -40,6 +42,7 @@ def mock_regular_user():
         display_name="Regular User",
         password_hash=password_hash,
         role=UserRole.VIEWER,
+        email_verified_at=datetime.now(UTC),
     )
 
 

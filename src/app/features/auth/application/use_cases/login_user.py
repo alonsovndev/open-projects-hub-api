@@ -1,6 +1,10 @@
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
 from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
-from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, InvalidCredentialsError
+from src.app.features.auth.domain.exceptions.auth_exceptions import (
+    AccountLockedError,
+    EmailNotVerifiedError,
+    InvalidCredentialsError,
+)
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import (
@@ -106,6 +110,15 @@ class LoginUserUseCase:
                 await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
 
+            # Checked only after the password matches, so an unverified account's state is
+            # never revealed to someone guessing at emails.
+            if not user_entity.is_email_verified:
+                log.warning(
+                    "Login attempt before email verification",
+                    extra={"event_type": "auth.login.email_not_verified", "user_id": str(user_entity.id)},
+                )
+                raise EmailNotVerifiedError
+
             await self.lockout_service.record_successful_login(email_lower)
 
             token = self.jwt_handler.create_access_token(
@@ -137,7 +150,7 @@ class LoginUserUseCase:
 
             return response
 
-        except (InvalidCredentialsError, AccountLockedError):
+        except (InvalidCredentialsError, AccountLockedError, EmailNotVerifiedError):
             raise
         except Exception:
             log.exception("Unexpected error during login", extra={"event_type": "auth.login.unexpected_error"})

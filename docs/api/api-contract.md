@@ -25,8 +25,10 @@ means either role; `Admin Only` means a Viewer receives 403.
 | Method | Path | Authentication | Description |
 |---|---|---|---|
 | `GET` | `/health` | None | Health check endpoint |
-| `POST` | `/v1/auth/login` | None | User login |
-| `POST` | `/v1/auth/register` | None | Bootstraps the instance's first account. Always creates an **Admin**; a `role` field in the body is rejected with 422. Returns 403 once any account exists — later accounts come from `POST /v1/users` |
+| `POST` | `/v1/auth/login` | None | User login. Returns 403 `{"detail", "code": "EMAIL_NOT_VERIFIED"}` when the password is correct but the email is unverified |
+| `POST` | `/v1/auth/register` | None | Bootstraps the instance's first account. Always creates an **Admin**; a `role` field in the body is rejected with 422. Returns 403 once any account exists — later accounts come from `POST /v1/users`. Creates the account unverified, emails a 6-character code, and returns 201 `{email (masked), verificationRequired, nextStep: "verify-email", codeExpiresAt}` with no tokens |
+| `POST` | `/v1/auth/verify-email` | None | Body `{email, code}`. Verifies the account and grants its free AI credits. 400 for an invalid, expired or superseded code; 429 after 5 wrong attempts (request a new code) |
+| `POST` | `/v1/auth/resend-verification` | None | Body `{email}`. Emails a new code and invalidates the previous one. Always 200 with a generic message; 429 after 3 resends in 15 minutes |
 | `POST` | `/v1/auth/refresh` | None | Refresh access token |
 | `GET` | `/v1/users/{user_id}` | Authenticated | Get user by ID |
 | `GET` | `/v1/users/me/profile` | Authenticated | Get current user profile |

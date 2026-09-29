@@ -93,6 +93,8 @@ Rate limiting is applied per IP address.
 |----------|-------|--------|
 | `/v1/auth/login` | 10 requests | 1 minute |
 | `/v1/auth/register` | 5 requests | 1 minute |
+| `/v1/auth/verify-email` | 10 requests | 15 minutes |
+| `/v1/auth/resend-verification` | 5 requests | 15 minutes |
 | `/v1/auth/refresh` | 10 requests | 15 minutes |
 | All other endpoints | 100 requests | 1 minute |
 
@@ -311,7 +313,7 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 ## Detailed Endpoint Documentation
 
 - [API Contract](./api-contract.md) - Complete endpoint reference
-- [Authentication Guide](./authentication.md) - Login, register, refresh flows
+- [Authentication Guide](./authentication.md) - Login, register, email verification, refresh flows
 - [Error Reference](./errors.md) - All error codes and responses
 
 ## API Versioning

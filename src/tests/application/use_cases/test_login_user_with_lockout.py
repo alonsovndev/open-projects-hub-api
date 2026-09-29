@@ -9,6 +9,7 @@ Tests login functionality with lockout behavior:
 """
 
 import contextlib
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -47,6 +48,7 @@ def mock_user_entity():
         display_name="Test User",
         password_hash="$2b$12$somehashedpassword",
         role=UserRole.VIEWER,
+        email_verified_at=datetime.now(UTC),
     )
 
 

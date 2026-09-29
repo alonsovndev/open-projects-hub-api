@@ -32,6 +32,8 @@ _PUBLIC_ROUTES = frozenset(
         ("POST", "/v1/auth/forgot-password"),
         ("POST", "/v1/auth/resend-reset-code"),
         ("POST", "/v1/auth/reset-password"),
+        ("POST", "/v1/auth/verify-email"),
+        ("POST", "/v1/auth/resend-verification"),
     }
 )
 

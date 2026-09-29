@@ -9,6 +9,8 @@ from src.app.composition import (
     get_register_use_case,
     get_request_password_reset_use_case,
     get_resend_reset_code_use_case,
+    get_resend_verification_use_case,
+    get_verify_email_use_case,
 )
 from src.app.features.auth.application.dtos.auth_dto import (
     AdminLoginResponse,
@@ -19,9 +21,14 @@ from src.app.features.auth.application.dtos.auth_dto import (
     RefreshTokenRequest,
     RefreshTokenResponse,
     RegisterRequest,
+    RegisterResponse,
     ResendResetCodeRequest,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    VerifyEmailRequest,
+    VerifyEmailResponse,
 )
 from src.app.features.auth.application.use_cases.confirm_password_reset import ConfirmPasswordResetUseCase
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
@@ -30,11 +37,15 @@ from src.app.features.auth.application.use_cases.refresh_token import RefreshTok
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.auth.application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from src.app.features.auth.application.use_cases.resend_reset_code import ResendResetCodeUseCase
+from src.app.features.auth.application.use_cases.resend_verification import ResendVerificationUseCase
+from src.app.features.auth.application.use_cases.verify_email import VerifyEmailUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import (
     InvalidCredentialsError,
     InvalidResetCodeError,
+    InvalidVerificationCodeError,
     RegistrationClosedError,
     ResetCodeRateLimitedError,
+    VerificationRateLimitedError,
 )
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
@@ -66,6 +77,7 @@ async def login(
 
     Raises:
         401: Invalid credentials
+        403: Email not verified yet (body carries code EMAIL_NOT_VERIFIED)
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
@@ -75,15 +87,17 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
 
 
-@router.post("/register", response_model=AdminLoginResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(
     request: Request,
     payload: RegisterRequest,
     register_use_case: RegisterUserUseCase = Depends(get_register_use_case),
-) -> AdminLoginResponse:
+) -> RegisterResponse:
     """
-    Register new admin account and return JWT token (auto-login).
+    Register new admin account and email it a verification code.
+
+    No tokens are issued: the account signs in only after POST /verify-email succeeds.
 
     Rate limited to 5 attempts per minute per IP address to prevent abuse.
 
@@ -98,7 +112,7 @@ async def register(
         register_use_case: Injected RegisterUserUseCase
 
     Returns:
-        AdminLoginResponse with JWT token and user details
+        RegisterResponse with the masked email and when the verification code expires
 
     Raises:
         400: Validation failed (weak password, invalid email, etc.)
@@ -113,6 +127,67 @@ async def register(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+
+@router.post("/verify-email", response_model=VerifyEmailResponse)
+@limiter.limit("10/15minutes")
+async def verify_email(
+    request: Request,
+    payload: VerifyEmailRequest,
+    use_case: VerifyEmailUseCase = Depends(get_verify_email_use_case),
+) -> VerifyEmailResponse:
+    """
+    Confirm a registered account's email with the code it was sent.
+
+    Args:
+        request: FastAPI request object (required for rate limiting)
+        payload: VerifyEmailRequest with the account email and code
+        use_case: Injected VerifyEmailUseCase
+
+    Returns:
+        VerifyEmailResponse confirming the email was verified
+
+    Raises:
+        400: Code invalid, expired, or superseded
+        429: Too many validation attempts against this code
+    """
+    try:
+        return await use_case.execute(payload=payload)
+    except InvalidVerificationCodeError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except VerificationRateLimitedError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e)) from e
+
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
+@limiter.limit("5/15minutes")
+async def resend_verification(
+    request: Request,
+    payload: ResendVerificationRequest,
+    use_case: ResendVerificationUseCase = Depends(get_resend_verification_use_case),
+) -> ResendVerificationResponse:
+    """
+    Resend an email verification code, invalidating the previous one.
+
+    Rate limited to 3 resends per email per 15-minute window (enforced in
+    ResendVerificationUseCase); the route-level limiter above is a coarser
+    per-IP backstop.
+
+    Args:
+        request: FastAPI request object (required for rate limiting)
+        payload: ResendVerificationRequest with the account email
+        use_case: Injected ResendVerificationUseCase
+
+    Returns:
+        ResendVerificationResponse with a generic confirmation message
+
+    Raises:
+        429: Resend limit exceeded for this email
+    """
+    try:
+        return await use_case.execute(payload=payload)
+    except VerificationRateLimitedError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e)) from e
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
