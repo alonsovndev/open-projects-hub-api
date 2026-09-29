@@ -34,6 +34,9 @@ class UserModel(Base):
     # the grant does not retroactively rewrite what existing accounts were given.
     ai_credits_remaining = Column(Integer, nullable=False, server_default="5", default=5)
     ai_credits_granted = Column(Integer, nullable=False, server_default="5", default=5)
+    # NULL until a self-registered account confirms its email (F-008); accounts
+    # created by an admin or the seed script are verified on creation.
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     created_projects = relationship("ProjectModel", foreign_keys="ProjectModel.created_by", backref="creator")

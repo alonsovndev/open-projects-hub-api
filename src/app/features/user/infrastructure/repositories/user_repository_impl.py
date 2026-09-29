@@ -265,6 +265,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.token_version = user.token_version
             user_model.ai_credits_remaining = user.ai_credits_remaining
             user_model.ai_credits_granted = user.ai_credits_granted
+            user_model.email_verified_at = user.email_verified_at
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)

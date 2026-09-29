@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.app.features.user.domain.exceptions.user_exceptions import AICreditsExhaustedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -22,6 +22,7 @@ class UserEntity(BaseEntity):
         token_version: int = 0,
         ai_credits_remaining: int = INITIAL_AI_CREDITS,
         ai_credits_granted: int = INITIAL_AI_CREDITS,
+        email_verified_at: datetime | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -32,6 +33,7 @@ class UserEntity(BaseEntity):
         self._token_version = token_version
         self._ai_credits_remaining = ai_credits_remaining
         self._ai_credits_granted = ai_credits_granted
+        self._email_verified_at = email_verified_at
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -62,6 +64,14 @@ class UserEntity(BaseEntity):
     def ai_credits_granted(self) -> int:
         return self._ai_credits_granted
 
+    @property
+    def email_verified_at(self) -> datetime | None:
+        return self._email_verified_at
+
+    @property
+    def is_email_verified(self) -> bool:
+        return self._email_verified_at is not None
+
     @classmethod
     def create(
         cls,
@@ -78,7 +88,39 @@ class UserEntity(BaseEntity):
             role=role or UserRole.default(),
             ai_credits_remaining=INITIAL_AI_CREDITS,
             ai_credits_granted=INITIAL_AI_CREDITS,
+            email_verified_at=datetime.now(UTC),
         )
+
+    @classmethod
+    def create_pending_verification(
+        cls,
+        email: str,
+        display_name: str,
+        password_hash: str,
+        role: UserRole | None = None,
+    ) -> "UserEntity":
+        """
+        A self-registered account that must confirm its email before it can sign in.
+
+        Free credits are withheld until verification (F-010 FR-010-01).
+        """
+        return cls(
+            id=EntityId.generate(),
+            email=Email(email),
+            display_name=display_name,
+            password_hash=password_hash,
+            role=role or UserRole.default(),
+            ai_credits_remaining=0,
+            ai_credits_granted=0,
+            email_verified_at=None,
+        )
+
+    def verify_email(self, now: datetime | None = None) -> None:
+        """Confirm the account's email and grant the free platform credits."""
+        self._email_verified_at = now or datetime.now(UTC)
+        self._ai_credits_remaining = INITIAL_AI_CREDITS
+        self._ai_credits_granted = INITIAL_AI_CREDITS
+        self.mark_as_updated()
 
     def update_details(
         self,

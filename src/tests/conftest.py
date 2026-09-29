@@ -22,6 +22,9 @@ from src.app.features.ai_config.infrastructure.models.user_api_key_model import 
     UserApiKeyModel,
 )
 from src.app.features.auth.infrastructure.models.account_lockout_model import AccountLockoutModel  # noqa: F401,E402
+from src.app.features.auth.infrastructure.models.email_verification_code_model import (  # noqa: F401,E402
+    EmailVerificationCodeModel,
+)
 from src.app.features.auth.infrastructure.models.password_reset_code_model import (  # noqa: F401,E402
     PasswordResetCodeModel,
 )
