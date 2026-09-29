@@ -18,6 +18,7 @@ from src.app.features.projects.domain.value_objects.project_priority import Proj
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestUpdateProjectUseCase:
@@ -56,7 +57,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert isinstance(result, ProjectResponse)
@@ -101,7 +102,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result.name == "New Name"
@@ -122,7 +123,7 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(uuid4()),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
         mock_repo.find_by_id.assert_called_once()
@@ -164,7 +165,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result.start_date == new_start
@@ -202,7 +203,7 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
     @pytest.mark.asyncio
@@ -238,7 +239,7 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
     @pytest.mark.asyncio
@@ -281,7 +282,7 @@ class TestUpdateProjectUseCase:
         result = await use_case.execute(
             project_id=str(project_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result.name == "New Name"
@@ -323,5 +324,5 @@ class TestUpdateProjectUseCase:
             await use_case.execute(
                 project_id=str(project_id.value),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )

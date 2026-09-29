@@ -45,7 +45,7 @@ async def test_priority_ordering_compares_against_the_enum_column():
     session, captured = build_session_capturing_statements()
     repository = StoryRepositoryImpl(session)
 
-    await repository.find_backlog(BacklogQuery(project_id=uuid4()))
+    await repository.find_backlog(BacklogQuery(project_id=uuid4(), workspace_id=uuid4()))
 
     sql = compile_to_postgres(captured[0])
     order_by = sql.split("ORDER BY")[1]
@@ -62,7 +62,7 @@ async def test_backlog_orders_by_priority_then_oldest_first():
     session, captured = build_session_capturing_statements()
     repository = StoryRepositoryImpl(session)
 
-    await repository.find_backlog(BacklogQuery(project_id=uuid4()))
+    await repository.find_backlog(BacklogQuery(project_id=uuid4(), workspace_id=uuid4()))
 
     order_by = compile_to_postgres(captured[0]).split("ORDER BY")[1]
 
@@ -79,6 +79,7 @@ async def test_date_range_is_an_inclusive_calendar_range():
     await repository.find_backlog(
         BacklogQuery(
             project_id=uuid4(),
+            workspace_id=uuid4(),
             created_from=date(2026, 1, 1),
             created_to=date(2026, 6, 30),
         )
@@ -96,7 +97,7 @@ async def test_status_filter_reaches_the_where_clause():
     session, captured = build_session_capturing_statements()
     repository = StoryRepositoryImpl(session)
 
-    await repository.find_backlog(BacklogQuery(project_id=uuid4(), status=StoryStatus.DONE))
+    await repository.find_backlog(BacklogQuery(project_id=uuid4(), workspace_id=uuid4(), status=StoryStatus.DONE))
 
     assert "stories.status = 'done'" in compile_to_postgres(captured[0])
 
@@ -106,7 +107,7 @@ async def test_count_shares_the_scope_but_drops_the_pagination():
     """A count that inherited LIMIT/OFFSET would cap the reported total."""
     session, captured = build_session_capturing_statements()
     repository = StoryRepositoryImpl(session)
-    query = BacklogQuery(project_id=uuid4(), status=StoryStatus.TODO, limit=10, offset=20)
+    query = BacklogQuery(project_id=uuid4(), workspace_id=uuid4(), status=StoryStatus.TODO, limit=10, offset=20)
 
     await repository.count_backlog(query)
 
@@ -125,6 +126,22 @@ async def test_backlog_is_scoped_to_one_project():
     repository = StoryRepositoryImpl(session)
     project_id = uuid4()
 
-    await repository.find_backlog(BacklogQuery(project_id=project_id))
+    await repository.find_backlog(BacklogQuery(project_id=project_id, workspace_id=uuid4()))
 
     assert f"stories.project_id = '{project_id}'" in compile_to_postgres(captured[0])
+
+
+@pytest.mark.asyncio
+async def test_backlog_is_confined_to_the_callers_workspace():
+    """Stories are reached only through a project of the caller's workspace."""
+    workspace_id = uuid4()
+    session, captured = build_session_capturing_statements()
+    repository = StoryRepositoryImpl(session)
+
+    await repository.find_backlog(BacklogQuery(project_id=uuid4(), workspace_id=workspace_id))
+    await repository.count_backlog(BacklogQuery(project_id=uuid4(), workspace_id=workspace_id))
+
+    for statement in captured:
+        sql = compile_to_postgres(statement)
+        assert "JOIN projects ON stories.project_id = projects.id" in sql
+        assert f"projects.workspace_id = '{workspace_id}'" in sql

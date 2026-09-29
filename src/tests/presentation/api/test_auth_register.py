@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import RegisterResponse
-from src.app.features.auth.domain.exceptions.auth_exceptions import RegistrationClosedError
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 
 
@@ -162,11 +161,11 @@ class TestRegisterEndpoint:
         assert response.status_code == 422
         execute.assert_not_called()
 
-    def test_register_returns_403_once_the_instance_has_an_account(self, client):
-        """Registration bootstraps the first Admin; afterwards it is closed, not merely rate-limited."""
+    def test_register_passes_the_workspace_name_through(self, client, mock_register_response):
+        execute = AsyncMock(return_value=mock_register_response)
         with patch(
             "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
-            new=AsyncMock(side_effect=RegistrationClosedError()),
+            new=execute,
         ):
             response = client.post(
                 "/v1/auth/register",
@@ -174,8 +173,22 @@ class TestRegisterEndpoint:
                     "email": "second@example.com",
                     "password": "SecurePass1",
                     "displayName": "Second Person",
+                    "workspaceName": "Second Studio",
                 },
             )
 
-        assert response.status_code == 403
-        assert "Registration is closed" in response.json()["detail"]
+        assert response.status_code == 201
+        assert execute.call_args.kwargs["payload"].workspace_name == "Second Studio"
+
+    def test_register_rejects_an_overlong_workspace_name(self, client):
+        response = client.post(
+            "/v1/auth/register",
+            json={
+                "email": "second@example.com",
+                "password": "SecurePass1",
+                "displayName": "Second Person",
+                "workspaceName": "x" * 101,
+            },
+        )
+
+        assert response.status_code == 422

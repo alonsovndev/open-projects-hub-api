@@ -17,6 +17,7 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Proje
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestArchiveProjectUseCase:
@@ -49,7 +50,7 @@ class TestArchiveProjectUseCase:
         mock_repo.get_story_counts.return_value = (5, 2)
 
         use_case = ArchiveProjectUseCase(mock_repo)
-        result = await use_case.execute(project_id=str(project_id.value), created_by="test-user")
+        result = await use_case.execute(project_id=str(project_id.value), ctx=make_request_context())
 
         assert isinstance(result, ProjectResponse)
         assert result.status == "archived"
@@ -65,7 +66,7 @@ class TestArchiveProjectUseCase:
         use_case = ArchiveProjectUseCase(mock_repo)
 
         with pytest.raises(ProjectNotFoundError, match="Project not found"):
-            await use_case.execute(project_id=str(uuid4()), created_by="test-user")
+            await use_case.execute(project_id=str(uuid4()), ctx=make_request_context())
 
         mock_repo.save.assert_not_called()
 
@@ -76,7 +77,7 @@ class TestArchiveProjectUseCase:
         use_case = ArchiveProjectUseCase(mock_repo)
 
         with pytest.raises(ValueError):
-            await use_case.execute(project_id="not-a-valid-uuid", created_by="test-user")
+            await use_case.execute(project_id="not-a-valid-uuid", ctx=make_request_context())
 
         mock_repo.find_by_id.assert_not_called()
 
@@ -107,7 +108,7 @@ class TestArchiveProjectUseCase:
         mock_repo.get_story_counts.return_value = (10, 8)
 
         use_case = ArchiveProjectUseCase(mock_repo)
-        result = await use_case.execute(project_id=str(project_id.value), created_by="test-user")
+        result = await use_case.execute(project_id=str(project_id.value), ctx=make_request_context())
 
         assert result.stories_count == 10
         assert result.completed_stories == 8

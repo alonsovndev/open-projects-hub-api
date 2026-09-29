@@ -18,11 +18,13 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Proje
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 def build_project(name: str = "Acme Portal") -> ProjectEntity:
     """Build a project to export."""
     return ProjectEntity.create(
+        workspace_id=EntityId.generate(),
         name=name,
         code="ACME",
         created_by=EntityId.generate(),
@@ -58,7 +60,7 @@ class TestExportContent:
         """Test that the rendered document carries the backlog."""
         use_case, _ = build_use_case([build_story(title="Login", acceptance_criteria=["User can log in"])])
 
-        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert "## 1. Login" in export.content
         assert "- User can log in" in export.content
@@ -69,7 +71,7 @@ class TestExportContent:
         """Test that the suggested filename identifies the export's scope."""
         use_case, _ = build_use_case([build_story()])
 
-        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert export.filename.startswith("acme-portal-backlog-")
         assert export.filename.endswith(".md")
@@ -84,7 +86,7 @@ class TestExportScope:
         project_id = uuid4()
         use_case, story_repo = build_use_case([])
 
-        await use_case.execute(project_id=project_id, scope=MarkdownExportRequest())
+        await use_case.execute(project_id=project_id, scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert story_repo.find_backlog.call_args.args[0].project_id == project_id
 
@@ -93,7 +95,9 @@ class TestExportScope:
         """Test that a status scope narrows the query."""
         use_case, story_repo = build_use_case([])
 
-        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(status=StoryStatus.DONE))
+        await use_case.execute(
+            project_id=uuid4(), scope=MarkdownExportRequest(status=StoryStatus.DONE), ctx=make_request_context()
+        )
 
         assert story_repo.find_backlog.call_args.args[0].status == StoryStatus.DONE
 
@@ -105,6 +109,7 @@ class TestExportScope:
         await use_case.execute(
             project_id=uuid4(),
             scope=MarkdownExportRequest(date_from=date(2026, 1, 1), date_to=date(2026, 6, 30)),
+            ctx=make_request_context(),
         )
 
         query = story_repo.find_backlog.call_args.args[0]
@@ -116,7 +121,7 @@ class TestExportScope:
         """Test that an absent filter leaves the query unnarrowed."""
         use_case, story_repo = build_use_case([])
 
-        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         query = story_repo.find_backlog.call_args.args[0]
         assert query.status is None
@@ -142,7 +147,7 @@ class TestEmptyAndMissing:
         """FR-004-06: warn rather than fail, so the Admin still gets a template."""
         use_case, _ = build_use_case([])
 
-        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert export.story_count == 0
         assert EMPTY_BACKLOG_NOTICE in export.content
@@ -156,7 +161,7 @@ class TestEmptyAndMissing:
         use_case = ExportBacklogMarkdownUseCase(story_repo, project_repo)
 
         with pytest.raises(ProjectNotFoundError):
-            await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+            await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         story_repo.find_backlog.assert_not_called()
 
@@ -170,7 +175,7 @@ class TestExportTruncation:
         use_case, story_repo = build_use_case([build_story(), build_story()])
         story_repo.count_backlog.return_value = 2
 
-        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert export.matched_count == 2
         assert export.is_truncated is False
@@ -181,7 +186,7 @@ class TestExportTruncation:
         use_case, story_repo = build_use_case([build_story()])
         story_repo.count_backlog.return_value = 1200
 
-        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        export = await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert export.story_count == 1
         assert export.matched_count == 1200
@@ -192,7 +197,7 @@ class TestExportTruncation:
         """Test that the export asks for at most MAX_EXPORTED_STORIES."""
         use_case, story_repo = build_use_case([])
 
-        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         assert story_repo.find_backlog.call_args.args[0].limit == MAX_EXPORTED_STORIES
 
@@ -202,7 +207,7 @@ class TestExportTruncation:
         use_case, story_repo = build_use_case([build_story()])
         story_repo.count_backlog.return_value = 1200
 
-        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest())
+        await use_case.execute(project_id=uuid4(), scope=MarkdownExportRequest(), ctx=make_request_context())
 
         counted = story_repo.count_backlog.call_args.args[0]
         queried = story_repo.find_backlog.call_args.args[0]
@@ -235,3 +240,15 @@ class TestExportFilename:
     def test_a_name_with_no_usable_characters_falls_back(self):
         """Test that an unslugifiable name still yields a valid filename."""
         assert build_export_filename("***", "2026-09-20") == "project-backlog-2026-09-20.md"
+
+
+class TestExportWorkspaceBoundary:
+    @pytest.mark.asyncio
+    async def test_the_project_and_its_stories_are_read_within_the_callers_workspace(self):
+        use_case, story_repo = build_use_case([])
+        project_id = uuid4()
+
+        await use_case.execute(project_id=project_id, scope=MarkdownExportRequest(), ctx=make_request_context())
+
+        use_case._project_repository.find_by_id.assert_awaited_once_with(project_id, workspace_id=TEST_WORKSPACE_UUID)
+        assert story_repo.find_backlog.call_args.args[0].workspace_id == TEST_WORKSPACE_UUID

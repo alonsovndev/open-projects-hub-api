@@ -18,6 +18,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestApproveDraftUseCase:
@@ -64,7 +65,7 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value), created_by="test-user")
+        result = await use_case.execute(str(draft_id.value), ctx=make_request_context())
 
         assert result is not None
         assert isinstance(result, StoryResponse)
@@ -84,7 +85,7 @@ class TestApproveDraftUseCase:
 
         draft_id = str(EntityId.generate().value)
         with pytest.raises(StoryDraftNotFoundError, match=draft_id):
-            await use_case.execute(draft_id, created_by="test-user")
+            await use_case.execute(draft_id, ctx=make_request_context())
 
         mock_story_repo.save.assert_not_called()
 
@@ -129,7 +130,7 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        await use_case.execute(str(draft_id.value), created_by="test-user")
+        await use_case.execute(str(draft_id.value), ctx=make_request_context())
 
         assert existing_draft.status == DraftStatus.APPLIED
 
@@ -160,7 +161,7 @@ class TestApproveDraftUseCase:
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
         with pytest.raises(ValueError, match="Failed to create story from draft"):
-            await use_case.execute(str(draft_id.value), created_by="test-user")
+            await use_case.execute(str(draft_id.value), ctx=make_request_context())
 
     @pytest.mark.asyncio
     async def test_execute_carries_acceptance_criteria_as_a_list(self):
@@ -189,7 +190,7 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        await use_case.execute(str(draft_id.value), created_by="test-user")
+        await use_case.execute(str(draft_id.value), ctx=make_request_context())
 
         # Assert on the entity handed to the repository, not on the mock's return value —
         # the latter would pass no matter what the use case built.
@@ -239,7 +240,7 @@ class TestApproveDraftUseCase:
 
         use_case = ApproveDraftUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute(str(draft_id.value), created_by="test-user")
+        result = await use_case.execute(str(draft_id.value), ctx=make_request_context())
 
         assert result is not None
         assert result.description is None

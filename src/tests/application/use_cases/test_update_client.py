@@ -12,6 +12,7 @@ from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError, ClientNotFoundError
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestUpdateClientUseCase:
@@ -45,7 +46,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(name="New Name", company="New Company")
 
-        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
+        result = await use_case.execute(client_id=client_id.value, request=request, ctx=make_request_context())
 
         assert isinstance(result, ClientResponse)
         assert result.name == "New Name"
@@ -76,7 +77,7 @@ class TestUpdateClientUseCase:
         request = UpdateClientRequest(email="duplicate@example.com")
 
         with pytest.raises(ClientEmailExistsError, match=r"Client with email duplicate@example.com already exists"):
-            await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
+            await use_case.execute(client_id=client_id.value, request=request, ctx=make_request_context())
 
         mock_repo.update.assert_not_called()
 
@@ -92,7 +93,7 @@ class TestUpdateClientUseCase:
         request = UpdateClientRequest(name="New Name")
 
         with pytest.raises(ClientNotFoundError, match=f"Client not found: {client_id}"):
-            await use_case.execute(client_id=client_id, request=request, created_by="test-user")
+            await use_case.execute(client_id=client_id, request=request, ctx=make_request_context())
 
     @pytest.mark.asyncio
     async def test_execute_same_email_does_not_check_uniqueness(self):
@@ -123,7 +124,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest(name="Updated Name")
 
-        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
+        result = await use_case.execute(client_id=client_id.value, request=request, ctx=make_request_context())
 
         assert result.name == "Updated Name"
         mock_repo.find_by_email.assert_not_called()
@@ -157,7 +158,7 @@ class TestUpdateClientUseCase:
 
         request = UpdateClientRequest()
 
-        result = await use_case.execute(client_id=client_id.value, request=request, created_by="test-user")
+        result = await use_case.execute(client_id=client_id.value, request=request, ctx=make_request_context())
 
         assert result.name == "Test Client"
         mock_repo.update.assert_called_once()

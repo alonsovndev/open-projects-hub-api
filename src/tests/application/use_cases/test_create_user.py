@@ -7,6 +7,7 @@ Tests user creation including password hashing and duplicate handling.
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
@@ -15,6 +16,7 @@ from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyE
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestCreateUserUseCase:
@@ -36,12 +38,12 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo)
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock())
 
         payload = UserCreateRequest(display_name="New User", email="newuser@example.com", password="SecurePass123")
 
         # Execute
-        result = await use_case.execute(payload, created_by="test-user")
+        result = await use_case.execute(payload, ctx=make_request_context())
 
         # Assert
         assert isinstance(result, UserResponse)
@@ -65,13 +67,13 @@ class TestCreateUserUseCase:
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = existing_user
 
-        use_case = CreateUserUseCase(mock_repo)
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock())
 
         payload = UserCreateRequest(display_name="New User", email="existing@example.com", password="SecurePass123")
 
         # Execute & Assert
         with pytest.raises(UserAlreadyExistsError) as exc_info:
-            await use_case.execute(payload, created_by="test-user")
+            await use_case.execute(payload, ctx=make_request_context())
 
         assert "existing@example.com" in str(exc_info.value)
         mock_repo.find_by_email.assert_called_once()
@@ -85,13 +87,13 @@ class TestCreateUserUseCase:
         mock_repo.find_by_email.return_value = None  # User doesn't exist during check
         mock_repo.save.return_value = None  # But returns None due to duplicate (race condition)
 
-        use_case = CreateUserUseCase(mock_repo)
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock())
 
         payload = UserCreateRequest(display_name="Race User", email="raceuser@example.com", password="SecurePass123")
 
         # Execute & Assert
         with pytest.raises(UserAlreadyExistsError) as exc_info:
-            await use_case.execute(payload, created_by="test-user")
+            await use_case.execute(payload, ctx=make_request_context())
 
         assert "raceuser@example.com" in str(exc_info.value)
         mock_repo.save.assert_called_once()
@@ -112,12 +114,12 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo)
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock())
 
         payload = UserCreateRequest(display_name="Test User", email="user@example.com", password="PlainPassword123")
 
         # Execute
-        await use_case.execute(payload, created_by="test-user")
+        await use_case.execute(payload, ctx=make_request_context())
 
         # Assert - check that save was called with hashed password
         save_call_args = mock_repo.save.call_args[0][0]
@@ -140,7 +142,7 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo)
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock())
 
         payload = UserCreateRequest(
             display_name="Test User",
@@ -149,7 +151,66 @@ class TestCreateUserUseCase:
         )
 
         # Execute
-        result = await use_case.execute(payload, created_by="test-user")
+        result = await use_case.execute(payload, ctx=make_request_context())
 
         # Assert
         assert result.email == "user@example.com"
+
+
+class TestCreateWorkspaceMember:
+    @pytest.mark.asyncio
+    async def test_the_new_user_joins_the_admins_workspace_unverified_and_without_credits(self):
+        """An Admin's word does not prove the address: the person must verify it themselves."""
+        user_repository = AsyncMock()
+        user_repository.find_by_email.return_value = None
+        user_repository.save.side_effect = lambda user_entity: user_entity
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock())
+
+        await use_case.execute(
+            UserCreateRequest(display_name="Teammate", email="mate@example.com", password="SecurePass123"),
+            ctx=make_request_context(),
+        )
+
+        created = user_repository.save.call_args[0][0]
+        assert created.role is UserRole.MEMBER
+        assert created.workspace_id.value == TEST_WORKSPACE_UUID
+        assert created.is_email_verified is False
+        assert created.ai_credits_remaining == 0
+        assert created.ai_credits_granted == 0
+
+    @pytest.mark.asyncio
+    async def test_a_viewer_can_be_created(self):
+        user_repository = AsyncMock()
+        user_repository.find_by_email.return_value = None
+        user_repository.save.side_effect = lambda user_entity: user_entity
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock())
+
+        await use_case.execute(
+            UserCreateRequest(
+                display_name="Client", email="client@example.com", password="SecurePass123", role="viewer"
+            ),
+            ctx=make_request_context(),
+        )
+
+        assert user_repository.save.call_args[0][0].role is UserRole.VIEWER
+
+    def test_an_admin_role_is_refused(self):
+        """No second Admin until roles can be changed and accounts removed."""
+        with pytest.raises(PydanticValidationError):
+            UserCreateRequest(display_name="Boss", email="boss@example.com", password="SecurePass123", role="admin")
+
+    @pytest.mark.asyncio
+    async def test_the_new_user_is_emailed_a_verification_code(self):
+        user_repository = AsyncMock()
+        user_repository.find_by_email.return_value = None
+        user_repository.save.side_effect = lambda user_entity: user_entity
+        verification_code_repository, email_sender = AsyncMock(), AsyncMock()
+        use_case = CreateUserUseCase(user_repository, verification_code_repository, email_sender)
+
+        await use_case.execute(
+            UserCreateRequest(display_name="Teammate", email="mate@example.com", password="SecurePass123"),
+            ctx=make_request_context(),
+        )
+
+        verification_code_repository.create.assert_awaited_once()
+        assert email_sender.send.call_args.kwargs["to"] == "mate@example.com"

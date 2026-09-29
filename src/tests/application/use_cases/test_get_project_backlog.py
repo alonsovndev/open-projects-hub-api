@@ -11,11 +11,13 @@ from src.app.features.projects.domain.entities.project_entity import ProjectEnti
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 def build_project() -> ProjectEntity:
     """Build a project the backlog belongs to."""
     return ProjectEntity.create(
+        workspace_id=EntityId.generate(),
         name="Acme Portal",
         code="ACME",
         created_by=EntityId.generate(),
@@ -48,7 +50,7 @@ class TestGetProjectBacklogUseCase:
 
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
-        result = await use_case.execute(project_id=project_id)
+        result = await use_case.execute(project_id=project_id, ctx=make_request_context())
 
         assert result.total == 1
         assert result.items[0].acceptance_criteria == ["User can log in"]
@@ -64,7 +66,7 @@ class TestGetProjectBacklogUseCase:
 
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
-        await use_case.execute(project_id=project_id, limit=25, offset=50)
+        await use_case.execute(project_id=project_id, ctx=make_request_context(), limit=25, offset=50)
 
         query = story_repo.find_backlog.call_args.args[0]
         assert query.project_id == project_id
@@ -81,7 +83,7 @@ class TestGetProjectBacklogUseCase:
 
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
-        result = await use_case.execute(project_id=uuid4(), limit=50, offset=100)
+        result = await use_case.execute(project_id=uuid4(), ctx=make_request_context(), limit=50, offset=100)
 
         assert result.page == 3
         assert result.per_page == 50
@@ -96,7 +98,7 @@ class TestGetProjectBacklogUseCase:
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
         with pytest.raises(ProjectNotFoundError):
-            await use_case.execute(project_id=uuid4())
+            await use_case.execute(project_id=uuid4(), ctx=make_request_context())
 
         story_repo.find_backlog.assert_not_called()
 
@@ -110,7 +112,7 @@ class TestGetProjectBacklogUseCase:
 
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
-        result = await use_case.execute(project_id=uuid4())
+        result = await use_case.execute(project_id=uuid4(), ctx=make_request_context())
 
         assert result.items == []
         assert result.total == 0
@@ -125,7 +127,7 @@ class TestGetProjectBacklogUseCase:
 
         use_case = GetProjectBacklogUseCase(story_repo, project_repo)
 
-        result = await use_case.execute(project_id=uuid4())
+        result = await use_case.execute(project_id=uuid4(), ctx=make_request_context())
 
         serialized = result.items[0].model_dump(by_alias=True)
         assert "assignedTo" not in serialized

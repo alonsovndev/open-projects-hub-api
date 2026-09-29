@@ -16,6 +16,7 @@ from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
 from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID
 
 
 @pytest.fixture
@@ -31,7 +32,7 @@ def repository(mock_session):
 
 @pytest.fixture
 def sample_client_entity():
-    return ClientEntity.create(name="Test Client", email="client@example.com")
+    return ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", email="client@example.com")
 
 
 @pytest.fixture
@@ -70,6 +71,7 @@ class TestUpdate:
         entity = ClientEntity(
             id=EntityId.from_string(str(sample_client_model.id)),
             name="Updated Name",
+            workspace_id=EntityId(TEST_WORKSPACE_UUID),
         )
 
         await repository.update(entity)
@@ -84,7 +86,7 @@ class TestUpdate:
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        entity = ClientEntity(id=EntityId.generate(), name="Ghost")
+        entity = ClientEntity(id=EntityId.generate(), name="Ghost", workspace_id=EntityId(TEST_WORKSPACE_UUID))
 
         with pytest.raises(ValueError, match="Client not found"):
             await repository.update(entity)
@@ -99,7 +101,7 @@ class TestDelete:
         mock_result.scalar_one_or_none.return_value = sample_client_model
         mock_session.execute.return_value = mock_result
 
-        deleted = await repository.delete(sample_client_model.id)
+        deleted = await repository.delete(sample_client_model.id, workspace_id=TEST_WORKSPACE_UUID)
 
         assert deleted is True
         mock_session.delete.assert_awaited_once_with(sample_client_model)
@@ -112,7 +114,7 @@ class TestDelete:
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        deleted = await repository.delete(EntityId.generate().value)
+        deleted = await repository.delete(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         assert deleted is False
         mock_session.commit.assert_not_called()

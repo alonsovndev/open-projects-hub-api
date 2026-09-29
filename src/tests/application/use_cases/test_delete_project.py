@@ -11,6 +11,7 @@ import pytest
 
 from src.app.features.projects.application.use_cases.delete_project import DeleteProjectUseCase
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestDeleteProjectUseCase:
@@ -26,10 +27,10 @@ class TestDeleteProjectUseCase:
         project_id = uuid4()
 
         # Execute
-        await use_case.execute(str(project_id), created_by="test-user")
+        await use_case.execute(str(project_id), ctx=make_request_context())
 
         # Assert
-        mock_repo.delete.assert_called_once_with(project_id)
+        mock_repo.delete.assert_called_once_with(project_id, workspace_id=TEST_WORKSPACE_UUID)
 
     @pytest.mark.asyncio
     async def test_execute_raises_not_found_when_project_missing(self):
@@ -41,7 +42,7 @@ class TestDeleteProjectUseCase:
         project_id = uuid4()
 
         with pytest.raises(ProjectNotFoundError, match="Project not found"):
-            await use_case.execute(str(project_id), created_by="test-user")
+            await use_case.execute(str(project_id), ctx=make_request_context())
 
         mock_repo.delete.assert_called_once()
 
@@ -54,7 +55,7 @@ class TestDeleteProjectUseCase:
         use_case = DeleteProjectUseCase(mock_repo)
         project_id = uuid4()
 
-        await use_case.execute(str(project_id), created_by="test-user")
+        await use_case.execute(str(project_id), ctx=make_request_context())
 
         called_with = mock_repo.delete.call_args[0][0]
         assert called_with == project_id
@@ -66,6 +67,6 @@ class TestDeleteProjectUseCase:
         use_case = DeleteProjectUseCase(mock_repo)
 
         with pytest.raises(ValueError):
-            await use_case.execute("not-a-valid-uuid", created_by="test-user")
+            await use_case.execute("not-a-valid-uuid", ctx=make_request_context())
 
         mock_repo.delete.assert_not_called()

@@ -9,6 +9,7 @@ from src.app.features.refinement.application.use_cases.list_story_drafts import 
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 def build_draft(project_id: EntityId, status: DraftStatus = DraftStatus.DRAFT) -> StoryDraftEntity:
@@ -38,7 +39,7 @@ class TestListStoryDraftsUseCase:
         mock_repo.count_by_project.return_value = 2
 
         use_case = ListStoryDraftsUseCase(mock_repo)
-        result = await use_case.execute(project_id=str(project_id.value))
+        result = await use_case.execute(project_id=str(project_id.value), ctx=make_request_context())
 
         assert result.total == 2
         assert len(result.drafts) == 2
@@ -54,7 +55,7 @@ class TestListStoryDraftsUseCase:
         mock_repo.count_by_project.return_value = 0
 
         use_case = ListStoryDraftsUseCase(mock_repo)
-        await use_case.execute(project_id=str(project_id.value), status=DraftStatus.DRAFT)
+        await use_case.execute(project_id=str(project_id.value), ctx=make_request_context(), status=DraftStatus.DRAFT)
 
         assert mock_repo.find_by_project.call_args.kwargs["status"] is DraftStatus.DRAFT
         assert mock_repo.count_by_project.call_args.kwargs["status"] is DraftStatus.DRAFT

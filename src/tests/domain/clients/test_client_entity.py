@@ -20,7 +20,7 @@ class TestClientEntityCreation:
             mock_now = datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC)
             mock_datetime.now.return_value = mock_now
 
-            client = ClientEntity.create(name="Test Client")
+            client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         assert client.name == "Test Client"
         assert client.email is None
@@ -35,6 +35,7 @@ class TestClientEntityCreation:
     def test_create_client_with_all_fields(self):
         """Test creating client with all fields."""
         client = ClientEntity.create(
+            workspace_id=EntityId.generate(),
             name="Full Client",
             email="test@example.com",
             phone="+1234567890",
@@ -54,14 +55,14 @@ class TestClientEntityCreation:
 
     def test_create_client_with_email_value_object(self):
         """Test that email is converted to Email value object."""
-        client = ClientEntity.create(name="Test Client", email="user@domain.com")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", email="user@domain.com")
 
         assert isinstance(client.email, Email)
         assert client.email.value == "user@domain.com"
 
     def test_create_client_with_phone_value_object(self):
         """Test that phone is converted to PhoneNumber value object."""
-        client = ClientEntity.create(name="Test Client", phone="+9876543210")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", phone="+9876543210")
 
         assert isinstance(client.phone, PhoneNumber)
         assert client.phone.value == "+9876543210"
@@ -69,36 +70,36 @@ class TestClientEntityCreation:
     def test_create_client_empty_name_raises_error(self):
         """Test creating client with empty name raises ValueError."""
         with pytest.raises(ValueError, match="Client name cannot be empty"):
-            ClientEntity.create(name="")
+            ClientEntity.create(workspace_id=EntityId.generate(), name="")
 
     def test_create_client_whitespace_name_raises_error(self):
         """Test creating client with whitespace-only name raises ValueError."""
         with pytest.raises(ValueError, match="Client name cannot be empty"):
-            ClientEntity.create(name="   ")
+            ClientEntity.create(workspace_id=EntityId.generate(), name="   ")
 
     def test_create_client_name_too_long_raises_error(self):
         """Test creating client with name > 200 chars raises ValueError."""
         long_name = "a" * 201
 
         with pytest.raises(ValueError, match="Client name cannot exceed 200 characters"):
-            ClientEntity.create(name=long_name)
+            ClientEntity.create(workspace_id=EntityId.generate(), name=long_name)
 
     def test_create_client_company_too_long_raises_error(self):
         """Test creating client with company > 200 chars raises ValueError."""
         long_company = "a" * 201
 
         with pytest.raises(ValueError, match="Company name cannot exceed 200 characters"):
-            ClientEntity.create(name="Test Client", company=long_company)
+            ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", company=long_company)
 
     def test_create_client_invalid_email_raises_error(self):
         """Test creating client with invalid email raises ValueError."""
         with pytest.raises(ValueError, match="Invalid email format"):
-            ClientEntity.create(name="Test Client", email="not-an-email")
+            ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", email="not-an-email")
 
     def test_create_client_invalid_phone_raises_error(self):
         """Test creating client with invalid phone raises ValueError."""
         with pytest.raises(ValueError, match="Invalid phone number format"):
-            ClientEntity.create(name="Test Client", phone="abc")
+            ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", phone="abc")
 
 
 class TestClientEntityUpdate:
@@ -106,7 +107,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_name(self):
         """Test updating client name."""
-        client = ClientEntity.create(name="Old Name")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Old Name")
 
         with patch("src.app.shared.domain.entities.base_entity.datetime") as mock_datetime:
             mock_now = datetime(2026, 5, 21, 12, 0, 0, tzinfo=UTC)
@@ -119,7 +120,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_email(self):
         """Test updating client email."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         new_email = Email("new@example.com")
         client.update_details(email=new_email)
@@ -129,7 +130,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_phone(self):
         """Test updating client phone."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         new_phone = PhoneNumber("+1111111111")
         client.update_details(phone=new_phone)
@@ -139,7 +140,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_company(self):
         """Test updating client company."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         client.update_details(company="New Company")
 
@@ -147,7 +148,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_address(self):
         """Test updating client address."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         client.update_details(address="New Address")
 
@@ -155,7 +156,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_notes(self):
         """Test updating client notes."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         client.update_details(notes="New notes")
 
@@ -163,7 +164,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_all_fields(self):
         """Test updating all client fields at once."""
-        client = ClientEntity.create(name="Old Name")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Old Name")
 
         new_email = Email("updated@example.com")
         new_phone = PhoneNumber("+2222222222")
@@ -186,14 +187,14 @@ class TestClientEntityUpdate:
 
     def test_update_client_empty_name_raises_error(self):
         """Test updating with empty name raises ValueError."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
 
         with pytest.raises(ValueError, match="Client name cannot be empty"):
             client.update_details(name="")
 
     def test_update_client_name_too_long_raises_error(self):
         """Test updating with name > 200 chars raises ValueError."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
         long_name = "a" * 201
 
         with pytest.raises(ValueError, match="Client name cannot exceed 200 characters"):
@@ -201,7 +202,7 @@ class TestClientEntityUpdate:
 
     def test_update_client_company_too_long_raises_error(self):
         """Test updating with company > 200 chars raises ValueError."""
-        client = ClientEntity.create(name="Test Client")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client")
         long_company = "a" * 201
 
         with pytest.raises(ValueError, match="Company name cannot exceed 200 characters"):
@@ -210,6 +211,7 @@ class TestClientEntityUpdate:
     def test_update_client_partial_update_preserves_other_fields(self):
         """Test that partial update preserves unchanged fields."""
         client = ClientEntity.create(
+            workspace_id=EntityId.generate(),
             name="Test Client",
             email="test@example.com",
             company="Test Company",
@@ -257,7 +259,7 @@ class TestClientEntityProperties:
 
     def test_repr(self):
         """Test string representation."""
-        client = ClientEntity.create(name="Test Client", company="Test Company")
+        client = ClientEntity.create(workspace_id=EntityId.generate(), name="Test Client", company="Test Company")
 
         repr_str = repr(client)
 

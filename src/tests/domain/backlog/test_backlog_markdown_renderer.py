@@ -18,6 +18,7 @@ GENERATED_ON = date(2026, 9, 20)
 def build_project(description: str | None = None) -> ProjectEntity:
     """Build a project to render a backlog for."""
     return ProjectEntity.create(
+        workspace_id=EntityId.generate(),
         name="Acme Portal",
         code="ACME",
         created_by=EntityId.generate(),

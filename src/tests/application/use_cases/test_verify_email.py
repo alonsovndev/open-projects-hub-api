@@ -15,14 +15,16 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
     VerificationRateLimitedError,
 )
 from src.app.features.user.domain.entities.user_entity import INITIAL_AI_CREDITS, UserEntity
+from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
 @pytest.fixture
 def pending_user():
+    # Registration always creates the workspace's Admin, the only role granted free credits.
     return UserEntity.create_pending_verification(
-        email="new@example.com", display_name="New User", password_hash="hash"
+        email="new@example.com", display_name="New User", password_hash="hash", role=UserRole.ADMIN
     )
 
 
