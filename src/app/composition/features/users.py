@@ -27,21 +27,28 @@ Usage:
 
 from fastapi import Depends
 
+from src.app.composition.features.auth import get_verification_code_repository
+from src.app.composition.infrastructure import get_email_sender
 from src.app.composition.repositories import get_user_repository
+from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
 from src.app.features.user.application.use_cases.create_user import CreateUserUseCase
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
+from src.app.features.user.application.use_cases.list_workspace_users import ListWorkspaceUsersUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.shared.infrastructure.email.email_sender import EmailSender
 
 
 # Use case factories
 async def get_create_user_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
+    verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
+    email_sender: EmailSender = Depends(get_email_sender),
 ) -> CreateUserUseCase:
     """CreateUserUseCase factory."""
-    return CreateUserUseCase(user_repository)
+    return CreateUserUseCase(user_repository, verification_code_repository, email_sender)
 
 
 async def get_get_user_by_id_use_case(
@@ -49,6 +56,13 @@ async def get_get_user_by_id_use_case(
 ) -> GetUserByIdUseCase:
     """GetUserByIdUseCase factory."""
     return GetUserByIdUseCase(user_repository)
+
+
+async def get_list_workspace_users_use_case(
+    user_repository: UserRepository = Depends(get_user_repository),
+) -> ListWorkspaceUsersUseCase:
+    """ListWorkspaceUsersUseCase factory."""
+    return ListWorkspaceUsersUseCase(user_repository)
 
 
 async def get_get_user_profile_use_case(

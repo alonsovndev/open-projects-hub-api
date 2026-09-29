@@ -142,11 +142,14 @@ class UserRepositoryImpl(UserRepository):
             self._log.exception("Unexpected error while saving user", extra={"operation": "save", "table": "users"})
             raise
 
-    async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
+    async def find_all(
+        self, workspace_id: EntityId, limit: int | None = None, offset: int | None = None
+    ) -> list[UserEntity]:
         """
-        Find all users with optional pagination.
+        Find a workspace's users with optional pagination.
 
         Args:
+            workspace_id: Tenant whose users are listed
             limit: Maximum number of results (default None = all)
             offset: Number of results to skip (default None = 0)
 
@@ -158,7 +161,11 @@ class UserRepositoryImpl(UserRepository):
             Exception: For other unexpected errors
         """
         try:
-            stmt = select(UserModel).order_by(UserModel.created_at.desc())
+            stmt = (
+                select(UserModel)
+                .where(UserModel.workspace_id == workspace_id.value)
+                .order_by(UserModel.created_at.desc())
+            )
 
             if offset is not None:
                 stmt = stmt.offset(offset)
@@ -203,32 +210,6 @@ class UserRepositoryImpl(UserRepository):
 
         except Exception:
             self._log.exception("Error checking user existence", extra={"operation": "exists", "table": "users"})
-            raise
-
-    async def exists_any(self) -> bool:
-        """
-        Check whether any user account exists.
-
-        Returns:
-            True if at least one user exists, False otherwise
-
-        Raises:
-            DatabaseConnectionError: If database connection fails
-            Exception: For other unexpected errors
-        """
-        try:
-            # LIMIT 1 rather than COUNT(*): the caller only asks "is this instance empty",
-            # and this stays constant-time as the table grows.
-            stmt = select(UserModel.id).limit(1)
-            result = await self.db_session.execute(stmt)
-            return result.scalar_one_or_none() is not None
-
-        except sqlalchemy.exc.OperationalError as db_error:
-            self._log.exception("Database connection error", extra={"operation": "exists_any", "table": "users"})
-            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
-
-        except Exception:
-            self._log.exception("Error checking for any user", extra={"operation": "exists_any", "table": "users"})
             raise
 
     async def update(self, user: UserEntity) -> UserEntity | None:
