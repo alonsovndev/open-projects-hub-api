@@ -39,6 +39,14 @@ make run
 
 The API will be available at `http://localhost:8000`
 
+**Troubleshooting — verification/reset emails never arrive (macOS):** if the API log shows
+`email.send_failed` with `SSL: CERTIFICATE_VERIFY_FAILED ... unable to get local issuer certificate`,
+the python.org Python has no CA bundle installed. Run it once, then restart the API:
+
+```bash
+/Applications/Python\ 3.12/Install\ Certificates.command
+```
+
 ### Alternative: Run Everything in Docker
 
 Runs the API and PostgreSQL together with Docker Compose — no local Python install needed.
