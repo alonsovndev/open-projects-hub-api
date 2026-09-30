@@ -19,7 +19,7 @@ from src.app.features.ai_config.domain.exceptions.ai_config_exceptions import (
     ApiKeyRejectedError,
     KeyValidationRateLimitedError,
 )
-from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError
+from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, EmailNotVerifiedError
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
 from src.app.features.user.domain.exceptions.user_exceptions import (
     AICreditsExhaustedError,
@@ -161,6 +161,26 @@ async def conflict_error_handler(request: Request, exc: ConflictError) -> JSONRe
     return JSONResponse(
         status_code=409,
         content={"detail": exc.message},
+    )
+
+
+async def email_not_verified_error_handler(request: Request, exc: EmailNotVerifiedError) -> JSONResponse:
+    """
+    Handle EmailNotVerifiedError exceptions.
+
+    Returns 403 with a stable `code` the frontend keys off to send the user to email
+    verification instead of showing a generic sign-in error.
+
+    Args:
+        request: The incoming request
+        exc: The email not verified exception
+
+    Returns:
+        JSONResponse with 403 status and the EMAIL_NOT_VERIFIED code
+    """
+    return JSONResponse(
+        status_code=403,
+        content={"detail": str(exc), "code": "EMAIL_NOT_VERIFIED"},
     )
 
 
@@ -467,6 +487,7 @@ def register_exception_handlers(app):
     app.add_exception_handler(ValidationError, validation_error_handler)
     app.add_exception_handler(ConflictError, conflict_error_handler)
     app.add_exception_handler(AccountLockedError, account_locked_error_handler)
+    app.add_exception_handler(EmailNotVerifiedError, email_not_verified_error_handler)
     app.add_exception_handler(DomainError, domain_error_handler)
     app.add_exception_handler(Exception, generic_exception_handler)
     app.add_exception_handler(UserNotFoundError, user_not_found_error_handler)

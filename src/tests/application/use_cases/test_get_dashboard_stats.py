@@ -19,6 +19,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestGetDashboardStatsUseCase:
@@ -78,7 +79,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        result = await use_case.execute(str(user_id))
+        result = await use_case.execute(make_request_context(user_id=str(user_id)))
 
         assert isinstance(result, DashboardStatsResponse)
         assert result.total_projects == 10
@@ -89,9 +90,11 @@ class TestGetDashboardStatsUseCase:
         assert len(result.recent_projects) == 1
         assert len(result.recent_stories) == 1
 
-        mock_dashboard_repo.get_aggregated_stats.assert_called_once_with(user_id)
-        mock_project_repo.find_all.assert_called_once_with(limit=5)
-        mock_story_repo.find_all.assert_called_once_with(limit=5)
+        mock_dashboard_repo.get_aggregated_stats.assert_called_once_with(
+            workspace_id=TEST_WORKSPACE_UUID, user_id=user_id
+        )
+        mock_project_repo.find_all.assert_called_once_with(workspace_id=TEST_WORKSPACE_UUID, limit=5)
+        mock_story_repo.find_all.assert_called_once_with(workspace_id=TEST_WORKSPACE_UUID, limit=5)
 
     @pytest.mark.asyncio
     async def test_execute_with_multiple_recent_items(self):
@@ -156,7 +159,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        result = await use_case.execute(str(user_id))
+        result = await use_case.execute(make_request_context(user_id=str(user_id)))
 
         assert len(result.recent_projects) == 5
         assert len(result.recent_stories) == 5
@@ -189,7 +192,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        result = await use_case.execute(str(user_id))
+        result = await use_case.execute(make_request_context(user_id=str(user_id)))
 
         assert result.total_projects == 0
         assert result.active_projects == 0
@@ -241,7 +244,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        result = await use_case.execute(str(user_id))
+        result = await use_case.execute(make_request_context(user_id=str(user_id)))
 
         project_summary = result.recent_projects[0]
         assert project_summary.id == str(project_id.value)
@@ -291,7 +294,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        result = await use_case.execute(str(user_id))
+        result = await use_case.execute(make_request_context(user_id=str(user_id)))
 
         story_summary = result.recent_stories[0]
         assert story_summary.id == str(story_id.value)
@@ -301,8 +304,8 @@ class TestGetDashboardStatsUseCase:
         assert story_summary.created_at == created_at.isoformat()
 
     @pytest.mark.asyncio
-    async def test_execute_parses_user_id_correctly(self):
-        """Test that user_id string is correctly parsed to UUID."""
+    async def test_execute_counts_only_the_callers_workspace(self):
+        """Every aggregate is confined to the caller's workspace; the user id only drives "assigned to me"."""
         mock_dashboard_repo = AsyncMock()
         mock_project_repo = AsyncMock()
         mock_story_repo = AsyncMock()
@@ -325,7 +328,7 @@ class TestGetDashboardStatsUseCase:
             mock_story_repo,
         )
 
-        await use_case.execute(str(user_id))
+        await use_case.execute(make_request_context(user_id=str(user_id)))
 
-        called_with = mock_dashboard_repo.get_aggregated_stats.call_args[0][0]
-        assert called_with == user_id
+        called_with = mock_dashboard_repo.get_aggregated_stats.call_args.kwargs
+        assert called_with == {"workspace_id": TEST_WORKSPACE_UUID, "user_id": user_id}

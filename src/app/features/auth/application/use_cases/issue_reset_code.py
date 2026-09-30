@@ -4,9 +4,9 @@ ResendResetCodeUseCase — generating, hashing, persisting, and emailing a
 password reset code (FR-009-02).
 """
 
-import secrets
 from datetime import UTC, datetime, timedelta
 
+from src.app.features.auth.application.services.one_time_code import generate_one_time_code
 from src.app.features.auth.domain.entities.password_reset_code import PasswordResetCode
 from src.app.features.auth.domain.repositories.password_reset_code_repository import PasswordResetCodeRepository
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -16,9 +16,6 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 from src.app.shared.logging import get_logger, mask_email
 
 
-# Excludes 0, 1, O, I (visually ambiguous) per FR-009-02.
-RESET_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-RESET_CODE_LENGTH = 6
 RESET_CODE_TTL_MINUTES = 5
 GENERIC_RESET_MESSAGE = "If an account exists for this email, a reset code has been sent."
 
@@ -26,10 +23,6 @@ GENERIC_RESET_MESSAGE = "If an account exists for this email, a reset code has b
 # request and the resend path count against the same window.
 REQUEST_WINDOW_MINUTES = 15
 MAX_REQUESTS_PER_WINDOW = 3
-
-
-def generate_reset_code() -> str:
-    return "".join(secrets.choice(RESET_CODE_ALPHABET) for _ in range(RESET_CODE_LENGTH))
 
 
 async def is_request_rate_limited(
@@ -50,7 +43,7 @@ async def issue_reset_code(
     """Invalidate any active code for the user, then generate, persist, and email a new one."""
     await reset_code_repository.invalidate_active_for_user(user_entity.id)
 
-    code = generate_reset_code()
+    code = generate_one_time_code()
     code_hash = await PasswordHandler.hash_password(code)
     reset_code = PasswordResetCode(
         id=EntityId.generate(),

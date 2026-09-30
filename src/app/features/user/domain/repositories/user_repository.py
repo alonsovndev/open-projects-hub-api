@@ -59,16 +59,16 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
-    async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
+    async def find_all(
+        self, workspace_id: EntityId, limit: int | None = None, offset: int | None = None
+    ) -> list[UserEntity]:
         """
-        Find all users with optional pagination.
+        Users of one workspace, newest first, with optional pagination.
 
         Args:
-            limit: Maximum number of results (default None = all).
-            offset: Number of results to skip (default None = 0).
-
-        Returns:
-            List[UserEntity]: A list of user entities.
+            workspace_id: Tenant whose users are listed
+            limit: Maximum number of results (default None = all)
+            offset: Number of results to skip (default None = 0)
         """
 
     @abstractmethod
@@ -81,19 +81,6 @@ class UserRepository(ABC):
 
         Returns:
             bool: True if the user exists, False otherwise.
-        """
-
-    @abstractmethod
-    async def exists_any(self) -> bool:
-        """
-        Check whether any user account exists at all.
-
-        Used to decide whether public registration is still open: the first account
-        bootstraps the instance's Admin, and every account after that is created by an
-        existing Admin.
-
-        Returns:
-            bool: True if at least one user exists, False if the instance has none.
         """
 
     @abstractmethod

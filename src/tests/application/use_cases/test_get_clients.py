@@ -9,6 +9,7 @@ from src.app.features.clients.application.dtos.client_dto import PaginatedClient
 from src.app.features.clients.application.use_cases.get_clients import GetClientsUseCase
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestGetClientsUseCase:
@@ -37,7 +38,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
+        result = await use_case.execute(ctx=make_request_context(), offset=0, limit=20)
 
         assert isinstance(result, PaginatedClientsResponse)
         assert len(result.items) == 2
@@ -57,7 +58,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
+        result = await use_case.execute(ctx=make_request_context(), offset=0, limit=20)
 
         assert isinstance(result, PaginatedClientsResponse)
         assert len(result.items) == 0
@@ -74,13 +75,13 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result_page1 = await use_case.execute(user_id="test-user", offset=0, limit=10)
+        result_page1 = await use_case.execute(ctx=make_request_context(), offset=0, limit=10)
         assert result_page1.page == 1
 
-        result_page2 = await use_case.execute(user_id="test-user", offset=10, limit=10)
+        result_page2 = await use_case.execute(ctx=make_request_context(), offset=10, limit=10)
         assert result_page2.page == 2
 
-        result_page3 = await use_case.execute(user_id="test-user", offset=20, limit=10)
+        result_page3 = await use_case.execute(ctx=make_request_context(), offset=20, limit=10)
         assert result_page3.page == 3
 
     @pytest.mark.asyncio
@@ -92,11 +93,11 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user")
+        result = await use_case.execute(ctx=make_request_context())
 
         assert result.page == 1
         assert result.per_page == 100
-        mock_repo.find_all.assert_called_once_with(skip=0, limit=100)
+        mock_repo.find_all.assert_called_once_with(skip=0, limit=100, workspace_id=TEST_WORKSPACE_UUID)
 
     @pytest.mark.asyncio
     async def test_execute_with_clients_having_optional_fields(self):
@@ -120,7 +121,7 @@ class TestGetClientsUseCase:
 
         use_case = GetClientsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", offset=0, limit=20)
+        result = await use_case.execute(ctx=make_request_context(), offset=0, limit=20)
 
         assert len(result.items) == 1
         assert result.items[0].company == "Test Company"

@@ -39,6 +39,8 @@ from src.app.features.stories.domain.repositories.story_repository import StoryR
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
+from src.app.features.workspaces.infrastructure.repositories.workspace_repository_impl import WorkspaceRepositoryImpl
 
 
 async def get_user_repository(
@@ -137,3 +139,19 @@ async def get_client_repository(
     """
 
     return ClientRepositoryImpl(session)
+
+
+async def get_workspace_repository(
+    session: AsyncSession = Depends(get_database_session),
+) -> WorkspaceRepository:
+    """
+    Workspace repository factory (shared by auth registration and user profile/login responses).
+
+    Args:
+        session: Request-scoped database session from infrastructure layer
+
+    Returns:
+        WorkspaceRepository: Workspace repository interface implementation
+    """
+
+    return WorkspaceRepositoryImpl(session)

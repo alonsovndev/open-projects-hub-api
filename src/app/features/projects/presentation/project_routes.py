@@ -1,7 +1,6 @@
 """Project routes."""
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -34,8 +33,9 @@ from src.app.features.projects.domain.exceptions.project_exceptions import (
 )
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
-from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.shared.presentation.auth_dependencies import get_request_context, require_editor
 
 
 router = APIRouter()
@@ -44,7 +44,7 @@ router = APIRouter()
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     payload: CreateProjectRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: CreateProjectUseCase = Depends(get_create_project_use_case),
 ) -> ProjectResponse:
     """
@@ -54,7 +54,7 @@ async def create_project(
 
     Args:
         payload: CreateProjectRequest with project details (name, code, client_id, optional fields)
-        current_user: Current authenticated admin user (from JWT)
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected CreateProjectUseCase
 
     Returns:
@@ -65,9 +65,8 @@ async def create_project(
         401/403: Unauthorized or forbidden
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(request=payload, created_by=user_id)
+        return await use_case.execute(request=payload, ctx=ctx)
     except ActiveProjectLimitExceededError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except NotFoundError as e:
@@ -87,7 +86,7 @@ async def list_projects(
     updated_from: datetime | None = Query(default=None, alias="updatedFrom"),
     updated_to: datetime | None = Query(default=None, alias="updatedTo"),
     search: str | None = Query(default=None, max_length=100),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: ListProjectsUseCase = Depends(get_list_projects_use_case),
 ) -> PaginatedResponse[ProjectResponse]:
     """
@@ -105,7 +104,7 @@ async def list_projects(
         updated_from: Optional lower bound on updated_at (ISO datetime)
         updated_to: Optional upper bound on updated_at (ISO datetime)
         search: Optional substring match on name or code (case-insensitive)
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ListProjectsUseCase
 
     Returns:
@@ -116,7 +115,6 @@ async def list_projects(
         401: Unauthorized
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     valid_statuses = [status.value for status in ProjectStatus]
     if project_status and project_status not in valid_statuses:
         raise HTTPException(
@@ -125,7 +123,7 @@ async def list_projects(
         )
 
     return await use_case.execute(
-        user_id=user_id,
+        ctx=ctx,
         limit=limit,
         offset=offset,
         status=project_status,
@@ -141,7 +139,7 @@ async def list_projects(
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project_by_id(
     project_id: UUID,
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: GetProjectByIdUseCase = Depends(get_project_by_id_use_case),
 ) -> ProjectResponse:
     """
@@ -151,7 +149,7 @@ async def get_project_by_id(
 
     Args:
         project_id: Project UUID
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetProjectByIdUseCase
 
     Returns:
@@ -163,8 +161,7 @@ async def get_project_by_id(
         404: Project not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
-    result = await use_case.execute(str(project_id), user_id=user_id)
+    result = await use_case.execute(str(project_id), ctx=ctx)
 
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
@@ -176,7 +173,7 @@ async def get_project_by_id(
 async def update_project(
     project_id: UUID,
     payload: UpdateProjectRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: UpdateProjectUseCase = Depends(get_update_project_use_case),
 ) -> ProjectResponse:
     """
@@ -187,7 +184,7 @@ async def update_project(
     Args:
         project_id: Project UUID
         payload: UpdateProjectRequest with fields to update
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected UpdateProjectUseCase
 
     Returns:
@@ -199,9 +196,8 @@ async def update_project(
         404: Project not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(project_id=str(project_id), request=payload, created_by=user_id)
+        return await use_case.execute(project_id=str(project_id), request=payload, ctx=ctx)
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except NotFoundError as e:
@@ -213,7 +209,7 @@ async def update_project(
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: DeleteProjectUseCase = Depends(get_delete_project_use_case),
 ) -> None:
     """
@@ -223,7 +219,7 @@ async def delete_project(
 
     Args:
         project_id: Project UUID
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected DeleteProjectUseCase
 
     Raises:
@@ -232,9 +228,8 @@ async def delete_project(
         404: Project not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
     try:
-        await use_case.execute(project_id=str(project_id), created_by=user_id)
+        await use_case.execute(project_id=str(project_id), ctx=ctx)
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
@@ -242,7 +237,7 @@ async def delete_project(
 @router.post("/{project_id}/archive", response_model=ProjectResponse)
 async def archive_project(
     project_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ArchiveProjectUseCase = Depends(get_archive_project_use_case),
 ) -> ProjectResponse:
     """
@@ -254,9 +249,8 @@ async def archive_project(
         404: Project not found
         401/403: Unauthorized or forbidden
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(project_id=str(project_id), created_by=user_id)
+        return await use_case.execute(project_id=str(project_id), ctx=ctx)
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
@@ -264,7 +258,7 @@ async def archive_project(
 @router.post("/{project_id}/reactivate", response_model=ProjectResponse)
 async def reactivate_project(
     project_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ReactivateProjectUseCase = Depends(get_reactivate_project_use_case),
 ) -> ProjectResponse:
     """
@@ -277,9 +271,8 @@ async def reactivate_project(
         409: Active project limit exceeded
         401/403: Unauthorized or forbidden
     """
-    user_id = str(current_user["sub"])
     try:
-        return await use_case.execute(project_id=str(project_id), created_by=user_id)
+        return await use_case.execute(project_id=str(project_id), ctx=ctx)
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ActiveProjectLimitExceededError as e:

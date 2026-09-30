@@ -17,6 +17,7 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Proje
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestReactivateProjectUseCase:
@@ -47,10 +48,12 @@ class TestReactivateProjectUseCase:
         mock_repo.find_by_id.return_value = (entity, "Test Client")
         mock_repo.save.return_value = entity
         mock_repo.get_story_counts.return_value = (3, 1)
-        mock_repo.count_active_by_user.return_value = 0
+        mock_repo.count_active_by_workspace.return_value = 0
 
         use_case = ReactivateProjectUseCase(mock_repo)
-        result = await use_case.execute(project_id=str(project_id.value), created_by=str(created_by.value))
+        result = await use_case.execute(
+            project_id=str(project_id.value), ctx=make_request_context(user_id=str(created_by.value))
+        )
 
         assert isinstance(result, ProjectResponse)
         assert result.status == "active"
@@ -82,10 +85,12 @@ class TestReactivateProjectUseCase:
         mock_repo.find_by_id.return_value = (entity, "Test Client")
         mock_repo.save.return_value = entity
         mock_repo.get_story_counts.return_value = (0, 0)
-        mock_repo.count_active_by_user.return_value = 0
+        mock_repo.count_active_by_workspace.return_value = 0
 
         use_case = ReactivateProjectUseCase(mock_repo)
-        result = await use_case.execute(project_id=str(project_id.value), created_by=str(created_by.value))
+        result = await use_case.execute(
+            project_id=str(project_id.value), ctx=make_request_context(user_id=str(created_by.value))
+        )
 
         assert result.status == "active"
         assert entity.status == ProjectStatus.ACTIVE
@@ -99,7 +104,7 @@ class TestReactivateProjectUseCase:
         use_case = ReactivateProjectUseCase(mock_repo)
 
         with pytest.raises(ProjectNotFoundError, match="Project not found"):
-            await use_case.execute(project_id=str(uuid4()), created_by="test-user")
+            await use_case.execute(project_id=str(uuid4()), ctx=make_request_context())
 
         mock_repo.save.assert_not_called()
 
@@ -110,6 +115,6 @@ class TestReactivateProjectUseCase:
         use_case = ReactivateProjectUseCase(mock_repo)
 
         with pytest.raises(ValueError):
-            await use_case.execute(project_id="not-a-valid-uuid", created_by="test-user")
+            await use_case.execute(project_id="not-a-valid-uuid", ctx=make_request_context())
 
         mock_repo.find_by_id.assert_not_called()

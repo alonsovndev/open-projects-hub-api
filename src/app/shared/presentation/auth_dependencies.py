@@ -7,6 +7,7 @@ This module provides reusable dependency functions for:
 - Resource-level authorization (ownership checks)
 """
 
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import jwt
@@ -16,6 +17,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app.composition.infrastructure import get_jwt_handler
 from src.app.features.auth.domain.exceptions.auth_exceptions import UnauthorizedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
@@ -71,23 +74,47 @@ async def get_current_user(
         ) from e
 
 
-async def require_admin(
+async def get_request_context(
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
+) -> RequestContext:
     """
-    Dependency to verify user has ADMIN role.
+    The caller's identity and workspace, taken only from the verified token.
 
-    Returns user claims if admin, raises 403 otherwise.
+    Tenant-scoped routes depend on this so the workspace can never come from the path or
+    body. Tokens minted before workspaces existed carry no `wid`; they get a 401 and the
+    client's refresh flow issues a new one.
 
     Raises:
-        HTTPException: 403 if user is not an admin
+        HTTPException: 401 if the token has no valid workspace or role claim
     """
-    user_role = current_user.get("role")
-
-    if user_role != UserRole.ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions",
+    try:
+        return RequestContext(
+            user_id=EntityId.from_string(str(current_user["sub"])),
+            workspace_id=EntityId.from_string(str(current_user["wid"])),
+            role=UserRole(current_user["role"]),
         )
+    except (KeyError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from e
 
-    return current_user
+
+def require_roles(*allowed_roles: UserRole) -> Callable[..., Awaitable[RequestContext]]:
+    """Build a dependency that admits only the given roles (403 otherwise)."""
+
+    async def dependency(ctx: RequestContext = Depends(get_request_context)) -> RequestContext:
+        if ctx.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return ctx
+
+    return dependency
+
+
+# Bound once at import time: the route-policy test identifies guards by object identity.
+require_admin = require_roles(UserRole.ADMIN)
+require_editor = require_roles(UserRole.ADMIN, UserRole.MEMBER)

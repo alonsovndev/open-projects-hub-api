@@ -36,6 +36,7 @@ class ProjectMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
             phase=ProjectPhase(model.phase),
+            workspace_id=EntityId.from_string(str(model.workspace_id)) if model.workspace_id else None,
         )
 
     @staticmethod
@@ -75,6 +76,7 @@ class ProjectMapper:
             status=entity.status.value,
             priority=entity.priority.value,
             phase=entity.phase.value,
+            workspace_id=entity.workspace_id.value if entity.workspace_id else None,
             start_date=entity.start_date,
             end_date=entity.end_date,
             created_at=entity.created_at,

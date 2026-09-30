@@ -25,6 +25,7 @@ class TestProjectEntityCreation:
             mock_datetime.now.return_value = mock_now
 
             project = ProjectEntity.create(
+                workspace_id=EntityId.generate(),
                 name="Test Project",
                 code="TEST",
                 created_by=created_by,
@@ -47,6 +48,7 @@ class TestProjectEntityCreation:
     def test_create_project_with_explicit_phase(self):
         """Test creating project with an explicit phase."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Planning Project",
             code="PLAN",
             created_by=EntityId.generate(),
@@ -64,6 +66,7 @@ class TestProjectEntityCreation:
         end = date(2026, 12, 31)
 
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Full Project",
             code="FULL",
             created_by=created_by,
@@ -85,6 +88,7 @@ class TestProjectEntityCreation:
 
         with pytest.raises(ValidationError, match="Project name cannot be empty"):
             ProjectEntity.create(
+                workspace_id=EntityId.generate(),
                 name="",
                 code="TEST",
                 created_by=created_by,
@@ -98,6 +102,7 @@ class TestProjectEntityCreation:
 
         with pytest.raises(ValidationError, match="Project name cannot be empty"):
             ProjectEntity.create(
+                workspace_id=EntityId.generate(),
                 name="   ",
                 code="TEST",
                 created_by=created_by,
@@ -112,6 +117,7 @@ class TestProjectEntityCreation:
 
         with pytest.raises(ValidationError, match="Project name cannot exceed 255 characters"):
             ProjectEntity.create(
+                workspace_id=EntityId.generate(),
                 name=long_name,
                 code="TEST",
                 created_by=created_by,
@@ -127,6 +133,7 @@ class TestProjectEntityCreation:
 
         with pytest.raises(ValidationError, match="End date cannot be before start date"):
             ProjectEntity.create(
+                workspace_id=EntityId.generate(),
                 name="Invalid Project",
                 code="TEST",
                 created_by=created_by,
@@ -142,6 +149,7 @@ class TestProjectEntityUpdate:
     def test_update_project_name(self):
         """Test updating project name."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Old Name",
             code="TEST",
             created_by=EntityId.generate(),
@@ -160,6 +168,7 @@ class TestProjectEntityUpdate:
     def test_update_project_description(self):
         """Test updating project description."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -173,6 +182,7 @@ class TestProjectEntityUpdate:
     def test_update_project_status(self):
         """Test updating project status."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -186,6 +196,7 @@ class TestProjectEntityUpdate:
     def test_update_project_dates(self):
         """Test updating project start and end dates."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -203,6 +214,7 @@ class TestProjectEntityUpdate:
     def test_update_project_empty_name_raises_error(self):
         """Test updating with empty name raises ValidationError."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -215,6 +227,7 @@ class TestProjectEntityUpdate:
     def test_update_project_invalid_dates_raises_error(self):
         """Test updating with invalid dates raises ValidationError."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -232,6 +245,7 @@ class TestProjectEntityStatusTransitions:
     def test_archive_project(self):
         """Test archiving a project."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -250,6 +264,7 @@ class TestProjectEntityStatusTransitions:
     def test_complete_project(self):
         """Test completing a project."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -268,6 +283,7 @@ class TestProjectEntityStatusTransitions:
     def test_reactivate_archived_project(self):
         """Test reactivating an archived project."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),
@@ -287,6 +303,7 @@ class TestProjectEntityStatusTransitions:
     def test_reactivate_completed_project(self):
         """Test reactivating a completed project."""
         project = ProjectEntity.create(
+            workspace_id=EntityId.generate(),
             name="Project",
             code="TEST",
             created_by=EntityId.generate(),

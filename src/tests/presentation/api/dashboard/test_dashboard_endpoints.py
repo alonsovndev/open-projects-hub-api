@@ -29,6 +29,7 @@ def user_token(app_jwt_handler):
         user_id="550e8400-e29b-41d4-a716-446655440001",
         email="user@example.com",
         role="viewer",
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 

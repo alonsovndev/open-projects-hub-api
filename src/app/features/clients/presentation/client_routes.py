@@ -1,6 +1,5 @@
 """Client API routes."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -28,7 +27,8 @@ from src.app.features.clients.domain.exceptions.client_exceptions import (
     ClientHasActiveProjectsError,
     ClientNotFoundError,
 )
-from src.app.shared.presentation.auth_dependencies import require_admin
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.presentation.auth_dependencies import require_editor
 
 
 router = APIRouter()
@@ -41,7 +41,7 @@ router = APIRouter()
 )
 async def create_client(
     request: CreateClientRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: CreateClientUseCase = Depends(get_create_client_use_case),
 ) -> ClientResponse:
     """
@@ -51,7 +51,7 @@ async def create_client(
 
     Args:
         request: CreateClientRequest with client details (name, email, phone, etc.)
-        current_user: Current authenticated admin user (from JWT)
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected CreateClientUseCase
 
     Returns:
@@ -62,10 +62,9 @@ async def create_client(
         401/403: Unauthorized or forbidden
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
 
     try:
-        return await use_case.execute(request=request, created_by=user_id)
+        return await use_case.execute(request=request, ctx=ctx)
     except ClientEmailExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
 
@@ -75,7 +74,7 @@ async def create_client(
     response_model=PaginatedClientsResponse,
 )
 async def get_clients(
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: GetClientsUseCase = Depends(get_get_clients_use_case),
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
@@ -87,7 +86,7 @@ async def get_clients(
     freelancer works with.
 
     Args:
-        current_user: Current authenticated admin
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetClientsUseCase
         offset: Number of results to skip (default 0)
         limit: Maximum number of results (1-100, default 100)
@@ -100,8 +99,7 @@ async def get_clients(
         403: Forbidden (admin only)
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
-    return await use_case.execute(user_id=user_id, offset=offset, limit=limit)
+    return await use_case.execute(ctx=ctx, offset=offset, limit=limit)
 
 
 @router.get(
@@ -110,7 +108,7 @@ async def get_clients(
 )
 async def get_client_by_id(
     client_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: GetClientByIdUseCase = Depends(get_get_client_by_id_use_case),
 ) -> ClientResponse:
     """
@@ -120,7 +118,7 @@ async def get_client_by_id(
 
     Args:
         client_id: Client UUID
-        current_user: Current authenticated user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetClientByIdUseCase
 
     Returns:
@@ -133,10 +131,9 @@ async def get_client_by_id(
         404: Client not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
 
     try:
-        return await use_case.execute(client_id=client_id, user_id=user_id)
+        return await use_case.execute(client_id=client_id, ctx=ctx)
     except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
@@ -148,7 +145,7 @@ async def get_client_by_id(
 async def update_client(
     client_id: UUID,
     request: UpdateClientRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: UpdateClientUseCase = Depends(get_update_client_use_case),
 ) -> ClientResponse:
     """
@@ -159,7 +156,7 @@ async def update_client(
     Args:
         client_id: Client UUID
         request: UpdateClientRequest with fields to update
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected UpdateClientUseCase
 
     Returns:
@@ -171,10 +168,9 @@ async def update_client(
         404: Client not found
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
 
     try:
-        return await use_case.execute(client_id=client_id, request=request, created_by=user_id)
+        return await use_case.execute(client_id=client_id, request=request, ctx=ctx)
     except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ClientEmailExistsError as e:
@@ -187,7 +183,7 @@ async def update_client(
 )
 async def delete_client(
     client_id: UUID,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: DeleteClientUseCase = Depends(get_delete_client_use_case),
 ):
     """
@@ -198,7 +194,7 @@ async def delete_client(
 
     Args:
         client_id: Client UUID
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected DeleteClientUseCase
 
     Raises:
@@ -207,10 +203,9 @@ async def delete_client(
         409: Client still has active projects
         500: Internal server error
     """
-    user_id = str(current_user["sub"])
 
     try:
-        await use_case.execute(client_id=client_id, created_by=user_id)
+        await use_case.execute(client_id=client_id, ctx=ctx)
     except ClientNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ClientHasActiveProjectsError as e:

@@ -1,6 +1,7 @@
 """Generate multiple stories from raw discovery notes use case."""
 
 from src.app.features.ai_config.application.services.refinement_provider_resolver import RefinementProviderResolver
+from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.refinement.application.dtos.refinement_dto import (
     GeneratedStoryResponse,
     GenerateStoriesRequest,
@@ -15,7 +16,8 @@ from src.app.features.refinement.domain.validators.refinement_validators import 
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
-from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -28,6 +30,7 @@ class GenerateStoriesFromNotesUseCase:
         repository: StoryDraftRepository,
         provider_resolver: RefinementProviderResolver,
         user_repository: UserRepository,
+        project_repository: ProjectRepository,
     ):
         """
         Initialize use case.
@@ -36,22 +39,24 @@ class GenerateStoriesFromNotesUseCase:
             repository: Story draft repository
             provider_resolver: Chooses the AI client for this run and whether it costs a credit
             user_repository: Holds the credit balance that a platform run is charged against
+            project_repository: Confirms the target project is in the caller's workspace
         """
         self._repository = repository
         self._provider_resolver = provider_resolver
         self._user_repository = user_repository
+        self._project_repository = project_repository
 
     async def execute(
         self,
         request: GenerateStoriesRequest,
-        created_by: str,
+        ctx: RequestContext,
     ) -> GenerateStoriesResponse:
         """
         Execute bulk story generation from raw notes.
 
         Args:
             request: GenerateStoriesRequest with project_id and raw_notes
-            created_by: User UUID string who created the drafts
+            ctx: Caller identity and workspace
 
         Returns:
             GenerateStoriesResponse with generated stories
@@ -61,9 +66,11 @@ class GenerateStoriesFromNotesUseCase:
                 Admin can retry without re-entering them
             AICreditsExhaustedError: If a platform run is requested with no credits left
             ApiKeyNotFoundError: If a user provider is requested without a stored key
+            NotFoundError: If the project is not in the caller's workspace
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        created_by = str(ctx.user_id)
 
         notes = NoteSanitizer.sanitize(request.raw_notes)
 
@@ -85,7 +92,13 @@ class GenerateStoriesFromNotesUseCase:
                 "Rewrite the notes as plain prose or a bullet list."
             )
 
-        user = await self._user_repository.find_by_id(EntityId.from_string(created_by))
+        # Checked before the provider is resolved or called: a foreign project must cost
+        # neither a credit nor a provider request.
+        project_uuid = EntityId.from_string(request.project_id)
+        if not await self._project_repository.exists(project_uuid.value, workspace_id=ctx.workspace_id.value):
+            raise NotFoundError("Project", request.project_id)
+
+        user = await self._user_repository.find_by_id(ctx.user_id)
         if user is None:
             raise UserNotFoundError(created_by)
 
@@ -118,8 +131,7 @@ class GenerateStoriesFromNotesUseCase:
                 },
             )
 
-            project_uuid = EntityId.from_string(request.project_id)
-            creator_uuid = EntityId.from_string(created_by)
+            creator_uuid = ctx.user_id
 
             story_responses: list[GeneratedStoryResponse] = []
 

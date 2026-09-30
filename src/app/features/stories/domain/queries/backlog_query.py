@@ -17,6 +17,7 @@ class BacklogQuery:
 
     Attributes:
         project_id: The project whose backlog is being read
+        workspace_id: The caller's workspace; stories of another workspace never match
         status: Optional story-status filter
         created_from: Include stories created on or after this date
         created_to: Include stories created on or before this date
@@ -25,6 +26,7 @@ class BacklogQuery:
     """
 
     project_id: UUID
+    workspace_id: UUID
     status: StoryStatus | None = None
     created_from: date | None = None
     created_to: date | None = None

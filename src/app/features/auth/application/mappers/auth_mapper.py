@@ -2,12 +2,17 @@
 
 from datetime import UTC, datetime
 
-from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail
+from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail, WorkspaceDetail
 from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
 
 
 def to_admin_login_response(
-    user_entity: UserEntity, token: str, refresh_token: str, session_expires_at: datetime
+    user_entity: UserEntity,
+    token: str,
+    refresh_token: str,
+    session_expires_at: datetime,
+    workspace: WorkspaceEntity | None = None,
 ) -> AdminLoginResponse:
     """
     Convert a UserEntity and tokens to an AdminLoginResponse DTO.
@@ -18,6 +23,7 @@ def to_admin_login_response(
         refresh_token: Generated JWT refresh token
         session_expires_at: When the current refresh session lapses (standard
             24h or remember-me 7d from the most recent login/refresh)
+        workspace: The user's workspace, shown by the client next to the account
 
     Returns:
         AdminLoginResponse instance
@@ -39,5 +45,6 @@ def to_admin_login_response(
             display_name=display_name,
             name=display_name,
             role=str(user_entity.role.value),
+            workspace=WorkspaceDetail(id=str(workspace.id), name=workspace.name) if workspace else None,
         ),
     )

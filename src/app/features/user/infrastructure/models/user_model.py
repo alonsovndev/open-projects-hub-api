@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import ENUM as pg_enum, UUID  # noqa: N811
 from sqlalchemy.orm import relationship
 
@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel  # noqa: F401
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401
 from src.app.features.stories.infrastructure.models.story_model import StoryModel  # noqa: F401
+from src.app.features.workspaces.infrastructure.models.workspace_model import WorkspaceModel  # noqa: F401
 from src.app.shared.persistence import Base
 
 
@@ -25,7 +26,9 @@ class UserModel(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(pg_enum("admin", "viewer", name="userrole", create_type=False), nullable=False, default="viewer")
+    role = Column(
+        pg_enum("admin", "member", "viewer", name="userrole", create_type=False), nullable=False, default="viewer"
+    )
     # Bumped on forced logout (e.g. after a password reset) to invalidate every
     # refresh token issued before that point, without needing a token ledger.
     token_version = Column(Integer, nullable=False, server_default="0", default=0)
@@ -34,6 +37,12 @@ class UserModel(Base):
     # the grant does not retroactively rewrite what existing accounts were given.
     ai_credits_remaining = Column(Integer, nullable=False, server_default="5", default=5)
     ai_credits_granted = Column(Integer, nullable=False, server_default="5", default=5)
+    # NULL until a self-registered account confirms its email (F-008); accounts
+    # created by an admin or the seed script are verified on creation.
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    workspace_id = Column(
+        UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
 
     # Relationships
     created_projects = relationship("ProjectModel", foreign_keys="ProjectModel.created_by", backref="creator")

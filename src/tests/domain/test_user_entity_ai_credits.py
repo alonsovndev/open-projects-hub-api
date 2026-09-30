@@ -5,6 +5,7 @@ import pytest
 from src.app.features.user.domain.entities.user_entity import INITIAL_AI_CREDITS, UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import AICreditsExhaustedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.shared.domain.value_objects.entity_id import EntityId
 
 
 def build_user(role: UserRole = UserRole.ADMIN) -> UserEntity:
@@ -77,3 +78,50 @@ class TestCreditConsumption:
 
         with pytest.raises(AICreditsExhaustedError, match="Add your own API key"):
             user.consume_ai_credit()
+
+
+class TestCreditsAwaitEmailVerification:
+    """FR-010-01: a self-registered account earns its free credits by verifying its email."""
+
+    def build_pending_user(self) -> UserEntity:
+        return UserEntity.create_pending_verification(
+            email="new@example.com",
+            display_name="New User",
+            password_hash="hashed",
+            role=UserRole.ADMIN,
+        )
+
+    def test_a_pending_account_starts_without_credits(self):
+        user = self.build_pending_user()
+
+        assert user.is_email_verified is False
+        assert user.ai_credits_remaining == 0
+        assert user.ai_credits_granted == 0
+
+    def test_verifying_the_email_grants_the_initial_credits(self):
+        user = self.build_pending_user()
+
+        user.verify_email()
+
+        assert user.is_email_verified is True
+        assert user.ai_credits_remaining == INITIAL_AI_CREDITS
+        assert user.ai_credits_granted == INITIAL_AI_CREDITS
+
+    def test_verifying_a_member_grants_no_credits(self):
+        """One sign-up yields one grant; members an Admin adds must not multiply it."""
+        user = UserEntity.create_workspace_member(
+            email="mate@example.com",
+            display_name="Mate",
+            password_hash="hash",
+            role=UserRole.MEMBER,
+            workspace_id=EntityId.generate(),
+        )
+
+        user.verify_email()
+
+        assert user.is_email_verified is True
+        assert user.ai_credits_remaining == 0
+        assert user.ai_credits_granted == 0
+
+    def test_accounts_created_by_an_admin_are_verified_on_creation(self):
+        assert build_user().is_email_verified is True

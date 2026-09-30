@@ -14,6 +14,7 @@ from src.app.features.refinement.domain.exceptions.refinement_exceptions import 
 )
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestDeleteStoryDraftUseCase:
@@ -39,7 +40,7 @@ class TestDeleteStoryDraftUseCase:
         draft_id = str(uuid4())
         use_case = DeleteStoryDraftUseCase(mock_repo)
 
-        await use_case.execute(draft_id, deleted_by=str(uuid4()))
+        await use_case.execute(draft_id, ctx=make_request_context(user_id=str(uuid4())))
 
         mock_repo.delete.assert_awaited_once()
 
@@ -54,7 +55,7 @@ class TestDeleteStoryDraftUseCase:
         use_case = DeleteStoryDraftUseCase(mock_repo)
 
         with pytest.raises(StoryDraftNotFoundError):
-            await use_case.execute(draft_id, deleted_by=str(uuid4()))
+            await use_case.execute(draft_id, ctx=make_request_context(user_id=str(uuid4())))
 
     @pytest.mark.asyncio
     async def test_execute_refuses_to_discard_an_approved_draft(self):
@@ -75,6 +76,6 @@ class TestDeleteStoryDraftUseCase:
         use_case = DeleteStoryDraftUseCase(mock_repo)
 
         with pytest.raises(StoryDraftAlreadyApprovedError):
-            await use_case.execute(str(uuid4()), deleted_by=str(uuid4()))
+            await use_case.execute(str(uuid4()), ctx=make_request_context(user_id=str(uuid4())))
 
         mock_repo.delete.assert_not_called()

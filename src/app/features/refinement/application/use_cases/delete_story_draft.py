@@ -6,6 +6,7 @@ from src.app.features.refinement.domain.exceptions.refinement_exceptions import 
 )
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -22,23 +23,24 @@ class DeleteStoryDraftUseCase:
         """
         self._repository = repository
 
-    async def execute(self, draft_id: str, deleted_by: str) -> None:
+    async def execute(self, draft_id: str, ctx: RequestContext) -> None:
         """
         Delete a story draft.
 
         Args:
             draft_id: Draft UUID string
-            deleted_by: User ID performing the deletion
+            ctx: Caller identity and workspace
 
         Raises:
             StoryDraftNotFoundError: If the draft is not found
             StoryDraftAlreadyApprovedError: If the draft is already in the backlog
         """
         log = get_logger(__name__)
-        set_user_id(deleted_by)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
 
         draft_uuid = EntityId.from_string(draft_id).value
-        draft = await self._repository.find_by_id(draft_uuid)
+        draft = await self._repository.find_by_id(draft_uuid, workspace_id=workspace_id)
 
         if not draft:
             log.error(
@@ -56,7 +58,7 @@ class DeleteStoryDraftUseCase:
             )
             raise StoryDraftAlreadyApprovedError(draft_id)
 
-        deleted = await self._repository.delete(draft_uuid)
+        deleted = await self._repository.delete(draft_uuid, workspace_id=workspace_id)
 
         if not deleted:
             log.error(

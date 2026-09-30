@@ -1,7 +1,5 @@
 """AI credit and API key management routes."""
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, status
 
 from src.app.composition import (
@@ -24,7 +22,8 @@ from src.app.features.ai_config.application.use_cases.list_api_keys import ListA
 from src.app.features.ai_config.application.use_cases.save_api_key import SaveApiKeyUseCase
 from src.app.features.ai_config.application.use_cases.validate_api_key import ValidateApiKeyUseCase
 from src.app.features.ai_config.domain.value_objects.ai_provider import AIProvider
-from src.app.shared.presentation.auth_dependencies import require_admin
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.presentation.auth_dependencies import require_editor
 
 
 router = APIRouter()
@@ -32,7 +31,7 @@ router = APIRouter()
 
 @router.get("/me/credits", response_model=CreditBalanceResponse)
 async def get_credit_balance(
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: GetCreditBalanceUseCase = Depends(get_credit_balance_use_case),
 ) -> CreditBalanceResponse:
     """
@@ -41,18 +40,18 @@ async def get_credit_balance(
     Requires ADMIN role: refinement is admin-only, so credits are meaningless to a Viewer.
 
     Args:
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetCreditBalanceUseCase
 
     Returns:
         CreditBalanceResponse with remaining and originally granted credits
     """
-    return await use_case.execute(user_id=str(current_user["sub"]))
+    return await use_case.execute(user_id=str(ctx.user_id))
 
 
 @router.get("/me/api-keys", response_model=ListApiKeysResponse)
 async def list_api_keys(
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ListApiKeysUseCase = Depends(get_list_api_keys_use_case),
 ) -> ListApiKeysResponse:
     """
@@ -62,19 +61,19 @@ async def list_api_keys(
     read path, and it exposes the mask alone.
 
     Args:
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ListApiKeysUseCase
 
     Returns:
         ListApiKeysResponse with one masked entry per configured provider
     """
-    return await use_case.execute(user_id=str(current_user["sub"]))
+    return await use_case.execute(user_id=str(ctx.user_id))
 
 
 @router.post("/me/api-keys", response_model=ApiKeyResponse, status_code=status.HTTP_201_CREATED)
 async def save_api_key(
     payload: SaveApiKeyRequest,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: SaveApiKeyUseCase = Depends(get_save_api_key_use_case),
 ) -> ApiKeyResponse:
     """
@@ -85,7 +84,7 @@ async def save_api_key(
 
     Args:
         payload: SaveApiKeyRequest with provider and the raw key
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected SaveApiKeyUseCase
 
     Returns:
@@ -96,13 +95,13 @@ async def save_api_key(
         422: Provider refused the key
         429: Validation budget for this user is spent
     """
-    return await use_case.execute(request=payload, user_id=str(current_user["sub"]))
+    return await use_case.execute(request=payload, user_id=str(ctx.user_id))
 
 
 @router.delete("/me/api-keys/{provider}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_api_key(
     provider: AIProvider,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: DeleteApiKeyUseCase = Depends(get_delete_api_key_use_case),
 ) -> None:
     """
@@ -112,19 +111,19 @@ async def delete_api_key(
 
     Args:
         provider: Provider whose key should be removed
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected DeleteApiKeyUseCase
 
     Raises:
         404: No key is configured for that provider
     """
-    await use_case.execute(provider=provider, user_id=str(current_user["sub"]))
+    await use_case.execute(provider=provider, user_id=str(ctx.user_id))
 
 
 @router.post("/me/api-keys/{provider}/validate", response_model=ValidateApiKeyResponse)
 async def validate_api_key(
     provider: AIProvider,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ValidateApiKeyUseCase = Depends(get_validate_api_key_use_case),
 ) -> ValidateApiKeyResponse:
     """
@@ -132,7 +131,7 @@ async def validate_api_key(
 
     Args:
         provider: Provider whose key should be tested
-        current_user: Current authenticated admin user
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ValidateApiKeyUseCase
 
     Returns:
@@ -143,4 +142,4 @@ async def validate_api_key(
         422: Provider refused the key
         429: Validation budget for this user is spent
     """
-    return await use_case.execute(provider=provider, user_id=str(current_user["sub"]))
+    return await use_case.execute(provider=provider, user_id=str(ctx.user_id))

@@ -25,12 +25,16 @@ def app_jwt_handler():
 
 @pytest.fixture
 def admin_access_token(app_jwt_handler):
-    return app_jwt_handler.create_access_token(user_id="admin-123", email="admin@example.com", role="admin")
+    return app_jwt_handler.create_access_token(
+        user_id="550e8400-e29b-41d4-a716-446655440123", email="admin@example.com", role="admin"
+    )
 
 
 @pytest.fixture
 def admin_refresh_token(app_jwt_handler):
-    return app_jwt_handler.create_refresh_token(user_id="admin-123", email="admin@example.com", role="admin")
+    return app_jwt_handler.create_refresh_token(
+        user_id="550e8400-e29b-41d4-a716-446655440123", email="admin@example.com", role="admin"
+    )
 
 
 class TestLogoutEndpoint:

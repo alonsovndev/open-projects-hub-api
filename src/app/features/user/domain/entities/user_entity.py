@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.app.features.user.domain.exceptions.user_exceptions import AICreditsExhaustedError
 from src.app.features.user.domain.value_objects.user_role import UserRole
@@ -22,6 +22,8 @@ class UserEntity(BaseEntity):
         token_version: int = 0,
         ai_credits_remaining: int = INITIAL_AI_CREDITS,
         ai_credits_granted: int = INITIAL_AI_CREDITS,
+        email_verified_at: datetime | None = None,
+        workspace_id: EntityId | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -32,6 +34,8 @@ class UserEntity(BaseEntity):
         self._token_version = token_version
         self._ai_credits_remaining = ai_credits_remaining
         self._ai_credits_granted = ai_credits_granted
+        self._email_verified_at = email_verified_at
+        self._workspace_id = workspace_id
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -62,6 +66,18 @@ class UserEntity(BaseEntity):
     def ai_credits_granted(self) -> int:
         return self._ai_credits_granted
 
+    @property
+    def email_verified_at(self) -> datetime | None:
+        return self._email_verified_at
+
+    @property
+    def workspace_id(self) -> EntityId | None:
+        return self._workspace_id
+
+    @property
+    def is_email_verified(self) -> bool:
+        return self._email_verified_at is not None
+
     @classmethod
     def create(
         cls,
@@ -69,6 +85,7 @@ class UserEntity(BaseEntity):
         display_name: str,
         password_hash: str,
         role: UserRole | None = None,
+        workspace_id: EntityId | None = None,
     ) -> "UserEntity":
         return cls(
             id=EntityId.generate(),
@@ -78,7 +95,77 @@ class UserEntity(BaseEntity):
             role=role or UserRole.default(),
             ai_credits_remaining=INITIAL_AI_CREDITS,
             ai_credits_granted=INITIAL_AI_CREDITS,
+            email_verified_at=datetime.now(UTC),
+            workspace_id=workspace_id,
         )
+
+    @classmethod
+    def create_workspace_member(
+        cls,
+        email: str,
+        display_name: str,
+        password_hash: str,
+        role: UserRole,
+        workspace_id: EntityId,
+    ) -> "UserEntity":
+        """
+        A teammate or viewer added by a workspace Admin, pending email verification.
+
+        Not verified on creation: with open sign-up any stranger can be an Admin, so an
+        Admin's word does not prove the address is theirs to give. Until the person confirms
+        it, a real sign-up for the same email replaces this pending account.
+        """
+        return cls(
+            id=EntityId.generate(),
+            email=Email(email),
+            display_name=display_name,
+            password_hash=password_hash,
+            role=role,
+            ai_credits_remaining=0,
+            ai_credits_granted=0,
+            email_verified_at=None,
+            workspace_id=workspace_id,
+        )
+
+    @classmethod
+    def create_pending_verification(
+        cls,
+        email: str,
+        display_name: str,
+        password_hash: str,
+        role: UserRole | None = None,
+        workspace_id: EntityId | None = None,
+    ) -> "UserEntity":
+        """
+        A self-registered account that must confirm its email before it can sign in.
+
+        Free credits are withheld until verification (F-010 FR-010-01).
+        """
+        return cls(
+            id=EntityId.generate(),
+            email=Email(email),
+            display_name=display_name,
+            password_hash=password_hash,
+            role=role or UserRole.default(),
+            ai_credits_remaining=0,
+            ai_credits_granted=0,
+            email_verified_at=None,
+            workspace_id=workspace_id,
+        )
+
+    def verify_email(self, now: datetime | None = None) -> None:
+        """
+        Confirm the account's email.
+
+        Only a workspace's Admin receives the free platform credits (F-010): each sign-up
+        creates one Admin, whereas an Admin can add any number of members and viewers, and
+        granting those credits too would let one sign-up mint unlimited free refinements.
+        """
+        self._email_verified_at = now or datetime.now(UTC)
+        if self.is_admin():
+            self._ai_credits_remaining = INITIAL_AI_CREDITS
+            self._ai_credits_granted = INITIAL_AI_CREDITS
+        self.mark_as_updated()
 
     def update_details(
         self,
@@ -120,6 +207,9 @@ class UserEntity(BaseEntity):
     def is_admin(self) -> bool:
         """Check if user has admin role."""
         return self._role == UserRole.ADMIN
+
+    def belongs_to(self, workspace_id: EntityId) -> bool:
+        return self._workspace_id is not None and self._workspace_id.value == workspace_id.value
 
     def revoke_sessions(self) -> None:
         """

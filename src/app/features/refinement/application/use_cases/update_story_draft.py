@@ -4,6 +4,7 @@ from src.app.features.refinement.application.dtos.refinement_dto import UpdateSt
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
@@ -24,7 +25,7 @@ class UpdateStoryDraftUseCase:
         self,
         draft_id: str,
         request: UpdateStoryDraftRequest,
-        created_by: str,
+        ctx: RequestContext,
     ) -> StoryDraftEntity:
         """
         Execute update story draft use case.
@@ -32,7 +33,7 @@ class UpdateStoryDraftUseCase:
         Args:
             draft_id: Draft UUID string
             request: UpdateStoryDraftRequest with fields to update
-            created_by: User ID performing the update
+            ctx: Caller identity and workspace
 
         Returns:
             Updated StoryDraftEntity
@@ -41,10 +42,10 @@ class UpdateStoryDraftUseCase:
             StoryDraftNotFoundError: If the draft is not found
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
 
         entity_id = EntityId.from_string(draft_id)
-        draft = await self._repository.find_by_id(entity_id.value)
+        draft = await self._repository.find_by_id(entity_id.value, workspace_id=ctx.workspace_id.value)
 
         if not draft:
             log.error(

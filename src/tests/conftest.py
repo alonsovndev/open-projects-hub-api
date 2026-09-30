@@ -22,6 +22,9 @@ from src.app.features.ai_config.infrastructure.models.user_api_key_model import 
     UserApiKeyModel,
 )
 from src.app.features.auth.infrastructure.models.account_lockout_model import AccountLockoutModel  # noqa: F401,E402
+from src.app.features.auth.infrastructure.models.email_verification_code_model import (  # noqa: F401,E402
+    EmailVerificationCodeModel,
+)
 from src.app.features.auth.infrastructure.models.password_reset_code_model import (  # noqa: F401,E402
     PasswordResetCodeModel,
 )
@@ -33,6 +36,7 @@ from src.app.features.projects.infrastructure.models.project_model import Projec
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401,E402
 from src.app.features.stories.infrastructure.models.story_model import StoryModel  # noqa: F401,E402
 from src.app.features.user.infrastructure.models.user_model import UserModel  # noqa: F401,E402
+from src.app.features.workspaces.infrastructure.models.workspace_model import WorkspaceModel  # noqa: F401,E402
 
 
 def pytest_configure(config):

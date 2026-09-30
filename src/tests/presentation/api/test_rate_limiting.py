@@ -5,6 +5,7 @@ Tests the rate limiting functionality added in Phase 1.
 """
 
 import asyncio
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -44,6 +45,7 @@ def mock_admin_user():
         display_name="Admin User",
         password_hash=password_hash,
         role=UserRole.ADMIN,
+        email_verified_at=datetime.now(UTC),
     )
 
 

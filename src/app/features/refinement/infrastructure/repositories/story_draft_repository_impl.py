@@ -6,13 +6,23 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
+# Drafts are scoped through their project's workspace (cross-feature join, see ADR-001)
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
 from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.features.refinement.infrastructure.mappers.story_draft_mapper import StoryDraftMapper
 from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
 from src.app.shared.logging import get_logger
+
+
+def _in_workspace(stmt: Select, workspace_id: UUID) -> Select:
+    """Confine a drafts statement to one workspace via the owning project."""
+    return stmt.join(ProjectModel, StoryDraftModel.project_id == ProjectModel.id).where(
+        ProjectModel.workspace_id == workspace_id
+    )
 
 
 class StoryDraftRepositoryImpl(StoryDraftRepository):
@@ -28,10 +38,10 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
         self._session = session
         self._log = get_logger(__name__)
 
-    async def find_by_id(self, draft_id: UUID) -> StoryDraftEntity | None:
+    async def find_by_id(self, draft_id: UUID, *, workspace_id: UUID) -> StoryDraftEntity | None:
         """Find story draft by ID."""
         try:
-            stmt = select(StoryDraftModel).where(StoryDraftModel.id == draft_id)
+            stmt = _in_workspace(select(StoryDraftModel), workspace_id).where(StoryDraftModel.id == draft_id)
             result = await self._session.execute(stmt)
             model = result.scalar_one_or_none()
 
@@ -51,6 +61,8 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
     async def find_by_project(
         self,
         project_id: UUID,
+        *,
+        workspace_id: UUID,
         status: DraftStatus | None = None,
         limit: int = 20,
         offset: int = 0,
@@ -62,7 +74,7 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
                 filters.append(StoryDraftModel.status == status)
 
             stmt = (
-                select(StoryDraftModel)
+                _in_workspace(select(StoryDraftModel), workspace_id)
                 .where(*filters)
                 .order_by(StoryDraftModel.created_at.desc())
                 .limit(limit)
@@ -82,41 +94,6 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             self._log.exception(
                 "Database error fetching drafts for project",
                 extra={"operation": "find_by_project", "table": "story_drafts"},
-            )
-            raise
-
-    async def find_active_by_user(
-        self,
-        user_id: UUID,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[StoryDraftEntity]:
-        """Find active (non-applied) drafts by user."""
-        try:
-            stmt = (
-                select(StoryDraftModel)
-                .where(
-                    StoryDraftModel.created_by == user_id,
-                    StoryDraftModel.status != "applied",
-                )
-                .order_by(StoryDraftModel.created_at.desc())
-                .limit(limit)
-                .offset(offset)
-            )
-            result = await self._session.execute(stmt)
-            models = result.scalars().all()
-
-            return [StoryDraftMapper.to_entity(m) for m in models]
-
-        except OperationalError:
-            self._log.exception(
-                "Database connection error", extra={"operation": "find_active_by_user", "table": "story_drafts"}
-            )
-            raise
-        except SQLAlchemyError:
-            self._log.exception(
-                "Database error fetching drafts for user",
-                extra={"operation": "find_active_by_user", "table": "story_drafts"},
             )
             raise
 
@@ -159,11 +136,11 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             self._log.exception("Database error saving draft", extra={"operation": "save", "table": "story_drafts"})
             raise
 
-    async def delete(self, draft_id: UUID) -> bool:
+    async def delete(self, draft_id: UUID, *, workspace_id: UUID) -> bool:
         """Delete a story draft."""
         start = time.time()
         try:
-            stmt = select(StoryDraftModel).where(StoryDraftModel.id == draft_id)
+            stmt = _in_workspace(select(StoryDraftModel), workspace_id).where(StoryDraftModel.id == draft_id)
             result = await self._session.execute(stmt)
             model = result.scalar_one_or_none()
 
@@ -195,14 +172,14 @@ class StoryDraftRepositoryImpl(StoryDraftRepository):
             self._log.exception("Database error deleting draft", extra={"operation": "delete", "table": "story_drafts"})
             raise
 
-    async def count_by_project(self, project_id: UUID, status: DraftStatus | None = None) -> int:
+    async def count_by_project(self, project_id: UUID, *, workspace_id: UUID, status: DraftStatus | None = None) -> int:
         """Count drafts for a project."""
         try:
             filters = [StoryDraftModel.project_id == project_id]
             if status is not None:
                 filters.append(StoryDraftModel.status == status)
 
-            stmt = select(func.count()).select_from(StoryDraftModel).where(*filters)
+            stmt = _in_workspace(select(func.count()).select_from(StoryDraftModel), workspace_id).where(*filters)
             result = await self._session.execute(stmt)
             return result.scalar() or 0
 

@@ -20,7 +20,7 @@ class UserCreateRequest(BaseModel):
     display_name: str
     email: EmailStr
     password: str
-    role: str | None = "viewer"  # Default to viewer for public registration
+    role: str | None = UserRole.MEMBER.value
 
     @field_validator("display_name")
     @classmethod
@@ -33,24 +33,21 @@ class UserCreateRequest(BaseModel):
     @classmethod
     def validate_role(cls, role: str | None) -> str:
         """
-        Validate role is valid user role enum.
+        Only teammates and viewers can be added to a workspace.
 
-        Args:
-            role: Role string
-
-        Returns:
-            The validated role in lowercase
+        A second Admin is refused until roles can be changed and accounts removed; until
+        then an extra Admin could not be demoted or taken out of the workspace.
 
         Raises:
-            ValueError: If role is not valid
+            ValueError: If role is not member or viewer
         """
         if role is None:
-            return UserRole.VIEWER.value
+            return UserRole.MEMBER.value
 
         role_lower = role.lower().strip()
-        valid_roles = [r.value for r in UserRole]
-        if role_lower not in valid_roles:
-            raise ValueError(f"Role must be one of: {', '.join(valid_roles)}")
+        assignable_roles = [UserRole.MEMBER.value, UserRole.VIEWER.value]
+        if role_lower not in assignable_roles:
+            raise ValueError(f"Role must be one of: {', '.join(assignable_roles)}")
 
         return role_lower
 

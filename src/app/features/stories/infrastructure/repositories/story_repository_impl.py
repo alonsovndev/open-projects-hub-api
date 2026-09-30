@@ -9,6 +9,8 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
+# Stories are scoped through their project's workspace (cross-feature join, see ADR-001)
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.queries.backlog_query import BacklogQuery
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
@@ -16,6 +18,13 @@ from src.app.features.stories.domain.value_objects.story_priority import StoryPr
 from src.app.features.stories.infrastructure.mappers.story_mapper import StoryMapper
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.shared.logging import get_logger
+
+
+def _in_workspace(stmt: Select, workspace_id: UUID) -> Select:
+    """Confine a stories statement to one workspace via the owning project."""
+    return stmt.join(ProjectModel, StoryModel.project_id == ProjectModel.id).where(
+        ProjectModel.workspace_id == workspace_id
+    )
 
 
 class StoryRepositoryImpl(StoryRepository):
@@ -31,7 +40,7 @@ class StoryRepositoryImpl(StoryRepository):
         self._session = session
         self._log = get_logger(__name__)
 
-    async def find_by_id(self, story_id: UUID) -> StoryEntity | None:
+    async def find_by_id(self, story_id: UUID, *, workspace_id: UUID) -> StoryEntity | None:
         """
         Find story by ID.
 
@@ -45,7 +54,7 @@ class StoryRepositoryImpl(StoryRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(StoryModel).where(StoryModel.id == story_id)
+            stmt = _in_workspace(select(StoryModel), workspace_id).where(StoryModel.id == story_id)
             result = await self._session.execute(stmt)
             model = result.scalar_one_or_none()
 
@@ -64,6 +73,8 @@ class StoryRepositoryImpl(StoryRepository):
 
     async def find_all(
         self,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
         project_id: UUID | None = None,
@@ -89,7 +100,7 @@ class StoryRepositoryImpl(StoryRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(StoryModel)
+            stmt = _in_workspace(select(StoryModel), workspace_id)
 
             if project_id:
                 stmt = stmt.where(StoryModel.project_id == project_id)
@@ -120,6 +131,8 @@ class StoryRepositoryImpl(StoryRepository):
     async def find_by_project_id(
         self,
         project_id: UUID,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
     ) -> list[StoryEntity]:
@@ -134,12 +147,12 @@ class StoryRepositoryImpl(StoryRepository):
         Returns:
             List of StoryEntity objects
         """
-        return await self.find_all(limit=limit, offset=offset, project_id=project_id)
+        return await self.find_all(workspace_id=workspace_id, limit=limit, offset=offset, project_id=project_id)
 
     @staticmethod
     def _apply_backlog_scope(stmt: Select, query: BacklogQuery) -> Select:
         """Narrow a statement to a backlog scope, without ordering or pagination."""
-        stmt = stmt.where(StoryModel.project_id == query.project_id)
+        stmt = _in_workspace(stmt, query.workspace_id).where(StoryModel.project_id == query.project_id)
 
         if query.status:
             stmt = stmt.where(StoryModel.status == query.status.value)
@@ -228,7 +241,7 @@ class StoryRepositoryImpl(StoryRepository):
             )
             raise
 
-    async def find_by_assigned_user(self, user_id: UUID) -> list[StoryEntity]:
+    async def find_by_assigned_user(self, user_id: UUID, *, workspace_id: UUID) -> list[StoryEntity]:
         """
         Find all stories assigned to a specific user.
 
@@ -238,7 +251,7 @@ class StoryRepositoryImpl(StoryRepository):
         Returns:
             List of StoryEntity objects
         """
-        return await self.find_all(assigned_to=user_id)
+        return await self.find_all(workspace_id=workspace_id, assigned_to=user_id)
 
     async def save(self, story: StoryEntity) -> StoryEntity:
         """
@@ -292,7 +305,7 @@ class StoryRepositoryImpl(StoryRepository):
             self._log.exception("Database error while saving story", extra={"operation": "save", "table": "stories"})
             raise
 
-    async def delete(self, story_id: UUID) -> bool:
+    async def delete(self, story_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Delete a story by ID.
 
@@ -307,7 +320,7 @@ class StoryRepositoryImpl(StoryRepository):
         """
         start = time.time()
         try:
-            stmt = select(StoryModel).where(StoryModel.id == story_id)
+            stmt = _in_workspace(select(StoryModel), workspace_id).where(StoryModel.id == story_id)
             result = await self._session.execute(stmt)
             model = result.scalar_one_or_none()
 
@@ -341,94 +354,10 @@ class StoryRepositoryImpl(StoryRepository):
             )
             raise
 
-    async def exists(self, story_id: UUID) -> bool:
-        """
-        Check if a story exists by ID.
-
-        Args:
-            story_id: Story UUID
-
-        Returns:
-            True if story exists, False otherwise
-
-        Raises:
-            SQLAlchemyError: If database error occurs
-        """
-        try:
-            stmt = select(func.count(StoryModel.id)).where(StoryModel.id == story_id)
-            result = await self._session.execute(stmt)
-
-            return bool(int(result.scalar_one()))
-
-        except OperationalError:
-            self._log.exception("Database connection error", extra={"operation": "exists", "table": "stories"})
-            raise
-        except SQLAlchemyError:
-            self._log.exception(
-                "Database error while checking story existence",
-                extra={"operation": "exists", "table": "stories"},
-            )
-            raise
-
-    async def update(self, story: StoryEntity) -> StoryEntity | None:
-        """
-        Update an existing story.
-
-        Args:
-            story: StoryEntity to update
-
-        Returns:
-            Updated StoryEntity if successful, None if not found
-
-        Raises:
-            SQLAlchemyError: If database error occurs
-        """
-        start = time.time()
-        try:
-            # Check if story exists
-            stmt = select(StoryModel).where(StoryModel.id == story.id.value)
-            result = await self._session.execute(stmt)
-            existing_model = result.scalar_one_or_none()
-
-            if not existing_model:
-                self._log.warning(
-                    "Story not found for update",
-                    extra={"entity_id": str(story.id.value), "operation": "update", "table": "stories"},
-                )
-                return None
-
-            # Convert entity to model (update existing)
-            model = StoryMapper.to_model(story, existing_model)
-
-            await self._session.commit()
-            await self._session.refresh(model)
-
-            duration = (time.time() - start) * 1000
-            self._log.info(
-                "Database operation completed",
-                extra={
-                    "event_type": "db.update",
-                    "success": True,
-                    "duration_ms": duration,
-                    "table": "stories",
-                    "entity_id": str(story.id.value),
-                },
-            )
-            return StoryMapper.to_entity(model)
-
-        except OperationalError:
-            await self._session.rollback()
-            self._log.exception("Database connection error", extra={"operation": "update", "table": "stories"})
-            raise
-        except SQLAlchemyError:
-            await self._session.rollback()
-            self._log.exception(
-                "Database error while updating story", extra={"operation": "update", "table": "stories"}
-            )
-            raise
-
     async def count(
         self,
+        *,
+        workspace_id: UUID,
         project_id: UUID | None = None,
         status: str | None = None,
         priority: str | None = None,
@@ -450,7 +379,7 @@ class StoryRepositoryImpl(StoryRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(func.count(StoryModel.id))
+            stmt = _in_workspace(select(func.count(StoryModel.id)), workspace_id)
 
             if project_id:
                 stmt = stmt.where(StoryModel.project_id == project_id)

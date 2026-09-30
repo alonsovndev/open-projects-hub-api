@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -5,7 +6,7 @@ import pytest_asyncio
 
 from src.app.features.auth.application.dtos.auth_dto import LoginRequest
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
-from src.app.features.auth.domain.exceptions.auth_exceptions import InvalidCredentialsError
+from src.app.features.auth.domain.exceptions.auth_exceptions import EmailNotVerifiedError, InvalidCredentialsError
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
@@ -32,6 +33,7 @@ async def mock_admin_user():
         display_name="Admin User",
         password_hash=password_hash,
         role=UserRole.ADMIN,
+        email_verified_at=datetime.now(UTC),
     )
 
 
@@ -88,6 +90,7 @@ class TestLoginUserUseCase:
             display_name="Regular User",
             password_hash=password_hash,
             role=UserRole.VIEWER,
+            email_verified_at=datetime.now(UTC),
         )
 
         mock_repo = AsyncMock()
@@ -117,3 +120,48 @@ class TestLoginUserUseCase:
 
         assert remembered_payload["exp"] - remembered_payload["iat"] > standard_payload["exp"] - standard_payload["iat"]
         assert remembered.session_expires_at is not None
+
+
+class TestLoginRequiresVerifiedEmail:
+    """FR-008-06: a self-registered account cannot sign in until its email is verified."""
+
+    @staticmethod
+    async def build_pending_user(password: str) -> UserEntity:
+        return UserEntity.create_pending_verification(
+            email="new@example.com",
+            display_name="New User",
+            password_hash=await PasswordHandler.hash_password(password),
+        )
+
+    @pytest.mark.asyncio
+    async def test_correct_password_on_an_unverified_account_is_refused(self, jwt_handler):
+        mock_repo = AsyncMock()
+        mock_repo.find_by_email.return_value = await self.build_pending_user("Secure123!")
+
+        use_case = LoginUserUseCase(mock_repo, jwt_handler)
+
+        with pytest.raises(EmailNotVerifiedError):
+            await use_case.execute(LoginRequest(email="new@example.com", password="Secure123!"))
+
+    @pytest.mark.asyncio
+    async def test_wrong_password_on_an_unverified_account_reveals_nothing(self, jwt_handler):
+        """The verification state is only disclosed to someone who knows the password."""
+        mock_repo = AsyncMock()
+        mock_repo.find_by_email.return_value = await self.build_pending_user("Secure123!")
+
+        use_case = LoginUserUseCase(mock_repo, jwt_handler)
+
+        with pytest.raises(InvalidCredentialsError):
+            await use_case.execute(LoginRequest(email="new@example.com", password="WrongPass1!"))
+
+    @pytest.mark.asyncio
+    async def test_login_succeeds_once_the_email_is_verified(self, jwt_handler):
+        pending_user = await self.build_pending_user("Secure123!")
+        pending_user.verify_email()
+        mock_repo = AsyncMock()
+        mock_repo.find_by_email.return_value = pending_user
+
+        use_case = LoginUserUseCase(mock_repo, jwt_handler)
+        result = await use_case.execute(LoginRequest(email="new@example.com", password="Secure123!"))
+
+        assert result.token is not None

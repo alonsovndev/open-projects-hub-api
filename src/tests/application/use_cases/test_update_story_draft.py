@@ -17,6 +17,7 @@ from src.app.features.refinement.domain.entities.story_draft_entity import Story
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.refinement.domain.value_objects.draft_status import DraftStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestUpdateStoryDraftUseCase:
@@ -64,7 +65,7 @@ class TestUpdateStoryDraftUseCase:
         result = await use_case.execute(
             draft_id=str(draft_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result is not None
@@ -86,7 +87,7 @@ class TestUpdateStoryDraftUseCase:
             await use_case.execute(
                 draft_id=draft_id,
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
         mock_repo.save.assert_not_called()
@@ -139,7 +140,7 @@ class TestUpdateStoryDraftUseCase:
         result = await use_case.execute(
             draft_id=str(draft_id.value),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result is not None

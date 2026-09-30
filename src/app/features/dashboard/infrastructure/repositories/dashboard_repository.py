@@ -27,13 +27,14 @@ class DashboardRepositoryImpl(DashboardRepository):
         self._session = session
         self._log = get_logger(__name__)
 
-    async def get_aggregated_stats(self, user_id: UUID | None = None) -> dict:
+    async def get_aggregated_stats(self, *, workspace_id: UUID, user_id: UUID | None = None) -> dict:
         """
         Get all dashboard count statistics in a single query.
 
         Uses subqueries to aggregate counts from both projects and stories tables.
 
         Args:
+            workspace_id: Only projects and stories of this workspace are counted
             user_id: Optional user ID for user-specific stats
 
         Returns:
@@ -50,6 +51,7 @@ class DashboardRepositoryImpl(DashboardRepository):
                     func.sum(case((ProjectModel.status == ProjectStatus.ACTIVE, 1), else_=0)).label("active_projects"),
                 )
                 .select_from(ProjectModel)
+                .where(ProjectModel.workspace_id == workspace_id)
                 .subquery()
             )
 
@@ -64,7 +66,13 @@ class DashboardRepositoryImpl(DashboardRepository):
                     func.sum(case((StoryModel.assigned_to == user_id, 1), else_=0)).label("assigned_stories")
                 )
 
-            story_stats = select(*story_counts_cols).select_from(StoryModel).subquery()
+            story_stats = (
+                select(*story_counts_cols)
+                .select_from(StoryModel)
+                .join(ProjectModel, StoryModel.project_id == ProjectModel.id)
+                .where(ProjectModel.workspace_id == workspace_id)
+                .subquery()
+            )
 
             # Combine both subqueries in a single SELECT
             stmt = select(

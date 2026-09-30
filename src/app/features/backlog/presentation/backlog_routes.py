@@ -1,6 +1,5 @@
 """Backlog view and Markdown export routes."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -12,7 +11,8 @@ from src.app.features.backlog.application.use_cases.export_backlog_markdown impo
 from src.app.features.backlog.application.use_cases.get_project_backlog import GetProjectBacklogUseCase
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-from src.app.shared.presentation.auth_dependencies import get_current_user, require_admin
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.presentation.auth_dependencies import get_request_context, require_editor
 
 
 router = APIRouter()
@@ -25,7 +25,7 @@ async def get_project_backlog(
     project_id: UUID,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    ctx: RequestContext = Depends(get_request_context),
     use_case: GetProjectBacklogUseCase = Depends(get_get_project_backlog_use_case),
 ) -> PaginatedResponse[BacklogStoryResponse]:
     """
@@ -38,7 +38,7 @@ async def get_project_backlog(
         project_id: The project to read
         limit: Maximum number of stories per page
         offset: Number of stories to skip
-        current_user: Current authenticated user (from JWT)
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected GetProjectBacklogUseCase
 
     Returns:
@@ -49,7 +49,7 @@ async def get_project_backlog(
         404: Project not found
     """
     try:
-        return await use_case.execute(project_id=project_id, limit=limit, offset=offset)
+        return await use_case.execute(project_id=project_id, ctx=ctx, limit=limit, offset=offset)
     except ProjectNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
@@ -83,7 +83,7 @@ async def get_project_backlog(
 async def export_backlog_markdown(
     project_id: UUID,
     scope: MarkdownExportRequest | None = None,
-    current_user: dict[str, Any] = Depends(require_admin),
+    ctx: RequestContext = Depends(require_editor),
     use_case: ExportBacklogMarkdownUseCase = Depends(get_export_backlog_markdown_use_case),
 ) -> Response:
     """
@@ -96,7 +96,7 @@ async def export_backlog_markdown(
     Args:
         project_id: The project to export
         scope: Optional status and date-range narrowing; an absent body exports everything
-        current_user: Current authenticated admin (from JWT)
+        ctx: Caller identity and workspace (from JWT)
         use_case: Injected ExportBacklogMarkdownUseCase
 
     Returns:
@@ -109,7 +109,7 @@ async def export_backlog_markdown(
         422: Invalid scope (unknown status, inverted date range)
     """
     try:
-        export = await use_case.execute(project_id=project_id, scope=scope or MarkdownExportRequest())
+        export = await use_case.execute(project_id=project_id, scope=scope or MarkdownExportRequest(), ctx=ctx)
     except ProjectNotFoundError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 

@@ -39,9 +39,11 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.composition.features.ai_config import get_refinement_provider_resolver
+from src.app.composition.features.projects import get_project_repository
 from src.app.composition.infrastructure import get_database_session
 from src.app.composition.repositories import get_story_repository, get_user_repository
 from src.app.features.ai_config.application.services.refinement_provider_resolver import RefinementProviderResolver
+from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.refinement.application.use_cases.approve_draft import ApproveDraftUseCase
 from src.app.features.refinement.application.use_cases.approve_drafts_bulk import ApproveDraftsBulkUseCase
 from src.app.features.refinement.application.use_cases.delete_story_draft import DeleteStoryDraftUseCase
@@ -70,6 +72,7 @@ async def get_generate_stories_use_case(
     repository: StoryDraftRepository = Depends(get_draft_repository),
     provider_resolver: RefinementProviderResolver = Depends(get_refinement_provider_resolver),
     user_repository: UserRepository = Depends(get_user_repository),
+    project_repository: ProjectRepository = Depends(get_project_repository),
 ) -> GenerateStoriesFromNotesUseCase:
     """
     GenerateStoriesFromNotesUseCase factory.
@@ -77,7 +80,7 @@ async def get_generate_stories_use_case(
     Takes a provider resolver rather than a fixed AI service: which client serves a run
     depends on the provider the user selected and on whether they hold a key for it.
     """
-    return GenerateStoriesFromNotesUseCase(repository, provider_resolver, user_repository)
+    return GenerateStoriesFromNotesUseCase(repository, provider_resolver, user_repository, project_repository)
 
 
 async def get_update_draft_use_case(

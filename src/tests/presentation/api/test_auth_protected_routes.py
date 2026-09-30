@@ -17,9 +17,10 @@ def app_jwt_handler():
 def admin_token(app_jwt_handler):
     """Generate valid admin JWT token."""
     return app_jwt_handler.create_access_token(
-        user_id="admin-123",
+        user_id="550e8400-e29b-41d4-a716-446655440123",
         email="admin@example.com",
         role=UserRole.ADMIN.value,
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 
@@ -27,9 +28,10 @@ def admin_token(app_jwt_handler):
 def viewer_token(app_jwt_handler):
     """Generate valid viewer JWT token."""
     return app_jwt_handler.create_access_token(
-        user_id="viewer-456",
+        user_id="550e8400-e29b-41d4-a716-446655440456",
         email="viewer@example.com",
         role=UserRole.VIEWER.value,
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 

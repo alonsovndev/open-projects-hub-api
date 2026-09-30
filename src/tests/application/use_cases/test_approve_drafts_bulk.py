@@ -17,6 +17,7 @@ from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestApproveDraftsBulkUseCase:
@@ -56,7 +57,7 @@ class TestApproveDraftsBulkUseCase:
             updated_at=datetime.now(tz=UTC),
         )
 
-        def find_side_effect(draft_id):
+        def find_side_effect(draft_id, **_scope):
             if draft_id == draft_id_1.value:
                 return draft_1
             if draft_id == draft_id_2.value:
@@ -75,7 +76,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], created_by="test-user")
+        result = await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], ctx=make_request_context())
 
         assert len(result) == 2
         assert isinstance(result[0], StoryResponse)
@@ -91,7 +92,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([], created_by="test-user")
+        result = await use_case.execute([], ctx=make_request_context())
 
         assert result == []
         mock_draft_repo.find_by_id.assert_not_called()
@@ -119,7 +120,7 @@ class TestApproveDraftsBulkUseCase:
             updated_at=datetime.now(tz=UTC),
         )
 
-        def find_side_effect(draft_id):
+        def find_side_effect(draft_id, **_scope):
             if draft_id == draft_id_1.value:
                 return draft_1
             return None
@@ -144,7 +145,9 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        result = await use_case.execute([str(draft_id_1.value), str(missing_draft_id.value)], created_by="test-user")
+        result = await use_case.execute(
+            [str(draft_id_1.value), str(missing_draft_id.value)], ctx=make_request_context()
+        )
 
         assert len(result) == 1
         assert result[0].title == "Draft 1"
@@ -160,7 +163,7 @@ class TestApproveDraftsBulkUseCase:
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
         result = await use_case.execute(
-            [str(EntityId.generate().value), str(EntityId.generate().value)], created_by="test-user"
+            [str(EntityId.generate().value), str(EntityId.generate().value)], ctx=make_request_context()
         )
 
         assert result == []
@@ -200,7 +203,7 @@ class TestApproveDraftsBulkUseCase:
             updated_at=datetime.now(tz=UTC),
         )
 
-        def find_side_effect(draft_id):
+        def find_side_effect(draft_id, **_scope):
             if draft_id == draft_id_1.value:
                 return draft_1
             if draft_id == draft_id_2.value:
@@ -244,7 +247,7 @@ class TestApproveDraftsBulkUseCase:
 
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
-        await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], created_by="test-user")
+        await use_case.execute([str(draft_id_1.value), str(draft_id_2.value)], ctx=make_request_context())
 
         assert draft_1.status == DraftStatus.APPLIED
         assert draft_2.status == DraftStatus.APPLIED
@@ -276,4 +279,4 @@ class TestApproveDraftsBulkUseCase:
         use_case = ApproveDraftsBulkUseCase(mock_draft_repo, mock_story_repo)
 
         with pytest.raises(ValueError, match="Failed to create story from draft"):
-            await use_case.execute([str(draft_id.value)], created_by="test-user")
+            await use_case.execute([str(draft_id.value)], ctx=make_request_context())

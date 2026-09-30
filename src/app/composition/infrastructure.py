@@ -35,6 +35,9 @@ from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.persistence.engine_factory import get_engine
 
 
+_UNSET_ENV_VALUE = "N/A"
+
+
 @lru_cache(maxsize=1)
 def get_jwt_handler() -> JWTHandler:
     """
@@ -67,11 +70,18 @@ def get_email_sender() -> EmailSender:
     docstring for why it stays minimal until EPIC-9-BE-001 lands.
     """
     config = AppConfig.instance()
+
+    # pyaml_env resolves an unset `!ENV ${VAR}` to "N/A"; an empty default
+    # (`${VAR:}`) isn't an option because pyaml_env never substitutes it.
+    def credential(key: str) -> str:
+        value = config.get_config(key, "")
+        return "" if value == _UNSET_ENV_VALUE else value
+
     return SmtpEmailSender(
         host=config.get_config("smtp.host", "localhost"),
         port=int(config.get_config("smtp.port", 587)),
-        username=config.get_config("smtp.username", ""),
-        password=config.get_config("smtp.password", ""),
+        username=credential("smtp.username"),
+        password=credential("smtp.password"),
         from_address=config.get_config("smtp.from_address", "no-reply@open-projects-hub.local"),
         use_tls=bool(config.get_config("smtp.use_tls", True)),
     )

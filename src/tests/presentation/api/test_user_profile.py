@@ -29,6 +29,7 @@ def viewer_token(app_jwt_handler):
         user_id="12345678-90ab-cdef-1234-567890abcdef",
         email="user@example.com",
         role="viewer",
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 

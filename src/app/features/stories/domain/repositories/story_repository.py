@@ -1,4 +1,8 @@
-"""Story repository interface."""
+"""Story repository interface.
+
+Stories belong to a workspace through their project. Every read, count and delete is
+confined to one workspace; a story of another workspace behaves like one that does not exist.
+"""
 
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -12,7 +16,7 @@ class StoryRepository(ABC):
     """Abstract repository interface for Story entities."""
 
     @abstractmethod
-    async def find_by_id(self, story_id: UUID) -> Optional["StoryEntity"]:
+    async def find_by_id(self, story_id: UUID, *, workspace_id: UUID) -> Optional["StoryEntity"]:
         """
         Find story by ID.
 
@@ -26,6 +30,8 @@ class StoryRepository(ABC):
     @abstractmethod
     async def find_all(
         self,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
         project_id: UUID | None = None,
@@ -52,6 +58,8 @@ class StoryRepository(ABC):
     async def find_by_project_id(
         self,
         project_id: UUID,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
     ) -> list["StoryEntity"]:
@@ -96,7 +104,7 @@ class StoryRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_assigned_user(self, user_id: UUID) -> list["StoryEntity"]:
+    async def find_by_assigned_user(self, user_id: UUID, *, workspace_id: UUID) -> list["StoryEntity"]:
         """
         Find all stories assigned to a specific user.
 
@@ -110,6 +118,9 @@ class StoryRepository(ABC):
     @abstractmethod
     async def save(self, story: "StoryEntity") -> "StoryEntity":
         """
+        Callers must have confirmed the story's project is in their workspace (create) or
+        loaded the story through a scoped read (update); save itself does not re-check.
+
         Save or update a story.
 
         Args:
@@ -120,7 +131,7 @@ class StoryRepository(ABC):
         """
 
     @abstractmethod
-    async def delete(self, story_id: UUID) -> bool:
+    async def delete(self, story_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Delete a story by ID.
 
@@ -134,6 +145,8 @@ class StoryRepository(ABC):
     @abstractmethod
     async def count(
         self,
+        *,
+        workspace_id: UUID,
         project_id: UUID | None = None,
         status: str | None = None,
         priority: str | None = None,

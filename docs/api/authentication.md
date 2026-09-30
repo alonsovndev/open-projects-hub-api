@@ -81,6 +81,7 @@ The token contains the following claims:
   "sub": "123e4567-e89b-12d3-a456-426614174000",
   "email": "user@example.com",
   "role": "admin",
+  "wid": "9b2f0c1e-6d0a-4c47-9d8e-1f2a3b4c5d6e",
   "iat": 1714497600,
   "exp": 1714584000
 }
@@ -90,7 +91,8 @@ The token contains the following claims:
 |-------|-------------|
 | sub | User ID (subject) |
 | email | User email |
-| role | User role (admin or viewer) |
+| role | User role (admin, member or viewer) |
+| wid | Workspace ID. Every workspace-scoped route takes the workspace from this claim; a token without it gets 401 and must be refreshed |
 | iat | Issued at (Unix timestamp) |
 | exp | Expiration time (Unix timestamp) |
 
@@ -101,6 +103,17 @@ The token contains the following claims:
 ```json
 {
   "detail": "Invalid email or password"
+}
+```
+
+**Email Not Verified (403 Forbidden):** returned only when the password is correct, so it
+never reveals an account's state to someone guessing at emails. The web app keys off `code`
+to send the user to email verification.
+
+```json
+{
+  "detail": "Please verify your email before signing in.",
+  "code": "EMAIL_NOT_VERIFIED"
 }
 ```
 
@@ -232,6 +245,68 @@ Refresh tokens use single-use rotation: the old refresh token is revoked after u
   }
 }
 ```
+
+---
+
+## POST /v1/auth/register
+
+Open self sign-up. Each registration creates a **new, empty workspace** and makes the
+account its **Admin**; the account is created **unverified** with no AI credits and is
+emailed a verification code. No tokens are returned: the account can sign in only after
+`POST /v1/auth/verify-email` succeeds. Teammates (`member`) and clients (`viewer`) are
+added to the workspace by its Admin through `POST /v1/users`.
+
+**Request:** `{"displayName": "Jane Doe", "email": "jane@example.com", "password": "SecurePass1", "workspaceName": "Jane's Studio"}`
+
+`workspaceName` is optional (1–100 characters); it defaults to `"{displayName}'s workspace"`.
+
+**Response (201 Created):**
+
+```json
+{
+  "email": "ja***@example.com",
+  "verificationRequired": true,
+  "nextStep": "verify-email",
+  "codeExpiresAt": "2026-09-28T20:35:00+00:00"
+}
+```
+
+**Errors:** 409 email already registered · 422 invalid body (including a `role` field).
+
+**Undeliverable codes:** Resend's `onboarding@resend.dev` sender only reaches the Resend
+account owner. For other addresses in dev, run `make seed-admin`
+(`scripts/seed_admin.py`), which creates a verified admin in its own workspace.
+
+The code is 6 characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, stored only as a bcrypt
+hash, and expires after 5 minutes. It is sent through the SMTP relay configured in
+`SMTP_*` (Resend in dev); a delivery failure is logged and the user can resend.
+
+---
+
+## POST /v1/auth/verify-email
+
+**Request:** `{"email": "jane@example.com", "code": "ABC234"}` (case-insensitive)
+
+**Response (200 OK):** `{"verified": true}`. The account is verified and granted its free
+AI credits (F-010 FR-010-01).
+
+**Errors:**
+- 400 `Invalid or expired verification code`: the same response for a wrong, expired or
+  superseded code, an unknown email, or an already-verified account.
+- 429 `Too many attempts. Please request a new code.`: after 5 wrong attempts against one code.
+
+---
+
+## POST /v1/auth/resend-verification
+
+**Request:** `{"email": "jane@example.com"}`
+
+**Response (200 OK):** `{"message": "If this email is awaiting verification, a new code has been sent."}`.
+It is the same for unknown and already-verified emails, and in those cases no email is sent.
+A new code invalidates the previous one.
+
+**Errors:** 429 once 4 codes (the one sent at registration plus 3 resends) have been issued
+to the email within 15 minutes.
 
 ---
 

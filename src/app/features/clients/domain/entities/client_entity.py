@@ -23,6 +23,7 @@ class ClientEntity(BaseEntity):
         notes: str | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
+        workspace_id: EntityId | None = None,
     ):
         # Initialize base entity (id, created_at, updated_at)
         super().__init__(id=id, created_at=created_at, updated_at=updated_at)
@@ -34,6 +35,7 @@ class ClientEntity(BaseEntity):
         self._company = company
         self._address = address
         self._notes = notes
+        self._workspace_id = workspace_id
 
         self._validate()
 
@@ -74,6 +76,10 @@ class ClientEntity(BaseEntity):
         """Get client notes."""
         return self._notes
 
+    @property
+    def workspace_id(self) -> EntityId | None:
+        return self._workspace_id
+
     def update_details(
         self,
         name: str | None = None,
@@ -104,6 +110,7 @@ class ClientEntity(BaseEntity):
     def create(
         cls,
         name: str,
+        workspace_id: EntityId,
         email: str | None = None,
         phone: str | None = None,
         company: str | None = None,
@@ -124,6 +131,7 @@ class ClientEntity(BaseEntity):
             company=company,
             address=address,
             notes=notes,
+            workspace_id=workspace_id,
         )
 
     def __repr__(self) -> str:

@@ -60,7 +60,8 @@ curl -X POST http://localhost:8000/v1/auth/login \
   "user": {
     "email": "user@example.com",
     "displayName": "John Doe",
-    "role": "viewer"
+    "role": "viewer",
+    "workspace": { "id": "9b2f0c1e-6d0a-4c47-9d8e-1f2a3b4c5d6e", "name": "Jane's Studio" }
   }
 }
 ```
@@ -78,12 +79,22 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 
 Token expiry is configurable via the application configuration. Refresh tokens use single-use rotation (the old refresh token is revoked after use).
 
-### Roles
+### Workspaces and Roles
+
+Every account belongs to one **workspace**, and clients, projects, stories and drafts belong
+to a workspace. Each sign-up creates a new workspace; its Admin adds teammates and viewers
+with `POST /v1/users`. The workspace always comes from the token (`wid` claim), never from
+the path or body, and a record of another workspace answers **404**, exactly like one that
+does not exist.
 
 | Role | Description |
 |------|-------------|
-| `admin` | Full access to all resources including create/update/delete |
-| `viewer` | Read access to projects, stories, clients; can create stories |
+| `admin` | Everything a member can do, plus adding members and viewers (`POST /v1/users`) |
+| `member` | Full create/update/delete on clients, projects, stories and refinement; own AI keys; lists the team (`GET /v1/users`) |
+| `viewer` | Read-only: projects, stories, backlog and dashboard of the workspace; no clients, drafts or AI settings |
+
+`POST /v1/users` accepts `role` `member` (default) or `viewer`; `admin` is rejected (422).
+Added accounts are verified on creation and receive no free platform AI credits.
 
 ## Rate Limiting
 
@@ -93,6 +104,8 @@ Rate limiting is applied per IP address.
 |----------|-------|--------|
 | `/v1/auth/login` | 10 requests | 1 minute |
 | `/v1/auth/register` | 5 requests | 1 minute |
+| `/v1/auth/verify-email` | 10 requests | 15 minutes |
+| `/v1/auth/resend-verification` | 5 requests | 15 minutes |
 | `/v1/auth/refresh` | 10 requests | 15 minutes |
 | All other endpoints | 100 requests | 1 minute |
 
@@ -311,7 +324,7 @@ curl -X GET http://localhost:8000/v1/users/me/profile \
 ## Detailed Endpoint Documentation
 
 - [API Contract](./api-contract.md) - Complete endpoint reference
-- [Authentication Guide](./authentication.md) - Login, register, refresh flows
+- [Authentication Guide](./authentication.md) - Login, register, email verification, refresh flows
 - [Error Reference](./errors.md) - All error codes and responses
 
 ## API Versioning

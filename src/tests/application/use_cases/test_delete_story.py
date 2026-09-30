@@ -16,6 +16,7 @@ from src.app.features.stories.domain.exceptions.story_exceptions import StoryNot
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestDeleteStoryUseCase:
@@ -44,11 +45,11 @@ class TestDeleteStoryUseCase:
 
         use_case = DeleteStoryUseCase(mock_repo)
 
-        result = await use_case.execute(str(story_id), created_by="test-user")
+        result = await use_case.execute(str(story_id), ctx=make_request_context())
 
         assert result is None
-        mock_repo.find_by_id.assert_called_once_with(story_id)
-        mock_repo.delete.assert_called_once_with(story_id)
+        mock_repo.find_by_id.assert_called_once_with(story_id, workspace_id=TEST_WORKSPACE_UUID)
+        mock_repo.delete.assert_called_once_with(story_id, workspace_id=TEST_WORKSPACE_UUID)
 
     @pytest.mark.asyncio
     async def test_execute_returns_false_when_story_not_found(self):
@@ -60,7 +61,7 @@ class TestDeleteStoryUseCase:
         story_id = uuid4()
 
         with pytest.raises(StoryNotFoundError):
-            await use_case.execute(str(story_id), created_by="test-user")
+            await use_case.execute(str(story_id), ctx=make_request_context())
 
         mock_repo.find_by_id.assert_called_once()
         mock_repo.delete.assert_not_called()
@@ -88,7 +89,7 @@ class TestDeleteStoryUseCase:
 
         use_case = DeleteStoryUseCase(mock_repo)
 
-        await use_case.execute(str(story_id), created_by="test-user")
+        await use_case.execute(str(story_id), ctx=make_request_context())
 
         called_with = mock_repo.find_by_id.call_args[0][0]
         assert called_with == story_id
@@ -103,6 +104,6 @@ class TestDeleteStoryUseCase:
 
         # Execute & Assert
         with pytest.raises(ValueError):
-            await use_case.execute("not-a-valid-uuid", created_by="test-user")
+            await use_case.execute("not-a-valid-uuid", ctx=make_request_context())
 
         mock_repo.delete.assert_not_called()

@@ -48,6 +48,7 @@ def admin_token(app_jwt_handler):
         user_id="550e8400-e29b-41d4-a716-446655440001",
         email="admin@example.com",
         role="admin",
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 
@@ -58,6 +59,7 @@ def viewer_token(app_jwt_handler):
         user_id="550e8400-e29b-41d4-a716-446655440002",
         email="viewer@example.com",
         role="viewer",
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 
@@ -312,7 +314,7 @@ class TestRefinementCreditExhaustion:
         """FR-010-06: the caller picks the provider for the run."""
         captured = {}
 
-        async def capture(self, request, created_by):
+        async def capture(self, request, ctx):
             captured["provider"] = request.provider
             raise AICreditsExhaustedError
 

@@ -1,7 +1,12 @@
 from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, LoginRequest
 from src.app.features.auth.application.mappers.auth_mapper import to_admin_login_response
-from src.app.features.auth.domain.exceptions.auth_exceptions import AccountLockedError, InvalidCredentialsError
+from src.app.features.auth.domain.exceptions.auth_exceptions import (
+    AccountLockedError,
+    EmailNotVerifiedError,
+    InvalidCredentialsError,
+)
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.account_lockout_service import (
     AccountLockoutService,
@@ -27,10 +32,12 @@ class LoginUserUseCase:
         user_repository: UserRepository,
         jwt_handler: JWTHandler,
         lockout_service: AccountLockoutService | None = None,
+        workspace_repository: WorkspaceRepository | None = None,
     ):
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
         self.lockout_service = lockout_service or get_account_lockout_service()
+        self.workspace_repository = workspace_repository
 
     async def execute(self, payload: LoginRequest) -> AdminLoginResponse:
         """
@@ -106,12 +113,22 @@ class LoginUserUseCase:
                 await self.lockout_service.record_failed_attempt(email_lower)
                 raise InvalidCredentialsError()
 
+            # Checked only after the password matches, so an unverified account's state is
+            # never revealed to someone guessing at emails.
+            if not user_entity.is_email_verified:
+                log.warning(
+                    "Login attempt before email verification",
+                    extra={"event_type": "auth.login.email_not_verified", "user_id": str(user_entity.id)},
+                )
+                raise EmailNotVerifiedError
+
             await self.lockout_service.record_successful_login(email_lower)
 
             token = self.jwt_handler.create_access_token(
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
                 role=user_entity.role.value,
+                workspace_id=str(user_entity.workspace_id) if user_entity.workspace_id else None,
             )
 
             refresh_token = self.jwt_handler.create_refresh_token(
@@ -123,7 +140,12 @@ class LoginUserUseCase:
             )
             session_expires_at = self.jwt_handler.get_token_expiry(refresh_token)
 
-            response = to_admin_login_response(user_entity, token, refresh_token, session_expires_at)
+            workspace = (
+                await self.workspace_repository.find_by_id(user_entity.workspace_id)
+                if self.workspace_repository and user_entity.workspace_id
+                else None
+            )
+            response = to_admin_login_response(user_entity, token, refresh_token, session_expires_at, workspace)
 
             log.info(
                 "User logged in successfully",
@@ -137,7 +159,7 @@ class LoginUserUseCase:
 
             return response
 
-        except (InvalidCredentialsError, AccountLockedError):
+        except (InvalidCredentialsError, AccountLockedError, EmailNotVerifiedError):
             raise
         except Exception:
             log.exception("Unexpected error during login", extra={"event_type": "auth.login.unexpected_error"})

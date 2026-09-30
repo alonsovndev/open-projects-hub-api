@@ -56,10 +56,10 @@ monitoring:
 smtp:
   host: !ENV ${SMTP_HOST:localhost}
   port: !ENV ${SMTP_PORT:1025}
-  username: !ENV ${SMTP_USERNAME:}
-  password: !ENV ${SMTP_PASSWORD:}
+  username: !ENV ${SMTP_USERNAME}
+  password: !ENV ${SMTP_PASSWORD}
   from_address: !ENV ${SMTP_FROM_ADDRESS:no-reply@open-projects-hub.local}
-  use_tls: false
+  use_tls: true
 
 auth:
   persist_session_state: true

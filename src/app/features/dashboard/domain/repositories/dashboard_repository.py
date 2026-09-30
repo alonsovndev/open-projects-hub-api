@@ -8,11 +8,12 @@ class DashboardRepository(ABC):
     """Abstract repository interface for dashboard queries."""
 
     @abstractmethod
-    async def get_aggregated_stats(self, user_id: UUID | None = None) -> dict:
+    async def get_aggregated_stats(self, *, workspace_id: UUID, user_id: UUID | None = None) -> dict:
         """
         Get all dashboard count statistics in a single query.
 
         Args:
+            workspace_id: Only projects and stories of this workspace are counted
             user_id: Optional user ID for user-specific stats
 
         Returns:

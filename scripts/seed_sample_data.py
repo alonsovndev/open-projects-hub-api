@@ -288,13 +288,15 @@ STORIES_BY_PROJECT_CODE = {
 }
 
 
-async def _get_or_create_client(repository: ClientRepositoryImpl, data: dict) -> tuple[ClientEntity, bool]:
-    """Return (client, created) — reuses an existing client matched by email."""
-    existing = await repository.find_by_email(data["email"])
+async def _get_or_create_client(
+    repository: ClientRepositoryImpl, data: dict, workspace_id: EntityId
+) -> tuple[ClientEntity, bool]:
+    """Return (client, created) — reuses an existing client of the workspace matched by email."""
+    existing = await repository.find_by_email(data["email"], workspace_id=workspace_id.value)
     if existing:
         return existing, False
 
-    entity = ClientEntity.create(**data)
+    entity = ClientEntity.create(**data, workspace_id=workspace_id)
     saved = await repository.save(entity)
     return saved, True
 
@@ -306,9 +308,10 @@ async def _get_or_create_project(
     client_id: EntityId,
     created_by: EntityId,
     spec: dict,
+    workspace_id: EntityId,
 ) -> tuple[ProjectEntity, bool]:
-    """Return (project, created) — reuses an existing project matched by code."""
-    stmt = select(ProjectModel).where(ProjectModel.code == code)
+    """Return (project, created) — reuses an existing project of the workspace matched by code."""
+    stmt = select(ProjectModel).where(ProjectModel.code == code, ProjectModel.workspace_id == workspace_id.value)
     result = await session.execute(stmt)
     existing_model = result.scalar_one_or_none()
     if existing_model:
@@ -319,6 +322,7 @@ async def _get_or_create_project(
         code=code,
         created_by=created_by,
         client_id=client_id,
+        workspace_id=workspace_id,
         description=spec["description"],
         priority=spec["priority"],
     )
@@ -335,7 +339,7 @@ async def _seed_stories_for_project(
     story_repository: StoryRepositoryImpl, project: ProjectEntity, created_by, admin_id, stories_spec: list[dict]
 ) -> int:
     """Seed stories for a project, skipping if it already has any (idempotent)."""
-    existing_count = await story_repository.count(project_id=project.id.value)
+    existing_count = await story_repository.count(workspace_id=project.workspace_id.value, project_id=project.id.value)
     if existing_count > 0:
         return 0
 
@@ -395,7 +399,7 @@ async def seed_sample_data():
             stories_created = 0
 
             for client_index, client_data in enumerate(CLIENTS):
-                client, created = await _get_or_create_client(client_repository, client_data)
+                client, created = await _get_or_create_client(client_repository, client_data, admin.workspace_id)
                 clients_created += int(created)
                 print(f"{'✅ Created' if created else '↪️  Existing'} client: {client.name}")
 
@@ -407,6 +411,7 @@ async def seed_sample_data():
                         client.id,
                         admin.id,
                         project_spec,
+                        admin.workspace_id,
                     )
                     projects_created += int(created)
                     print(f"   {'✅ Created' if created else '↪️  Existing'} project: {project.code} — {project.name}")
