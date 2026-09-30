@@ -38,7 +38,7 @@ means either role; `Admin Only` means a Viewer receives 403.
 | `POST` | `/v1/clients` | Admin Only | Create client |
 | `GET` | `/v1/clients` | Admin Only | List clients with pagination |
 | `GET` | `/v1/clients/{client_id}` | Admin Only | Get client by ID |
-| `PUT` | `/v1/clients/{client_id}` | Admin Only | Update client |
+| `PATCH` | `/v1/clients/{client_id}` | Admin Only | Update client |
 | `DELETE` | `/v1/clients/{client_id}` | Admin Only | Delete client (409 if active projects exist; archived projects removed as part of deletion) |
 | `POST` | `/v1/projects` | Admin Only | Create project (max 3 active projects per admin) |
 | `GET` | `/v1/projects` | Authenticated | List projects with pagination and filters (status, clientId, date ranges, search) |

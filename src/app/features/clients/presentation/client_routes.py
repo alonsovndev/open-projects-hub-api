@@ -138,7 +138,7 @@ async def get_client_by_id(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
-@router.put(
+@router.patch(
     "/{client_id}",
     response_model=ClientResponse,
 )

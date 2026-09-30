@@ -250,7 +250,7 @@ class TestGetClientByIdEndpoint:
 
 
 class TestUpdateClientEndpoint:
-    """Test PUT /v1/clients/{client_id} endpoint."""
+    """Test PATCH /v1/clients/{client_id} endpoint."""
 
     def test_update_client_success(self, client: TestClient, admin_token: str, mock_client_response):
         """Test updating client returns updated data."""
@@ -270,7 +270,7 @@ class TestUpdateClientEndpoint:
             "src.app.features.clients.application.use_cases.update_client.UpdateClientUseCase.execute",
             new=AsyncMock(return_value=updated_response),
         ):
-            response = client.put(
+            response = client.patch(
                 "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
                 json={"name": "Updated Name", "company": "Updated Company"},
                 headers={"Authorization": f"Bearer {admin_token}"},
@@ -283,7 +283,7 @@ class TestUpdateClientEndpoint:
 
     def test_update_client_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
         """Test updating client as viewer returns 403."""
-        response = client.put(
+        response = client.patch(
             "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
             json={"name": "Updated"},
             headers={"Authorization": f"Bearer {viewer_token}"},
@@ -297,7 +297,7 @@ class TestUpdateClientEndpoint:
             "src.app.features.clients.application.use_cases.update_client.UpdateClientUseCase.execute",
             new=AsyncMock(side_effect=ClientNotFoundError("550e8400-e29b-41d4-a716-446655440999")),
         ):
-            response = client.put(
+            response = client.patch(
                 "/v1/clients/550e8400-e29b-41d4-a716-446655440999",
                 json={"name": "Updated"},
                 headers={"Authorization": f"Bearer {admin_token}"},
@@ -307,7 +307,7 @@ class TestUpdateClientEndpoint:
 
     def test_update_client_validation_error(self, client: TestClient, admin_token: str):
         """Test updating client with empty name returns 422."""
-        response = client.put(
+        response = client.patch(
             "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
             json={"name": ""},
             headers={"Authorization": f"Bearer {admin_token}"},

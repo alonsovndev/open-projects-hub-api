@@ -36,7 +36,7 @@ ID_ROUTES = [
         ClientNotFoundError(RECORD_ID),
     ),
     (
-        "PUT",
+        "PATCH",
         f"/v1/clients/{RECORD_ID}",
         "clients.application.use_cases.update_client.UpdateClientUseCase",
         ClientNotFoundError(RECORD_ID),
@@ -140,7 +140,7 @@ ID_ROUTES = [
 ]
 
 BODIES: dict[str, dict[str, Any]] = {
-    "PUT /v1/clients": {"name": "Acme"},
+    "PATCH /v1/clients": {"name": "Acme"},
     "PATCH /v1/projects": {"name": "Renamed"},
     "PATCH /v1/stories": {"title": "Renamed"},
     "POST /v1/stories": {"userId": str(uuid4())},
