@@ -55,8 +55,7 @@ Runs the API and PostgreSQL together with Docker Compose — no local Python ins
 cp .env.example .env
 # Required in .env: POSTGRES_PASSWORD, SECRET_KEY, API_KEY_ENCRYPTION_KEY
 #   (generate the last one with the command shown in .env.example)
-# Optional: GEMINI_API_KEY / OPENAI_API_KEY / DEEPSEEK_API_KEY — without the key for
-#   `ai.provider` in config_container.yml, refinement falls back to the mock AI service.
+# Optional: GEMINI_API_KEY — without it, refinement falls back to the mock AI service.
 
 docker compose up --build          # add -d to run in the background
 ```

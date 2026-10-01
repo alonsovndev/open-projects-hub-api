@@ -6,7 +6,6 @@ import pytest
 
 from src.app.config.app_config import AppConfig
 from src.app.features.ai_config.domain.value_objects.ai_provider import AIProvider
-from src.app.features.ai_config.infrastructure.ai.openai_compatible_service import OpenAICompatibleService
 from src.app.features.ai_config.infrastructure.ai.user_ai_service_factory import create_user_ai_service
 from src.app.features.refinement.infrastructure.ai.ai_factory import create_ai_service
 from src.app.features.refinement.infrastructure.ai.gemini_service import GeminiService
@@ -27,11 +26,11 @@ class FakeConfig:
             return default
 
 
-def providers_section(**api_keys: str) -> dict[str, Any]:
+def providers_section(gemini: str = "") -> dict[str, Any]:
     return {
-        "gemini": {"model": "gemini-test", "api_key": api_keys.get("gemini", "")},
-        "openai": {"model": "gpt-test", "api_key": api_keys.get("openai", "")},
-        "deepseek": {"model": "deepseek-test", "api_key": api_keys.get("deepseek", "")},
+        "gemini": {"model": "gemini-test", "api_key": gemini},
+        "openai": {"model": "gpt-test"},
+        "deepseek": {"model": "deepseek-test"},
     }
 
 
@@ -49,19 +48,10 @@ def test_mock_provider_returns_mock_even_with_keys(use_ai_config):
     assert isinstance(create_ai_service(), MockAIService)
 
 
-def test_selected_provider_uses_its_key_and_model(use_ai_config):
-    use_ai_config({"provider": "openai", "providers": providers_section(openai="sk-real")})
+def test_platform_ignores_non_mock_provider_setting(use_ai_config):
+    use_ai_config({"provider": "openai", "providers": providers_section(gemini="real-key")})
 
-    service = create_ai_service()
-
-    assert isinstance(service, OpenAICompatibleService)
-    assert service._model == "gpt-test"
-
-
-def test_selected_provider_without_key_falls_back_to_mock(use_ai_config):
-    use_ai_config({"provider": "deepseek", "providers": providers_section(gemini="real-key")})
-
-    assert isinstance(create_ai_service(), MockAIService)
+    assert isinstance(create_ai_service(), GeminiService)
 
 
 def test_no_provider_auto_detects_gemini(use_ai_config):
@@ -71,12 +61,6 @@ def test_no_provider_auto_detects_gemini(use_ai_config):
 
     assert isinstance(service, GeminiService)
     assert service._model == "gemini-test"
-
-
-def test_unknown_provider_falls_back_to_mock(use_ai_config):
-    use_ai_config({"provider": "gemni", "providers": providers_section(gemini="real-key")})
-
-    assert isinstance(create_ai_service(), MockAIService)
 
 
 def test_blank_provider_auto_detects_gemini(use_ai_config):

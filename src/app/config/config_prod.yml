@@ -63,17 +63,14 @@ auth:
   persist_session_state: true
 
 ai:
-  provider: gemini    # gemini | openai | deepseek | mock
   providers:
     gemini:
       model: gemini-3.1-flash-lite
       api_key: !ENV ${GEMINI_API_KEY}
     openai:
       model: gpt-4o-mini
-      api_key: !ENV ${OPENAI_API_KEY}
     deepseek:
       model: deepseek-chat
-      api_key: !ENV ${DEEPSEEK_API_KEY}
 
 project_limits:
   max_active_per_admin: 3

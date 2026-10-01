@@ -1,4 +1,4 @@
-"""AI service factory - creates the appropriate AI service based on config."""
+"""AI service factory - creates the platform AI service based on config."""
 
 from src.app.config.app_config import AppConfig
 from src.app.features.ai_config.domain.value_objects.ai_provider import AIProvider
@@ -17,39 +17,30 @@ def create_ai_service() -> AIService:
     """
     Create the platform AI service (spends platform credits) based on application configuration.
 
+    The platform always uses Gemini; users who want another provider bring their own key.
+
     Priority order:
     1. `ai.provider: mock` forces MockAIService
-    2. `ai.provider` naming gemini/openai/deepseek, when `ai.providers.<name>.api_key` is valid
-    3. Gemini if no provider is set and its key is valid
-    4. MockAIService for development (no usable key)
+    2. Gemini, when `ai.providers.gemini.api_key` is valid
+    3. MockAIService for development (no usable key)
     """
     config = AppConfig.instance()
 
-    provider = (config.get_config("ai.provider") or "").lower()
-
-    # Detect placeholder/dummy keys; pyaml_env resolves an unset `!ENV ${VAR}` to "N/A".
-    def is_valid_key(key: str) -> bool:
-        return bool(
-            key
-            and key.strip()
-            and key != _UNSET_ENV_VALUE
-            and not key.startswith("your_")
-            and not key.startswith("placeholder")
-        )
-
-    if provider == "mock":
+    if (config.get_config("ai.provider") or "").lower() == "mock":
         log.info("Using MockAIService for story refinement (explicit config)")
         return MockAIService()
 
-    selected = provider or AIProvider.GEMINI.value
-    if selected not in AIProvider:
-        log.error(f"Unknown ai.provider '{selected}' in config. Using MockAIService.")
-        return MockAIService()
+    api_key = config.get_config("ai.providers.gemini.api_key", "")
+    # pyaml_env resolves an unset `!ENV ${VAR}` to "N/A"; also reject placeholder keys.
+    if (
+        api_key
+        and api_key.strip()
+        and api_key != _UNSET_ENV_VALUE
+        and not api_key.startswith("your_")
+        and not api_key.startswith("placeholder")
+    ):
+        log.info("Using gemini service for story refinement")
+        return create_user_ai_service(AIProvider.GEMINI, api_key)
 
-    api_key = config.get_config(f"ai.providers.{selected}.api_key", "")
-    if is_valid_key(api_key):
-        log.info(f"Using {selected} service for story refinement")
-        return create_user_ai_service(AIProvider(selected), api_key)
-
-    log.warning(f"No valid API key configured for AI provider '{selected}'. Using MockAIService for development.")
+    log.warning("No valid Gemini API key configured. Using MockAIService for development.")
     return MockAIService()

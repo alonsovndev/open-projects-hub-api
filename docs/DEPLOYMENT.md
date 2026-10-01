@@ -76,11 +76,8 @@ CORS_ALLOW_CREDENTIALS=true
 # losing or changing it makes every stored user key undecryptable)
 API_KEY_ENCRYPTION_KEY=<GENERATE_BASE64_32_BYTES>
 
-# Platform AI provider keys — only the one named by `ai.provider` in config_<env>.yml is used;
-# without it, story refinement falls back to the mock AI service
+# Platform AI key (Gemini); without it, story refinement falls back to the mock AI service
 GEMINI_API_KEY=
-OPENAI_API_KEY=
-DEEPSEEK_API_KEY=
 ```
 
 **Generate strong secrets:**
