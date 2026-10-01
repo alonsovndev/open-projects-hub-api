@@ -80,6 +80,7 @@ API_KEY_ENCRYPTION_KEY=<GENERATE_BASE64_32_BYTES>
 GEMINI_API_KEY=
 
 # Email (Resend SMTP relay); sender must be a full address on a Resend-verified domain
+# DNS, DMARC and spam checklist: docs/configuration/email-deliverability.md
 SMTP_HOST=smtp.resend.com
 SMTP_USERNAME=resend
 SMTP_PASSWORD=<RESEND_API_KEY>
