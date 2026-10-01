@@ -89,7 +89,7 @@ does not exist.
 
 | Role | Description |
 |------|-------------|
-| `admin` | Everything a member can do, plus adding members and viewers (`POST /v1/users`) |
+| `admin` | Everything a member can do, plus adding members and viewers (`POST /v1/users`) changing their role (`PATCH /v1/users/{id}/role`) and switching them active/inactive (`PATCH /v1/users/{id}/status`) and deleting them (`DELETE /v1/users/{id}`) |
 | `member` | Full create/update/delete on clients, projects, stories and refinement; own AI keys; lists the team (`GET /v1/users`) |
 | `viewer` | Read-only: projects, stories, backlog and dashboard of the workspace; no clients, refinement or AI settings |
 
@@ -98,6 +98,27 @@ does not exist.
 
 `POST /v1/users` accepts `role` `member` (default) or `viewer`; `admin` is rejected (422).
 Added accounts are verified on creation and receive no free platform AI credits.
+
+`PATCH /v1/users/{id}/role` (Admin only) switches a teammate between `member` and `viewer`.
+Body: `{ "role": "viewer" }`. Returns the updated user. Errors: 400 if the target is the
+workspace Admin, 403 for non-admins, 404 for an unknown user or one in another workspace,
+422 for any role other than `member`/`viewer`. The person's refresh tokens are revoked, so the new
+role applies once their current access token expires and they sign in again (the token
+already issued keeps the old role until then).
+
+User responses include `isActive`. `PATCH /v1/users/{id}/status` (Admin only) takes
+`{ "active": false }` or `{ "active": true }` and returns the updated user. An inactive account
+stays in `GET /v1/users` but cannot sign in or refresh a session and cannot be assigned
+stories; its data is untouched, and an access token already issued works until it expires.
+Switching it back on lets the person sign in again with their existing password.
+
+`DELETE /v1/users/{id}` (Admin only) permanently deletes a teammate and answers **204**. The
+projects and stories they created, and the stories assigned to them, move to the Admin making
+the call, and their stored AI keys are erased. The email becomes free to add again. This cannot
+be undone.
+
+Both endpoints answer 400 when the target is the workspace Admin, 403 for non-admins, and 404
+for an unknown or other-workspace user.
 
 ## Rate Limiting
 

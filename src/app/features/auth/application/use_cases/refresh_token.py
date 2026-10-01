@@ -79,7 +79,7 @@ class RefreshTokenUseCase:
             # Verify user still exists
             user_entity = await self.user_repository.find_by_email(Email(email))
 
-            if not user_entity:
+            if not user_entity or not user_entity.is_active:
                 log.warning(
                     "Refresh token used for non-existent user",
                     extra={"event_type": "auth.refresh.user_not_found", "email": email},

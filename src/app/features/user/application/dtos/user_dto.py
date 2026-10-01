@@ -5,6 +5,26 @@ from src.app.features.user.domain.validators.user_validators import UserValidato
 from src.app.features.user.domain.value_objects.user_role import UserRole
 
 
+def _validate_assignable_role(role: str | None) -> str:
+    """
+    Only teammates and viewers can be given to someone in a workspace.
+
+    A workspace has exactly one Admin, so Admin is never assignable.
+
+    Raises:
+        ValueError: If role is not member or viewer
+    """
+    if role is None:
+        return UserRole.MEMBER.value
+
+    role_lower = role.lower().strip()
+    assignable_roles = [UserRole.MEMBER.value, UserRole.VIEWER.value]
+    if role_lower not in assignable_roles:
+        raise ValueError(f"Role must be one of: {', '.join(assignable_roles)}")
+
+    return role_lower
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
@@ -12,6 +32,7 @@ class UserResponse(BaseModel):
     email: str
     display_name: str
     role: str
+    is_active: bool = True
 
 
 class UserCreateRequest(BaseModel):
@@ -32,24 +53,7 @@ class UserCreateRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def validate_role(cls, role: str | None) -> str:
-        """
-        Only teammates and viewers can be added to a workspace.
-
-        A second Admin is refused until roles can be changed and accounts removed; until
-        then an extra Admin could not be demoted or taken out of the workspace.
-
-        Raises:
-            ValueError: If role is not member or viewer
-        """
-        if role is None:
-            return UserRole.MEMBER.value
-
-        role_lower = role.lower().strip()
-        assignable_roles = [UserRole.MEMBER.value, UserRole.VIEWER.value]
-        if role_lower not in assignable_roles:
-            raise ValueError(f"Role must be one of: {', '.join(assignable_roles)}")
-
-        return role_lower
+        return _validate_assignable_role(role)
 
     @field_validator("password")
     @classmethod
@@ -57,6 +61,27 @@ class UserCreateRequest(BaseModel):
         """Validate password meets complexity requirements."""
         UserValidators.validate_password(password)
         return password
+
+
+class UpdateUserRoleRequest(BaseModel):
+    """Request model for an Admin changing a teammate's role."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    role: str
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, role: str) -> str:
+        return _validate_assignable_role(role)
+
+
+class UpdateUserStatusRequest(BaseModel):
+    """Request model for an Admin activating or deactivating a teammate."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    active: bool
 
 
 class UpdateProfileRequest(BaseModel):

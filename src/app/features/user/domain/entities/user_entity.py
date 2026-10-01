@@ -26,6 +26,7 @@ class UserEntity(BaseEntity):
         workspace_id: EntityId | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
+        deactivated_at: datetime | None = None,
     ):
         self._email = email
         self._display_name = display_name
@@ -36,6 +37,7 @@ class UserEntity(BaseEntity):
         self._ai_credits_granted = ai_credits_granted
         self._email_verified_at = email_verified_at
         self._workspace_id = workspace_id
+        self._deactivated_at = deactivated_at
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -73,6 +75,14 @@ class UserEntity(BaseEntity):
     @property
     def workspace_id(self) -> EntityId | None:
         return self._workspace_id
+
+    @property
+    def deactivated_at(self) -> datetime | None:
+        return self._deactivated_at
+
+    @property
+    def is_active(self) -> bool:
+        return self._deactivated_at is None
 
     @property
     def is_email_verified(self) -> bool:
@@ -210,6 +220,20 @@ class UserEntity(BaseEntity):
 
     def belongs_to(self, workspace_id: EntityId) -> bool:
         return self._workspace_id is not None and self._workspace_id.value == workspace_id.value
+
+    def deactivate(self) -> None:
+        """Block sign-in and end every session (see revoke_sessions)."""
+        self._deactivated_at = datetime.now(UTC)
+        self.revoke_sessions()
+
+    def activate(self) -> None:
+        """
+        Let a deactivated account sign in again.
+
+        The token version is left alone: sessions revoked by deactivate() stay revoked.
+        """
+        self._deactivated_at = None
+        self.mark_as_updated()
 
     def revoke_sessions(self) -> None:
         """
