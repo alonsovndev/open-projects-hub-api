@@ -75,7 +75,7 @@ async def get_story_repository(
 
     Used by:
     - stories: CRUD operations for user stories
-    - refinement: Draft approval (converts drafts to stories)
+    - refinement: Approval of refined stories (saves them as stories)
     - dashboard: Story statistics and metrics
 
     This is the primary data access layer for user story entities. The repository

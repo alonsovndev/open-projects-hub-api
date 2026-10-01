@@ -49,24 +49,24 @@
         "title": "AdminLoginResponse",
         "type": "object"
       },
-      "ApproveDraftsBulkRequest": {
-        "description": "Request model for bulk approving drafts.",
+      "ApproveStoriesBulkRequest": {
+        "description": "Request model for approving several refined stories at once.",
         "properties": {
-          "draftIds": {
+          "stories": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ApproveStoryRequest"
             },
-            "title": "Draftids",
+            "title": "Stories",
             "type": "array"
           }
         },
         "required": [
-          "draftIds"
+          "stories"
         ],
-        "title": "ApproveDraftsBulkRequest",
+        "title": "ApproveStoriesBulkRequest",
         "type": "object"
       },
-      "ApproveDraftsBulkResponse": {
+      "ApproveStoriesBulkResponse": {
         "description": "Response model for bulk approve operation.",
         "properties": {
           "approvedCount": {
@@ -85,7 +85,45 @@
           "approvedCount",
           "stories"
         ],
-        "title": "ApproveDraftsBulkResponse",
+        "title": "ApproveStoriesBulkResponse",
+        "type": "object"
+      },
+      "ApproveStoryRequest": {
+        "description": "A refined story the Admin approved; it is saved to the backlog only now.",
+        "properties": {
+          "acceptanceCriteria": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Acceptancecriteria",
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "projectId": {
+            "title": "Projectid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "title"
+        ],
+        "title": "ApproveStoryRequest",
         "type": "object"
       },
       "AssignStoryRequest": {
@@ -103,7 +141,7 @@
         "type": "object"
       },
       "BulkApprovedStory": {
-        "description": "Lightweight reference to a story created from bulk draft approval.",
+        "description": "Lightweight reference to a story created from bulk approval.",
         "properties": {
           "id": {
             "title": "Id",
@@ -525,17 +563,12 @@
             "title": "Description",
             "type": "string"
           },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
           "title": {
             "title": "Title",
             "type": "string"
           }
         },
         "required": [
-          "id",
           "title",
           "description",
           "acceptanceCriteria"
@@ -1164,49 +1197,6 @@
         "title": "UpdateProjectRequest",
         "type": "object"
       },
-      "UpdateStoryDraftRequest": {
-        "description": "Request model for updating a story draft.",
-        "properties": {
-          "acceptanceCriteria": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Acceptancecriteria"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title"
-          }
-        },
-        "title": "UpdateStoryDraftRequest",
-        "type": "object"
-      },
       "UpdateStoryRequest": {
         "description": "DTO for updating a story.",
         "properties": {
@@ -1404,7 +1394,7 @@
     }
   },
   "info": {
-    "description": "REST API for Open Projects Hub \u2014 project, client, and story management with JWT authentication and role-based access control. See [docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/blob/main/docs/api/README.md) for auth flows, pagination, and code examples.",
+    "description": "REST API for Open Projects Hub — project, client, and story management with JWT authentication and role-based access control. See [docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/blob/main/docs/api/README.md) for auth flows, pagination, and code examples.",
     "title": "Open Projects Hub API",
     "version": "1.0.0"
   },
@@ -2197,7 +2187,7 @@
         ]
       },
       "patch": {
-        "description": "Update project.\n\nRequires ADMIN role. Supports partial updates \u2014 only provided fields are changed.\n\nArgs:\n    project_id: Project UUID\n    payload: UpdateProjectRequest with fields to update\n    current_user: Current authenticated admin user\n    use_case: Injected UpdateProjectUseCase\n\nReturns:\n    ProjectResponse with updated project data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
+        "description": "Update project.\n\nRequires ADMIN role. Supports partial updates — only provided fields are changed.\n\nArgs:\n    project_id: Project UUID\n    payload: UpdateProjectRequest with fields to update\n    current_user: Current authenticated admin user\n    use_case: Injected UpdateProjectUseCase\n\nReturns:\n    ProjectResponse with updated project data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
         "operationId": "update_project_v1_projects__project_id__patch",
         "parameters": [
           {
@@ -2352,15 +2342,15 @@
         ]
       }
     },
-    "/v1/refinement/approve-drafts": {
+    "/v1/refinement/approve-stories": {
       "post": {
-        "description": "Approve multiple drafts and convert them to stories.\n\nRequires ADMIN role. Bulk operation to approve multiple drafts at once.\n\nArgs:\n    payload: ApproveDraftsBulkRequest with list of draft IDs\n    current_user: Current authenticated admin user\n    use_case: Injected ApproveDraftsBulkUseCase\n\nReturns:\n    ApproveDraftsBulkResponse with approved count and list of created stories\n\nRaises:\n    400: Invalid input or no drafts found\n    500: Internal server error",
-        "operationId": "approve_drafts_bulk_v1_refinement_approve_drafts_post",
+        "description": "Approve several refined stories and save them to the backlog.\n\nRequires ADMIN role. All-or-nothing on validation: a foreign project or an invalid\nstory rejects the whole batch before anything is saved.\n\nArgs:\n    payload: ApproveStoriesBulkRequest with the story contents\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ApproveStoriesBulkUseCase\n\nReturns:\n    ApproveStoriesBulkResponse with approved count and the created stories\n\nRaises:\n    404: A project is not in the caller's workspace\n    422: Empty batch or invalid story content",
+        "operationId": "approve_stories_bulk_v1_refinement_approve_stories_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApproveDraftsBulkRequest"
+                "$ref": "#/components/schemas/ApproveStoriesBulkRequest"
               }
             }
           },
@@ -2371,7 +2361,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApproveDraftsBulkResponse"
+                  "$ref": "#/components/schemas/ApproveStoriesBulkResponse"
                 }
               }
             },
@@ -2393,91 +2383,26 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Approve Drafts Bulk",
+        "summary": "Approve Stories Bulk",
         "tags": [
           "AI Refinement"
         ]
       }
     },
-    "/v1/refinement/drafts/{draft_id}": {
-      "patch": {
-        "description": "Update a story draft.\n\nRequires ADMIN role. Allows editing the description of an existing draft.\n\nArgs:\n    draft_id: Draft UUID\n    payload: UpdateStoryDraftRequest with fields to update\n    current_user: Current authenticated admin user\n    use_case: Injected UpdateStoryDraftUseCase\n\nReturns:\n    Dict with draft ID on success\n\nRaises:\n    404: Story draft not found\n    500: Internal server error",
-        "operationId": "update_draft_v1_refinement_drafts__draft_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "draft_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Draft Id",
-              "type": "string"
-            }
-          }
-        ],
+    "/v1/refinement/approve-story": {
+      "post": {
+        "description": "Approve a refined story and save it to the backlog.\n\nRequires ADMIN role. Refined stories are not stored until this call, so the request\ncarries the (possibly edited) story content.\n\nArgs:\n    payload: ApproveStoryRequest with project_id and the story content\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ApproveStoryUseCase\n\nReturns:\n    StoryResponse with created story data\n\nRaises:\n    404: Project not found in the caller's workspace\n    422: Invalid story content",
+        "operationId": "approve_story_v1_refinement_approve_story_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStoryDraftRequest"
+                "$ref": "#/components/schemas/ApproveStoryRequest"
               }
             }
           },
           "required": true
         },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Update Draft V1 Refinement Drafts  Draft Id  Patch",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Update Draft",
-        "tags": [
-          "AI Refinement"
-        ]
-      }
-    },
-    "/v1/refinement/drafts/{draft_id}/approve": {
-      "post": {
-        "description": "Approve a draft and convert it to a story.\n\nRequires ADMIN role. Converts the draft into a full story in the backlog\nand marks the draft as applied.\n\nArgs:\n    draft_id: Draft UUID\n    current_user: Current authenticated admin user\n    use_case: Injected ApproveDraftUseCase\n\nReturns:\n    StoryResponse with created story data\n\nRaises:\n    404: Story draft not found\n    500: Internal server error",
-        "operationId": "approve_draft_v1_refinement_drafts__draft_id__approve_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "draft_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Draft Id",
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -2505,7 +2430,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Approve Draft",
+        "summary": "Approve Story",
         "tags": [
           "AI Refinement"
         ]
@@ -2513,7 +2438,7 @@
     },
     "/v1/refinement/generate-stories": {
       "post": {
-        "description": "Generate story drafts from raw discovery notes using AI.\n\nRequires ADMIN role. Takes raw notes and generates 3-7 well-structured user stories.\n\nArgs:\n    payload: GenerateStoriesRequest with project_id and raw_notes\n    current_user: Current authenticated admin user\n    use_case: Injected GenerateStoriesFromNotesUseCase\n\nReturns:\n    GenerateStoriesResponse with generated stories\n\nRaises:\n    400: Invalid input\n    502: AI service error\n    500: Internal server error",
+        "description": "Generate refined stories from raw discovery notes (nothing is stored) using AI.\n\nRequires ADMIN role. Takes raw notes and generates 3-7 well-structured user stories.\n\nArgs:\n    payload: GenerateStoriesRequest with project_id and raw_notes\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GenerateStoriesFromNotesUseCase\n\nReturns:\n    GenerateStoriesResponse with generated stories\n\nRaises:\n    422: Invalid or over-length input\n    502: AI provider failure; the response echoes the raw notes back for retry\n    500: Internal server error",
         "operationId": "generate_stories_v1_refinement_generate_stories_post",
         "requestBody": {
           "content": {
@@ -2890,7 +2815,7 @@
         ]
       },
       "patch": {
-        "description": "Update story.\n\nRequires authentication. Only the story creator or an admin can update.\nSupports partial updates \u2014 only provided fields are changed.\n\nArgs:\n    story_id: Story UUID\n    payload: UpdateStoryRequest with fields to update\n    current_user: Current authenticated user\n    use_case: Injected UpdateStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    403: Forbidden (not owner or admin)\n    404: Story not found\n    500: Internal server error",
+        "description": "Update story.\n\nRequires authentication. Only the story creator or an admin can update.\nSupports partial updates — only provided fields are changed.\n\nArgs:\n    story_id: Story UUID\n    payload: UpdateStoryRequest with fields to update\n    current_user: Current authenticated user\n    use_case: Injected UpdateStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    403: Forbidden (not owner or admin)\n    404: Story not found\n    500: Internal server error",
         "operationId": "update_story_v1_stories__story_id__patch",
         "parameters": [
           {

@@ -18,7 +18,7 @@ class GetProjectBacklogUseCase:
     Returns a project's approved backlog with acceptance criteria.
 
     Drafts are excluded structurally rather than by a filter: unapproved work lives in
-    story_drafts and never reaches this table.
+    the client and never reaches this table.
     """
 
     def __init__(self, story_repository: StoryRepository, project_repository: ProjectRepository):

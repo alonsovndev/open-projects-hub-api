@@ -25,7 +25,6 @@ from src.app.features.auth.infrastructure.models.password_reset_code_model impor
 from src.app.features.auth.infrastructure.models.revoked_refresh_token_model import RevokedRefreshTokenModel
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
-from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel
 from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.user.infrastructure.models.user_model import UserModel
 from src.app.features.workspaces.infrastructure.models.workspace_model import WorkspaceModel

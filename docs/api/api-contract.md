@@ -56,10 +56,9 @@ means either role; `Admin Only` means a Viewer receives 403.
 | `PATCH` | `/v1/stories/{story_id}` | Admin Only | Update story |
 | `DELETE` | `/v1/stories/{story_id}` | Admin Only | Delete story |
 | `POST` | `/v1/stories/{story_id}/assign` | Admin Only | Assign story to user |
-| `PATCH` | `/v1/refinement/drafts/{draft_id}` | Admin Only | Update story draft |
-| `POST` | `/v1/refinement/generate-stories` | Admin Only | Generate story drafts from notes using AI |
-| `POST` | `/v1/refinement/drafts/{draft_id}/approve` | Admin Only | Approve draft to story |
-| `POST` | `/v1/refinement/approve-drafts` | Admin Only | Bulk approve drafts |
+| `POST` | `/v1/refinement/generate-stories` | Admin Only | Generate refined stories from notes using AI (nothing is stored) |
+| `POST` | `/v1/refinement/approve-story` | Admin Only | Approve one refined story; it is saved to the backlog |
+| `POST` | `/v1/refinement/approve-stories` | Admin Only | Approve several refined stories; saved to the backlog |
 | `GET` | `/v1/dashboard/stats` | Authenticated | Get dashboard statistics |
 
 ## General Conventions
@@ -73,6 +72,21 @@ means either role; `Admin Only` means a Viewer receives 403.
 - **UUIDs:** All entity IDs use UUID v4 format.
 - **Pagination:** Offset-based with `limit` and `offset` query parameters.
 
+## Story Refinement
+
+Refined stories are never persisted. `POST /v1/refinement/generate-stories` returns them
+(`title`, `description`, `acceptanceCriteria`, no `id`) and the client holds them while the
+Admin edits or discards them. A story is written to `stories` only when approved, by sending
+its content back:
+
+- `POST /v1/refinement/approve-story` — body `{projectId, title, description?, acceptanceCriteria?}`; returns the created story.
+- `POST /v1/refinement/approve-stories` — body `{stories: [<same shape>]}`; returns `{approvedCount, stories: [{id, title}]}`. A project outside the caller's workspace or an invalid story rejects the whole batch before anything is saved.
+
+Because nothing is stored server-side, the API cannot detect a repeated approval: approving the
+same content twice creates two stories, so clients must prevent double submits.
+
+Status codes: `200`, `401`, `403`, `404` (project not in the caller's workspace), `422`; generation also returns `502` on provider failure.
+
 ## Backlog and Markdown Export
 
 ### `GET /v1/projects/{project_id}/backlog`
@@ -80,8 +94,8 @@ means either role; `Admin Only` means a Viewer receives 403.
 Returns the project's approved backlog: each story with its title, body and acceptance
 criteria. Available to Admin and Viewer.
 
-Drafts are excluded structurally rather than by a filter — unapproved work lives in
-`story_drafts` and only reaches the `stories` table once an Admin approves it. Stories are
+Unapproved work is excluded structurally rather than by a filter — refined stories are
+never stored; they reach the `stories` table only when an Admin approves them. Stories are
 ordered for reading: highest priority first, then oldest first, so the view and the export
 present the same sequence.
 

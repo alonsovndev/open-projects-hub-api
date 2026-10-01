@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 
 # Imported for relationship foreign_keys resolution
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel  # noqa: F401
-from src.app.features.refinement.infrastructure.models.story_draft_model import StoryDraftModel  # noqa: F401
 from src.app.features.stories.infrastructure.models.story_model import StoryModel  # noqa: F401
 from src.app.features.workspaces.infrastructure.models.workspace_model import WorkspaceModel  # noqa: F401
 from src.app.shared.persistence import Base
@@ -48,7 +47,6 @@ class UserModel(Base):
     created_projects = relationship("ProjectModel", foreign_keys="ProjectModel.created_by", backref="creator")
     created_stories = relationship("StoryModel", foreign_keys="StoryModel.created_by", backref="story_creator")
     assigned_stories = relationship("StoryModel", foreign_keys="StoryModel.assigned_to", backref="assignee")
-    story_drafts = relationship("StoryDraftModel", backref="draft_creator")
 
     # 3. Audit columns
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

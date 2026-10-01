@@ -81,7 +81,7 @@ Token expiry is configurable via the application configuration. Refresh tokens u
 
 ### Workspaces and Roles
 
-Every account belongs to one **workspace**, and clients, projects, stories and drafts belong
+Every account belongs to one **workspace**, and clients, projects and stories belong
 to a workspace. Each sign-up creates a new workspace; its Admin adds teammates and viewers
 with `POST /v1/users`. The workspace always comes from the token (`wid` claim), never from
 the path or body, and a record of another workspace answers **404**, exactly like one that
@@ -91,7 +91,7 @@ does not exist.
 |------|-------------|
 | `admin` | Everything a member can do, plus adding members and viewers (`POST /v1/users`) |
 | `member` | Full create/update/delete on clients, projects, stories and refinement; own AI keys; lists the team (`GET /v1/users`) |
-| `viewer` | Read-only: projects, stories, backlog and dashboard of the workspace; no clients, drafts or AI settings |
+| `viewer` | Read-only: projects, stories, backlog and dashboard of the workspace; no clients, refinement or AI settings |
 
 `POST /v1/users` accepts `role` `member` (default) or `viewer`; `admin` is rejected (422).
 Added accounts are verified on creation and receive no free platform AI credits.

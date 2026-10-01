@@ -62,7 +62,6 @@ _EDITOR_ONLY_READS = frozenset(
     {
         ("GET", "/v1/clients"),
         ("GET", "/v1/clients/{client_id}"),
-        ("GET", "/v1/refinement/projects/{project_id}/drafts"),
         ("GET", "/v1/users"),
         ("GET", "/v1/users/me/credits"),
         ("GET", "/v1/users/me/api-keys"),

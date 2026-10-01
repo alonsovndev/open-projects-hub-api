@@ -55,7 +55,6 @@ class ProjectModel(Base):
     # Relationships
     client = relationship("ClientModel", backref="projects")
     stories = relationship("StoryModel", back_populates="project", lazy="selectin")
-    story_drafts = relationship("StoryDraftModel", back_populates="project", lazy="selectin")
 
     # 3. Audit columns
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

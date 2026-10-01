@@ -2,15 +2,9 @@
 
 from src.app.features.ai_config.application.services.refinement_provider_resolver import RefinementProviderResolver
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
-from src.app.features.refinement.application.dtos.refinement_dto import (
-    GeneratedStoryResponse,
-    GenerateStoriesRequest,
-    GenerateStoriesResponse,
-)
-from src.app.features.refinement.application.mappers.story_draft_mapper import to_generated_story_response
-from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.refinement.application.dtos.refinement_dto import GenerateStoriesRequest, GenerateStoriesResponse
+from src.app.features.refinement.application.mappers.generated_story_mapper import to_generated_story_response
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
-from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.services.note_sanitizer import NoteSanitizer
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
 from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
@@ -23,11 +17,10 @@ from src.app.shared.logging import get_logger, set_user_id
 
 
 class GenerateStoriesFromNotesUseCase:
-    """Use case for generating multiple story drafts from raw notes using AI."""
+    """Use case for generating multiple refined stories from raw notes using AI."""
 
     def __init__(
         self,
-        repository: StoryDraftRepository,
         provider_resolver: RefinementProviderResolver,
         user_repository: UserRepository,
         project_repository: ProjectRepository,
@@ -36,12 +29,10 @@ class GenerateStoriesFromNotesUseCase:
         Initialize use case.
 
         Args:
-            repository: Story draft repository
             provider_resolver: Chooses the AI client for this run and whether it costs a credit
             user_repository: Holds the credit balance that a platform run is charged against
             project_repository: Confirms the target project is in the caller's workspace
         """
-        self._repository = repository
         self._provider_resolver = provider_resolver
         self._user_repository = user_repository
         self._project_repository = project_repository
@@ -131,27 +122,7 @@ class GenerateStoriesFromNotesUseCase:
                 },
             )
 
-            creator_uuid = ctx.user_id
-
-            story_responses: list[GeneratedStoryResponse] = []
-
-            for generated_story in result.stories:
-                draft = StoryDraftEntity.create(
-                    title=generated_story.title,
-                    description=generated_story.description,
-                    acceptance_criteria=generated_story.acceptance_criteria,
-                    project_id=project_uuid,
-                    created_by=creator_uuid,
-                )
-
-                saved_draft = await self._repository.save(draft)
-
-                story_responses.append(
-                    to_generated_story_response(
-                        draft_id=str(saved_draft.id.value),
-                        generated_story=generated_story,
-                    )
-                )
+            story_responses = [to_generated_story_response(story) for story in result.stories]
 
             log.info(
                 "Stories generated from notes",
@@ -177,7 +148,7 @@ class GenerateStoriesFromNotesUseCase:
 
                 if credits_remaining is None:
                     # The balance was spent by a concurrent run between resolve and here.
-                    # The drafts are already saved, so the refinement is not failed over
+                    # The stories are already generated, so the refinement is not failed over
                     # it — the response simply reports an unknown balance and the client
                     # refetches.
                     log.warning(
