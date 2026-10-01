@@ -133,6 +133,11 @@ from src.app.composition.features.users import (
     get_list_workspace_users_use_case,
     get_update_user_profile_use_case,
 )
+
+# ============================================================================
+# Feature: Workspaces
+# ============================================================================
+from src.app.composition.features.workspaces import get_update_workspace_use_case
 from src.app.composition.infrastructure import get_ai_service, get_database_session, get_email_sender
 
 # ============================================================================
@@ -221,4 +226,6 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_get_user_profile_use_case",
     "get_list_workspace_users_use_case",
     "get_update_user_profile_use_case",
+    # Workspaces
+    "get_update_workspace_use_case",
 ]

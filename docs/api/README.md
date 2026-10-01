@@ -93,6 +93,9 @@ does not exist.
 | `member` | Full create/update/delete on clients, projects, stories and refinement; own AI keys; lists the team (`GET /v1/users`) |
 | `viewer` | Read-only: projects, stories, backlog and dashboard of the workspace; no clients, refinement or AI settings |
 
+`PATCH /v1/workspaces/me` (Admin only) renames the caller's workspace. Body: `{ "name": "..." }`
+(trimmed, 1-100 characters, otherwise 422). Returns `{ "id": "...", "name": "..." }`.
+
 `POST /v1/users` accepts `role` `member` (default) or `viewer`; `admin` is rejected (422).
 Added accounts are verified on creation and receive no free platform AI credits.
 

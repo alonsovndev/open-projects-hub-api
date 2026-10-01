@@ -13,6 +13,7 @@ from src.app.features.projects.presentation.project_routes import router as proj
 from src.app.features.refinement.presentation.refinement_routes import router as refinement_router
 from src.app.features.stories.presentation.story_routes import router as story_router
 from src.app.features.user.presentation.user_routes import router as user_router
+from src.app.features.workspaces.presentation.workspace_routes import router as workspace_router
 
 
 def register_routers(app) -> None:
@@ -34,6 +35,9 @@ def register_routers(app) -> None:
     # AI credit balance and provider API key routes (self-service, so they share the
     # /v1/users prefix; their /me/* paths do not collide with the user router's)
     app.include_router(ai_config_router, prefix="/v1/users", tags=["AI Credits & API Keys"])
+
+    # Workspace routes (rename the caller's own workspace)
+    app.include_router(workspace_router, prefix="/v1/workspaces", tags=["Workspaces"])
 
     # Client management routes
     app.include_router(client_router, prefix="/v1/clients", tags=["Clients"])

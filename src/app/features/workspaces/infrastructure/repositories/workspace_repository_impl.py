@@ -69,6 +69,24 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
         model = await self.db_session.get(WorkspaceModel, workspace_id.value)
         if model is None:
             return None
+        return self._to_entity(model)
+
+    async def update(self, workspace: WorkspaceEntity) -> WorkspaceEntity:
+        model = await self.db_session.get(WorkspaceModel, workspace.id.value)
+        if model is None:
+            raise ValueError(f"Workspace not found: {workspace.id.value}")
+        model.name = workspace.name
+        model.updated_at = workspace.updated_at
+        try:
+            await self.db_session.commit()
+        except Exception:
+            await self.db_session.rollback()
+            raise
+        await self.db_session.refresh(model)
+        return self._to_entity(model)
+
+    @staticmethod
+    def _to_entity(model: WorkspaceModel) -> WorkspaceEntity:
         return WorkspaceEntity(
             id=EntityId.from_string(str(model.id)),
             name=model.name,

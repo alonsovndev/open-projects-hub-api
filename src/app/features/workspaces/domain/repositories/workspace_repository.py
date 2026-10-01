@@ -26,3 +26,7 @@ class WorkspaceRepository(ABC):
     @abstractmethod
     async def find_by_id(self, workspace_id: EntityId) -> WorkspaceEntity | None:
         """Workspace by id, or None."""
+
+    @abstractmethod
+    async def update(self, workspace: WorkspaceEntity) -> WorkspaceEntity:
+        """Persist the workspace's current name and return the stored workspace."""
