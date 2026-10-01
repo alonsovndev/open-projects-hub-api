@@ -47,7 +47,7 @@ ai:
   provider: mock    # gemini | openai | deepseek | mock
   providers:
     gemini:
-      model: gemini-2.5-flash
+      model: gemini-3.1-flash-lite
       api_key: !ENV ${GEMINI_API_KEY}
     openai:
       model: gpt-4o-mini
