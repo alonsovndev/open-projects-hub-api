@@ -78,6 +78,12 @@ API_KEY_ENCRYPTION_KEY=<GENERATE_BASE64_32_BYTES>
 
 # Platform AI key (Gemini); without it, story refinement falls back to the mock AI service
 GEMINI_API_KEY=
+
+# Email (Resend SMTP relay); sender must be a full address on a Resend-verified domain
+SMTP_HOST=smtp.resend.com
+SMTP_USERNAME=resend
+SMTP_PASSWORD=<RESEND_API_KEY>
+SMTP_FROM_ADDRESS=no-reply@send.yourdomain.com
 ```
 
 **Generate strong secrets:**

@@ -8,6 +8,7 @@ small until that lands.
 """
 
 from email.message import EmailMessage
+from email.utils import formatdate
 
 import aiosmtplib
 
@@ -30,6 +31,7 @@ class SmtpEmailSender(EmailSender):
         message["From"] = self.from_address
         message["To"] = to
         message["Subject"] = subject
+        message["Date"] = formatdate(localtime=False)
         message.set_content(body)
 
         try:

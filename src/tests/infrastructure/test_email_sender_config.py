@@ -54,6 +54,22 @@ def test_unset_credentials_become_empty(use_smtp_config):
     assert sender.password == ""
 
 
+def test_from_address_without_local_part_is_rejected(use_smtp_config):
+    use_smtp_config({"host": "smtp.resend.com", "from_address": "send.example.com"})
+
+    with pytest.raises(ValueError, match="from_address"):
+        get_email_sender()
+
+
+def test_unset_host_and_from_address_fall_back_to_defaults(use_smtp_config):
+    use_smtp_config({"host": "N/A", "from_address": "N/A"})
+
+    sender = get_email_sender()
+
+    assert sender.host == "localhost"
+    assert sender.from_address == "no-reply@open-projects-hub.local"
+
+
 def test_set_credentials_are_passed_through(use_smtp_config):
     use_smtp_config({"host": "smtp.resend.com", "port": 587, "username": "resend", "password": "re_secret"})
 

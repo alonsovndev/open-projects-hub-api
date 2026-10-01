@@ -273,8 +273,8 @@ added to the workspace by its Admin through `POST /v1/users`.
 
 **Errors:** 409 email already registered · 422 invalid body (including a `role` field).
 
-**Undeliverable codes:** Resend's `onboarding@resend.dev` sender only reaches the Resend
-account owner. For other addresses in dev, run `make seed-admin`
+**Undeliverable codes:** the sender (`SMTP_FROM_ADDRESS`) must be a full address on a domain
+verified in Resend. Without SMTP configured in dev, run `make seed-admin`
 (`scripts/seed_admin.py`), which creates a verified admin in its own workspace.
 
 The code is 6 characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, stored only as a bcrypt

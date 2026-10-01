@@ -77,12 +77,19 @@ def get_email_sender() -> EmailSender:
         value = config.get_config(key, "")
         return "" if value == _UNSET_ENV_VALUE else value
 
+    host = credential("smtp.host") or "localhost"
+    from_address = credential("smtp.from_address") or "no-reply@open-projects-hub.local"
+    # Send failures are swallowed by the use cases, so a malformed sender would
+    # otherwise only surface as a log line while users never get their code.
+    if "@" not in from_address:
+        raise ValueError(f"smtp.from_address must be an email address, got {from_address!r}")
+
     return SmtpEmailSender(
-        host=config.get_config("smtp.host", "localhost"),
+        host=host,
         port=int(config.get_config("smtp.port", 587)),
         username=credential("smtp.username"),
         password=credential("smtp.password"),
-        from_address=config.get_config("smtp.from_address", "no-reply@open-projects-hub.local"),
+        from_address=from_address,
         use_tls=bool(config.get_config("smtp.use_tls", True)),
     )
 
