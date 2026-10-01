@@ -104,13 +104,9 @@ from src.app.composition.features.projects import (
 # Feature: Refinement
 # ============================================================================
 from src.app.composition.features.refinement import (
-    get_approve_draft_use_case,
-    get_approve_drafts_bulk_use_case,
-    get_delete_draft_use_case,
-    get_draft_repository,
+    get_approve_stories_bulk_use_case,
+    get_approve_story_use_case,
     get_generate_stories_use_case,
-    get_list_drafts_use_case,
-    get_update_draft_use_case,
 )
 
 # ============================================================================
@@ -207,13 +203,9 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_reactivate_project_use_case",
     "get_update_project_use_case",
     # Refinement
-    "get_approve_draft_use_case",
-    "get_approve_drafts_bulk_use_case",
-    "get_delete_draft_use_case",
-    "get_draft_repository",
+    "get_approve_stories_bulk_use_case",
+    "get_approve_story_use_case",
     "get_generate_stories_use_case",
-    "get_list_drafts_use_case",
-    "get_update_draft_use_case",
     # Stories
     "get_assign_story_use_case",
     "get_create_story_use_case",

@@ -16,10 +16,10 @@ import pytest
 from src.app.config.app_config import AppConfig
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
-from src.app.features.refinement.domain.exceptions.refinement_exceptions import StoryDraftNotFoundError
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
 from src.app.shared.application.request_context import RequestContext
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 
 
@@ -114,22 +114,16 @@ ID_ROUTES = [
         StoryNotFoundError(RECORD_ID),
     ),
     (
-        "PATCH",
-        f"/v1/refinement/drafts/{RECORD_ID}",
-        "refinement.application.use_cases.update_story_draft.UpdateStoryDraftUseCase",
-        StoryDraftNotFoundError(RECORD_ID),
-    ),
-    (
-        "DELETE",
-        f"/v1/refinement/drafts/{RECORD_ID}",
-        "refinement.application.use_cases.delete_story_draft.DeleteStoryDraftUseCase",
-        StoryDraftNotFoundError(RECORD_ID),
+        "POST",
+        "/v1/refinement/approve-story",
+        "refinement.application.use_cases.approve_story.ApproveStoryUseCase",
+        NotFoundError("Project", RECORD_ID),
     ),
     (
         "POST",
-        f"/v1/refinement/drafts/{RECORD_ID}/approve",
-        "refinement.application.use_cases.approve_draft.ApproveDraftUseCase",
-        StoryDraftNotFoundError(RECORD_ID),
+        "/v1/refinement/approve-stories",
+        "refinement.application.use_cases.approve_stories_bulk.ApproveStoriesBulkUseCase",
+        NotFoundError("Project", RECORD_ID),
     ),
     (
         "GET",
@@ -139,12 +133,15 @@ ID_ROUTES = [
     ),
 ]
 
+APPROVED_STORY = {"projectId": str(uuid4()), "title": "Refined", "acceptanceCriteria": ["A"]}
+
 BODIES: dict[str, dict[str, Any]] = {
     "PATCH /v1/clients": {"name": "Acme"},
     "PATCH /v1/projects": {"name": "Renamed"},
     "PATCH /v1/stories": {"title": "Renamed"},
     "POST /v1/stories": {"userId": str(uuid4())},
-    "PATCH /v1/refinement": {"title": "Renamed"},
+    "POST /v1/refinement/approve-story": APPROVED_STORY,
+    "POST /v1/refinement/approve-stories": {"stories": [APPROVED_STORY]},
     "POST /v1/projects": {},
 }
 

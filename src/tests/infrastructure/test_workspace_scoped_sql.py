@@ -13,7 +13,6 @@ from sqlalchemy.dialects import postgresql
 from src.app.features.clients.infrastructure.repositories.client_repository_impl import ClientRepositoryImpl
 from src.app.features.dashboard.infrastructure.repositories.dashboard_repository import DashboardRepositoryImpl
 from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
-from src.app.features.refinement.infrastructure.repositories.story_draft_repository_impl import StoryDraftRepositoryImpl
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
 
 
@@ -79,18 +78,6 @@ SCOPED_CALLS = [
     ("stories.find_all", StoryRepositoryImpl, lambda repo: repo.find_all(workspace_id=WORKSPACE_ID)),
     ("stories.count", StoryRepositoryImpl, lambda repo: repo.count(workspace_id=WORKSPACE_ID)),
     ("stories.delete", StoryRepositoryImpl, lambda repo: repo.delete(uuid4(), workspace_id=WORKSPACE_ID)),
-    ("drafts.find_by_id", StoryDraftRepositoryImpl, lambda repo: repo.find_by_id(uuid4(), workspace_id=WORKSPACE_ID)),
-    (
-        "drafts.find_by_project",
-        StoryDraftRepositoryImpl,
-        lambda repo: repo.find_by_project(uuid4(), workspace_id=WORKSPACE_ID),
-    ),
-    (
-        "drafts.count_by_project",
-        StoryDraftRepositoryImpl,
-        lambda repo: repo.count_by_project(uuid4(), workspace_id=WORKSPACE_ID),
-    ),
-    ("drafts.delete", StoryDraftRepositoryImpl, lambda repo: repo.delete(uuid4(), workspace_id=WORKSPACE_ID)),
 ]
 
 

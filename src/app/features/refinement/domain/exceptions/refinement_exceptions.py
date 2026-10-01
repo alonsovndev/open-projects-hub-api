@@ -3,25 +3,9 @@
 from src.app.features.refinement.domain.value_objects.refinement_failure_class import RefinementFailureClass
 
 
-class StoryDraftNotFoundError(Exception):
-    """Raised when a story draft is not found."""
-
-    def __init__(self, draft_id: str):
-        self.draft_id = draft_id
-        super().__init__(f"Story draft not found: {draft_id}")
-
-
-class StoryDraftAlreadyApprovedError(Exception):
-    """Raised when an already-approved draft is approved or discarded again."""
-
-    def __init__(self, draft_id: str):
-        self.draft_id = draft_id
-        super().__init__(f"Story draft has already been approved into the backlog: {draft_id}")
-
-
 class RefinementFailedError(Exception):
     """
-    Raised when a refinement run fails before any draft is persisted.
+    Raised when a refinement run fails before any story is returned.
 
     Carries the Admin's raw notes so the API can hand them back verbatim: a provider
     outage must never cost the Admin their input (FR-002-04).

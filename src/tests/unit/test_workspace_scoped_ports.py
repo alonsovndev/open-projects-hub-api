@@ -12,11 +12,10 @@ import pytest
 from src.app.features.clients.domain.repositories.client_repository import ClientRepository
 from src.app.features.dashboard.domain.repositories.dashboard_repository import DashboardRepository
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
-from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 
 
-TENANT_PORTS = [ClientRepository, ProjectRepository, StoryRepository, StoryDraftRepository, DashboardRepository]
+TENANT_PORTS = [ClientRepository, ProjectRepository, StoryRepository, DashboardRepository]
 
 # Methods that carry the workspace some other way. Each entry is a security decision.
 UNSCOPED_BY_DESIGN = {
@@ -27,7 +26,6 @@ UNSCOPED_BY_DESIGN = {
     # Callers have already confirmed the project (create) or loaded the record through a
     # scoped read (update); documented on the port.
     ("StoryRepository", "save"),
-    ("StoryDraftRepository", "save"),
     # The workspace is the argument itself.
     ("ProjectRepository", "count_active_by_workspace"),
     # Scoped through BacklogQuery.workspace_id, which is a required field.

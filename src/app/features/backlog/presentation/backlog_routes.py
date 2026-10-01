@@ -32,7 +32,7 @@ async def get_project_backlog(
     Get a project's approved backlog with acceptance criteria.
 
     Admin and Viewer. Drafts are excluded structurally — unapproved work lives in
-    story_drafts and never reaches this table.
+    the client and never reaches this table.
 
     Args:
         project_id: The project to read
