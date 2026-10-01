@@ -40,7 +40,6 @@ class UserCreateRequest(BaseModel):
 
     display_name: str
     email: EmailStr
-    password: str
     role: str | None = UserRole.MEMBER.value
 
     @field_validator("display_name")
@@ -54,13 +53,6 @@ class UserCreateRequest(BaseModel):
     @classmethod
     def validate_role(cls, role: str | None) -> str:
         return _validate_assignable_role(role)
-
-    @field_validator("password")
-    @classmethod
-    def validate_password_complexity(cls, password: str) -> str:
-        """Validate password meets complexity requirements."""
-        UserValidators.validate_password(password)
-        return password
 
 
 class UpdateUserRoleRequest(BaseModel):

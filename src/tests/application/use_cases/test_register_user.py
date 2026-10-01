@@ -14,6 +14,7 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from src.app.features.auth.application.dtos.auth_dto import RegisterRequest, RegisterResponse
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
@@ -40,7 +41,11 @@ def build_use_case(user_repository: AsyncMock) -> tuple[RegisterUserUseCase, Asy
     verification_code_repository = AsyncMock()
     email_sender = AsyncMock()
     use_case = RegisterUserUseCase(
-        user_repository, build_workspace_repository(), verification_code_repository, email_sender
+        user_repository,
+        build_workspace_repository(),
+        verification_code_repository,
+        email_sender,
+        EmailLinks("http://localhost:5173"),
     )
     return use_case, verification_code_repository, email_sender
 
@@ -130,6 +135,18 @@ class TestRegisterUserUseCase:
         assert sent_email["subject"] == "Verify your email"
         assert stored_code.code_hash.startswith("$2b$")
         assert stored_code.code_hash not in sent_email["body"]
+
+    @pytest.mark.asyncio
+    async def test_the_registration_email_links_to_verification_without_a_password_step(self):
+        user_repository = build_open_instance_repo()
+        use_case, _, email_sender = build_use_case(user_repository)
+
+        await use_case.execute(build_payload())
+
+        body = email_sender.send.call_args.kwargs["body"]
+        assert "http://localhost:5173/verify-email?email=newuser%40example.com&code=" in body
+        assert "setPassword" not in body
+        assert "5 minutes" in body
 
     @pytest.mark.asyncio
     async def test_execute_still_registers_when_the_email_fails_to_send(self):

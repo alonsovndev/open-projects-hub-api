@@ -1,3 +1,6 @@
+import secrets
+
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_verification_code import issue_verification_code
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.application.dtos.user_dto import UserCreateRequest, UserResponse
@@ -14,8 +17,8 @@ class CreateUserUseCase:
     """
     Adds a member or viewer to the caller's workspace and emails them a verification code.
 
-    The account signs in only after the person confirms the address, exactly like a
-    self-registration; the Admin shares the temporary password with them separately.
+    The account signs in only after the person confirms the address and chooses their own
+    password from the emailed link; until then it holds a random password nobody knows.
     """
 
     def __init__(
@@ -23,17 +26,19 @@ class CreateUserUseCase:
         user_repository: UserRepository,
         verification_code_repository: EmailVerificationCodeRepository,
         email_sender: EmailSender,
+        email_links: EmailLinks,
     ):
         self.user_repository = user_repository
         self.verification_code_repository = verification_code_repository
         self.email_sender = email_sender
+        self.email_links = email_links
 
     async def execute(self, payload: UserCreateRequest, ctx: RequestContext) -> UserResponse:
         log = get_logger(__name__)
         set_user_id(str(ctx.user_id))
 
         try:
-            password_hash = await PasswordHandler.hash_password(payload.password)
+            password_hash = await PasswordHandler.hash_password(secrets.token_urlsafe(32))
 
             new_user_entity = map_create_request_to_entity(payload, password_hash, ctx.workspace_id)
 
@@ -56,7 +61,9 @@ class CreateUserUseCase:
                 )
                 raise UserAlreadyExistsError(str(new_user_entity.email))
 
-            await issue_verification_code(created_user, self.verification_code_repository, self.email_sender)
+            await issue_verification_code(
+                created_user, self.verification_code_repository, self.email_sender, self.email_links
+            )
 
             response_dto = to_user_response(created_user)
 

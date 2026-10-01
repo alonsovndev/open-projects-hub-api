@@ -6,6 +6,7 @@ password reset code (FR-009-02).
 
 from datetime import UTC, datetime, timedelta
 
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.services.one_time_code import generate_one_time_code
 from src.app.features.auth.domain.entities.password_reset_code import PasswordResetCode
 from src.app.features.auth.domain.repositories.password_reset_code_repository import PasswordResetCodeRepository
@@ -16,7 +17,7 @@ from src.app.shared.infrastructure.security.password_handler import PasswordHand
 from src.app.shared.logging import get_logger, mask_email
 
 
-RESET_CODE_TTL_MINUTES = 5
+RESET_CODE_TTL_MINUTES = 30
 GENERIC_RESET_MESSAGE = "If an account exists for this email, a reset code has been sent."
 
 # NFR-009-02 caps code requests per email, not per endpoint, so both the initial
@@ -39,6 +40,7 @@ async def issue_reset_code(
     user_entity: UserEntity,
     reset_code_repository: PasswordResetCodeRepository,
     email_sender: EmailSender,
+    email_links: EmailLinks,
 ) -> None:
     """Invalidate any active code for the user, then generate, persist, and email a new one."""
     await reset_code_repository.invalidate_active_for_user(user_entity.id)
@@ -57,7 +59,12 @@ async def issue_reset_code(
         await email_sender.send(
             to=str(user_entity.email),
             subject="Your password reset code",
-            body=f"Your password reset code is {code}. It expires in {RESET_CODE_TTL_MINUTES} minutes.",
+            body=(
+                f"Your password reset code is {code}.\n\n"
+                f"Or reset directly: {email_links.reset_password(str(user_entity.email), code)}\n\n"
+                f"It expires in {RESET_CODE_TTL_MINUTES} minutes.\n\n"
+                "If you didn't ask for this, you can ignore this email."
+            ),
         )
     except Exception:
         # Never let a delivery failure surface to the caller: the reset-code

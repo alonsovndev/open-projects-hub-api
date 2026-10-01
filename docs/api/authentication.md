@@ -278,14 +278,18 @@ verified in Resend. Without SMTP configured in dev, run `make seed-admin`
 (`scripts/seed_admin.py`), which creates a verified admin in its own workspace.
 
 The code is 6 characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, stored only as a bcrypt
-hash, and expires after 5 minutes. It is sent through the SMTP relay configured in
+hash, and expires after 5 minutes (24 hours for accounts an Admin adds through `POST /v1/users`). The email also carries a link to the web app's `/verify-email` page with the address and code pre-filled (base URL from `FRONTEND_BASE_URL`). It is sent through the SMTP relay configured in
 `SMTP_*` (Resend in dev); a delivery failure is logged and the user can resend.
 
 ---
 
 ## POST /v1/auth/verify-email
 
-**Request:** `{"email": "jane@example.com", "code": "ABC234"}` (case-insensitive)
+**Request:** `{"email": "jane@example.com", "code": "ABC234", "password": "MyOwnPass1"}` (code is case-insensitive; `password` is optional)
+
+Accounts an Admin adds through `POST /v1/users` have no usable password until they verify: the
+invite email links to `/verify-email?...&setPassword=1` and the invitee submits their chosen
+`password` here (same complexity rules as registration). Self-registered accounts omit it.
 
 **Response (200 OK):** `{"verified": true}`. The account is verified and granted its free
 AI credits (F-010 FR-010-01).

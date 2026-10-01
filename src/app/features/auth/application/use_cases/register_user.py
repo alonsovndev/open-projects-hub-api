@@ -9,6 +9,7 @@ Following API spec requirements:
 """
 
 from src.app.features.auth.application.dtos.auth_dto import RegisterRequest, RegisterResponse
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_verification_code import issue_verification_code
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -38,11 +39,13 @@ class RegisterUserUseCase:
         workspace_repository: WorkspaceRepository,
         verification_code_repository: EmailVerificationCodeRepository,
         email_sender: EmailSender,
+        email_links: EmailLinks,
     ):
         self.user_repository = user_repository
         self.workspace_repository = workspace_repository
         self.verification_code_repository = verification_code_repository
         self.email_sender = email_sender
+        self.email_links = email_links
 
     async def execute(self, payload: RegisterRequest) -> RegisterResponse:
         """
@@ -105,7 +108,7 @@ class RegisterUserUseCase:
                 raise UserAlreadyExistsError(str(new_user_entity.email))
 
             code_expires_at = await issue_verification_code(
-                created_user, self.verification_code_repository, self.email_sender
+                created_user, self.verification_code_repository, self.email_sender, self.email_links
             )
 
             log.info(

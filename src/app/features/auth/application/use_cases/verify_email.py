@@ -7,6 +7,7 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
 )
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import get_logger, mask_email
@@ -32,6 +33,10 @@ class VerifyEmailUseCase:
     async def execute(self, payload: VerifyEmailRequest) -> VerifyEmailResponse:
         log = get_logger(__name__)
         email_lower = str(payload.email).lower().strip()
+
+        # Validated before the code is checked so a weak password never burns an attempt.
+        if payload.password is not None:
+            UserValidators.validate_password(payload.password)
 
         user_entity = await self.user_repository.find_by_email(Email(email_lower))
         if user_entity is None or user_entity.is_email_verified:
@@ -59,8 +64,16 @@ class VerifyEmailUseCase:
             )
             raise InvalidVerificationCodeError
 
+        # Invited accounts hold a random placeholder password nobody knows. Checked only after
+        # the code is proven so it discloses nothing, and before the code is consumed so the
+        # same code still works once the invitee supplies a password.
+        if payload.password is None and not user_entity.is_admin():
+            raise ValueError("Choose a password to finish setting up your account.")
+
         # Verify the account before consuming the code: if the user update fails, the code
         # is still valid and the user can simply retry.
+        if payload.password is not None:
+            user_entity.update_details(password_hash=await PasswordHandler.hash_password(payload.password))
         user_entity.verify_email()
         await self.user_repository.update(user_entity)
 

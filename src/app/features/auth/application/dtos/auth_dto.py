@@ -77,6 +77,8 @@ class VerifyEmailRequest(BaseModel):
     # Bounded so oversized input is rejected before it reaches bcrypt; the slack over 6
     # allows surrounding whitespace, which the use case strips.
     code: str = Field(min_length=6, max_length=16)
+    # Invited accounts choose their password here; self-registered ones already did.
+    password: str | None = Field(default=None, max_length=72)
 
 
 class VerifyEmailResponse(BaseModel):

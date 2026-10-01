@@ -27,6 +27,7 @@ from functools import lru_cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.config.app_config import AppConfig
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.refinement.infrastructure.ai.ai_factory import create_ai_service
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
 from src.app.shared.infrastructure.email.email_sender import EmailSender
@@ -92,6 +93,12 @@ def get_email_sender() -> EmailSender:
         from_address=from_address,
         use_tls=bool(config.get_config("smtp.use_tls", True)),
     )
+
+
+@lru_cache(maxsize=1)
+def get_email_links() -> EmailLinks:
+    """Cached factory for the web-app links embedded in verification and reset emails."""
+    return EmailLinks(AppConfig.instance().get_config("app.frontend_base_url", "http://localhost:5173"))
 
 
 async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
