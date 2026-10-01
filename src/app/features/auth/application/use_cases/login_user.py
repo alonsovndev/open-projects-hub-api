@@ -81,7 +81,7 @@ class LoginUserUseCase:
         try:
             user_entity = await self.user_repository.find_by_email(Email(email_lower))
 
-            if not user_entity:
+            if not user_entity or not user_entity.is_active:
                 log.warning(
                     "Login attempt with non-existent email",
                     extra={

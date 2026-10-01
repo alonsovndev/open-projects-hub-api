@@ -128,10 +128,13 @@ from src.app.composition.features.stories import (
 from src.app.composition.features.users import (
     get_change_password_use_case,
     get_create_user_use_case,
+    get_delete_user_use_case,
     get_get_user_by_id_use_case,
     get_get_user_profile_use_case,
     get_list_workspace_users_use_case,
     get_update_user_profile_use_case,
+    get_update_user_role_use_case,
+    get_update_user_status_use_case,
 )
 
 # ============================================================================
@@ -222,10 +225,13 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Users
     "get_change_password_use_case",
     "get_create_user_use_case",
+    "get_delete_user_use_case",
     "get_get_user_by_id_use_case",
     "get_get_user_profile_use_case",
     "get_list_workspace_users_use_case",
     "get_update_user_profile_use_case",
+    "get_update_user_role_use_case",
+    "get_update_user_status_use_case",
     # Workspaces
     "get_update_workspace_use_case",
 ]

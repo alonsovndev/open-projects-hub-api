@@ -4,6 +4,8 @@ import sqlalchemy.exc
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel
+from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.infrastructure.mappers.user_mapper import UserMapper
@@ -247,6 +249,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.ai_credits_remaining = user.ai_credits_remaining
             user_model.ai_credits_granted = user.ai_credits_granted
             user_model.email_verified_at = user.email_verified_at
+            user_model.deactivated_at = user.deactivated_at
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)
@@ -329,6 +332,45 @@ class UserRepositoryImpl(UserRepository):
         except Exception:
             await self.db_session.rollback()
             self._log.exception("Error deleting user", extra={"operation": "delete", "table": "users"})
+            raise
+
+    async def delete_handing_over(self, entity_id: EntityId, successor_id: EntityId) -> bool:
+        """
+        Delete a user after moving everything they own to the successor, in one transaction.
+
+        Projects and stories reference their creator without a cascade, so the rows are
+        reassigned first; stories assigned to the user go to the successor too.
+        """
+        try:
+            user_model = await self.db_session.get(UserModel, entity_id.value)
+            if not user_model:
+                return False
+
+            await self.db_session.execute(
+                update(ProjectModel)
+                .where(ProjectModel.created_by == entity_id.value)
+                .values(created_by=successor_id.value)
+            )
+            await self.db_session.execute(
+                update(StoryModel).where(StoryModel.created_by == entity_id.value).values(created_by=successor_id.value)
+            )
+            await self.db_session.execute(
+                update(StoryModel)
+                .where(StoryModel.assigned_to == entity_id.value)
+                .values(assigned_to=successor_id.value)
+            )
+            await self.db_session.delete(user_model)
+            await self.db_session.commit()
+            return True
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            await self.db_session.rollback()
+            self._log.exception("Database connection error", extra={"operation": "delete_handing_over"})
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
+
+        except Exception:
+            await self.db_session.rollback()
+            self._log.exception("Error deleting user", extra={"operation": "delete_handing_over", "table": "users"})
             raise
 
     async def consume_ai_credit(self, entity_id: EntityId) -> int | None:

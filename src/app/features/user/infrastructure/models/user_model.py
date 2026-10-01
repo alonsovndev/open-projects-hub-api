@@ -39,6 +39,9 @@ class UserModel(Base):
     # NULL until a self-registered account confirms its email (F-008); accounts
     # created by an admin or the seed script are verified on creation.
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    # Set when an Admin removes the account. Rows are kept because projects and stories
+    # reference their creator; a deactivated account can no longer sign in or be listed.
+    deactivated_at = Column(DateTime(timezone=True), nullable=True)
     workspace_id = Column(
         UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="RESTRICT"), nullable=False, index=True
     )

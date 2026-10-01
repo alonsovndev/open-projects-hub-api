@@ -108,6 +108,16 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
+    async def delete_handing_over(self, entity_id: EntityId, successor_id: EntityId) -> bool:
+        """
+        Delete a user after moving the projects and stories they created, and the stories
+        assigned to them, to the successor. All or nothing.
+
+        Returns:
+            bool: True if the user was deleted, False if not found.
+        """
+
+    @abstractmethod
     async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
         """
         Atomically spend one AI credit and return the new balance.

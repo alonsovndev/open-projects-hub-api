@@ -14,6 +14,7 @@ def to_user_response(user_entity: UserEntity) -> UserResponse:
         email=str(user_entity.email),
         display_name=user_entity.display_name,
         role=str(user_entity.role.value),
+        is_active=user_entity.is_active,
     )
 
 

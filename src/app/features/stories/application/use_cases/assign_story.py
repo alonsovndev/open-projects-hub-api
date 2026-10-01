@@ -60,7 +60,7 @@ class AssignStoryUseCase:
 
         assignee_id = EntityId.from_string(user_id)
         assignee = await self._user_repository.find_by_id(assignee_id)
-        if assignee is None or not assignee.belongs_to(ctx.workspace_id):
+        if assignee is None or not assignee.is_active or not assignee.belongs_to(ctx.workspace_id):
             raise NotFoundError("User", user_id)
 
         entity.assign_to(assignee_id)
