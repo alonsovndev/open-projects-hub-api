@@ -23,8 +23,8 @@ def map_create_request_to_entity(payload: UserCreateRequest, password_hash: str,
     Convert a UserCreateRequest DTO to a member or viewer of the given workspace.
 
     Args:
-        payload: The user creation request with email, display_name, password, and optional role
-        password_hash: The hashed password
+        payload: The user creation request with email, display_name, and optional role
+        password_hash: Hash of a random placeholder; the invitee chooses their own when verifying
         workspace_id: The creating Admin's workspace; never taken from the request
 
     Returns:

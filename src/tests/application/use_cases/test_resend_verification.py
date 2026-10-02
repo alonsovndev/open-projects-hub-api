@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import ResendVerificationRequest
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_verification_code import (
     GENERIC_RESEND_MESSAGE,
     MAX_CODES_PER_WINDOW,
@@ -44,7 +45,9 @@ def mock_email_sender():
 
 @pytest.fixture
 def use_case(mock_user_repository, mock_verification_code_repository, mock_email_sender):
-    return ResendVerificationUseCase(mock_user_repository, mock_verification_code_repository, mock_email_sender)
+    return ResendVerificationUseCase(
+        mock_user_repository, mock_verification_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+    )
 
 
 class TestResendVerificationUseCase:

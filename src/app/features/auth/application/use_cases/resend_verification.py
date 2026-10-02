@@ -1,6 +1,7 @@
 """ResendVerificationUseCase - Reissue an email verification code within rate limits."""
 
 from src.app.features.auth.application.dtos.auth_dto import ResendVerificationRequest, ResendVerificationResponse
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_verification_code import (
     GENERIC_RESEND_MESSAGE,
     is_verification_rate_limited,
@@ -28,10 +29,12 @@ class ResendVerificationUseCase:
         user_repository: UserRepository,
         verification_code_repository: EmailVerificationCodeRepository,
         email_sender: EmailSender,
+        email_links: EmailLinks,
     ):
         self.user_repository = user_repository
         self.verification_code_repository = verification_code_repository
         self.email_sender = email_sender
+        self.email_links = email_links
 
     async def execute(self, payload: ResendVerificationRequest) -> ResendVerificationResponse:
         log = get_logger(__name__)
@@ -48,7 +51,9 @@ class ResendVerificationUseCase:
             )
             raise VerificationRateLimitedError("Too many code requests. Please try again in 15 minutes.")
 
-        await issue_verification_code(user_entity, self.verification_code_repository, self.email_sender)
+        await issue_verification_code(
+            user_entity, self.verification_code_repository, self.email_sender, self.email_links
+        )
 
         log.info(
             "Verification code resent",

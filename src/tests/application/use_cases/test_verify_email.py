@@ -72,6 +72,56 @@ class TestVerifyEmailUseCase:
         mock_user_repository.update.assert_awaited_once_with(pending_user)
 
     @pytest.mark.asyncio
+    async def test_an_invitee_sets_their_password_while_verifying(
+        self, pending_user, mock_user_repository, mock_verification_code_repository
+    ):
+        mock_verification_code_repository.find_latest_active_by_user_id.return_value = await _make_valid_code(
+            pending_user
+        )
+
+        use_case = VerifyEmailUseCase(mock_user_repository, mock_verification_code_repository)
+        await use_case.execute(VerifyEmailRequest(email="new@example.com", code="ABC234", password="MyOwnPass123"))
+
+        assert await PasswordHandler.verify_password("MyOwnPass123", pending_user.password_hash)
+        assert pending_user.is_email_verified is True
+
+    @pytest.mark.asyncio
+    async def test_an_invitee_must_choose_a_password_and_keeps_the_code_until_then(
+        self, mock_user_repository, mock_verification_code_repository
+    ):
+        invitee = UserEntity.create_workspace_member(
+            email="new@example.com",
+            display_name="Invitee",
+            password_hash="placeholder",
+            role=UserRole.MEMBER,
+            workspace_id=EntityId.generate(),
+        )
+        mock_user_repository.find_by_email.return_value = invitee
+        verification_code = await _make_valid_code(invitee)
+        mock_verification_code_repository.find_latest_active_by_user_id.return_value = verification_code
+
+        use_case = VerifyEmailUseCase(mock_user_repository, mock_verification_code_repository)
+        with pytest.raises(ValueError, match="Choose a password"):
+            await use_case.execute(_request())
+
+        assert invitee.is_email_verified is False
+        assert verification_code.used_at is None
+
+    @pytest.mark.asyncio
+    async def test_a_weak_password_is_rejected_without_burning_an_attempt(
+        self, pending_user, mock_user_repository, mock_verification_code_repository
+    ):
+        verification_code = await _make_valid_code(pending_user)
+        mock_verification_code_repository.find_latest_active_by_user_id.return_value = verification_code
+
+        use_case = VerifyEmailUseCase(mock_user_repository, mock_verification_code_repository)
+        with pytest.raises(ValueError, match="at least 8"):
+            await use_case.execute(VerifyEmailRequest(email="new@example.com", code="ABC234", password="short"))
+
+        assert verification_code.attempt_count == 0
+        assert pending_user.is_email_verified is False
+
+    @pytest.mark.asyncio
     async def test_code_is_accepted_regardless_of_case_and_whitespace(
         self, pending_user, mock_user_repository, mock_verification_code_repository
     ):

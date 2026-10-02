@@ -141,7 +141,7 @@ from src.app.composition.features.users import (
 # Feature: Workspaces
 # ============================================================================
 from src.app.composition.features.workspaces import get_update_workspace_use_case
-from src.app.composition.infrastructure import get_ai_service, get_database_session, get_email_sender
+from src.app.composition.infrastructure import get_ai_service, get_database_session, get_email_links, get_email_sender
 
 # ============================================================================
 # Repositories - Shared (Level 2)
@@ -162,6 +162,7 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Infrastructure
     "get_ai_service",
     "get_database_session",
+    "get_email_links",
     "get_email_sender",
     # Repositories (shared)
     "build_story_repository",
