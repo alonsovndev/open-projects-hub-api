@@ -77,6 +77,11 @@ ai:
 project_limits:
   max_active_per_admin: 3
 
+workspace_limits:
+  max_users: 5
+  ai_credits_ceiling: 25
+  credits_per_user: 5
+
 security:
   # Base64-encoded 32-byte master key for AES-256-GCM encryption of user-supplied
   # provider API keys (F-010 NFR-010-01). Generate with:

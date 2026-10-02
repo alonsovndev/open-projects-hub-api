@@ -33,6 +33,7 @@ from fastapi import Depends
 from src.app.composition.features.auth import get_verification_code_repository
 from src.app.composition.infrastructure import get_email_links, get_email_sender
 from src.app.composition.repositories import get_user_repository
+from src.app.composition.workspace_limits import get_workspace_limits
 from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.application.use_cases.change_password import ChangePasswordUseCase
@@ -56,7 +57,9 @@ async def get_create_user_use_case(
     email_links: EmailLinks = Depends(get_email_links),
 ) -> CreateUserUseCase:
     """CreateUserUseCase factory."""
-    return CreateUserUseCase(user_repository, verification_code_repository, email_sender, email_links)
+    return CreateUserUseCase(
+        user_repository, verification_code_repository, email_sender, email_links, get_workspace_limits().max_users
+    )
 
 
 async def get_get_user_by_id_use_case(

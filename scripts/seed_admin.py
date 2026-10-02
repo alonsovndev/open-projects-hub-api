@@ -33,7 +33,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.app.config.app_config import AppConfig
-from src.app.features.user.domain.entities.user_entity import UserEntity
+from src.app.features.user.domain.entities.user_entity import INITIAL_AI_CREDITS, UserEntity
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
@@ -97,6 +97,12 @@ async def seed_admin():
             if saved_user is None:
                 print(f"❌ ERROR: Failed to create admin user - email may already be in use: {admin_email}")
                 sys.exit(1)
+
+            # UserEntity.create grants credits directly; count them against the workspace ceiling.
+            await WorkspaceRepositoryImpl(session).reserve_ai_credits(
+                workspace.id, INITIAL_AI_CREDITS, INITIAL_AI_CREDITS
+            )
+            await session.commit()
 
             print("✅ Admin user created successfully!")
             print(f"   User ID: {saved_user.id}")

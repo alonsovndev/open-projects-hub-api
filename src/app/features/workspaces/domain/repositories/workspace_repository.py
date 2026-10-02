@@ -28,5 +28,15 @@ class WorkspaceRepository(ABC):
         """Workspace by id, or None."""
 
     @abstractmethod
+    async def reserve_ai_credits(self, workspace_id: EntityId, amount: int, ceiling: int) -> int:
+        """
+        Atomically reserve up to `amount` free credits from the workspace's lifetime `ceiling`.
+
+        Returns the number actually reserved (0 once the ceiling is reached). The reservation
+        is permanent: it is not returned if the user is later removed. It joins the current
+        transaction and is persisted by the caller's next commit (the user update).
+        """
+
+    @abstractmethod
     async def update(self, workspace: WorkspaceEntity) -> WorkspaceEntity:
         """Persist the workspace's current name and return the stored workspace."""

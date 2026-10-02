@@ -16,6 +16,7 @@ from src.app.features.user.application.use_cases.create_user import CreateUserUs
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.value_objects.user_role import UserRole
+from src.app.features.workspaces.domain.exceptions.workspace_exceptions import WorkspaceUserLimitExceededError
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
@@ -40,7 +41,8 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        mock_repo.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         payload = UserCreateRequest(display_name="New User", email="newuser@example.com")
 
@@ -69,7 +71,8 @@ class TestCreateUserUseCase:
         mock_repo = AsyncMock()
         mock_repo.find_by_email.return_value = existing_user
 
-        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        mock_repo.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         payload = UserCreateRequest(display_name="New User", email="existing@example.com")
 
@@ -89,7 +92,8 @@ class TestCreateUserUseCase:
         mock_repo.find_by_email.return_value = None  # User doesn't exist during check
         mock_repo.save.return_value = None  # But returns None due to duplicate (race condition)
 
-        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        mock_repo.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         payload = UserCreateRequest(display_name="Race User", email="raceuser@example.com")
 
@@ -116,7 +120,8 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        mock_repo.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         payload = UserCreateRequest(display_name="Test User", email="user@example.com")
 
@@ -143,7 +148,8 @@ class TestCreateUserUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        mock_repo.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(mock_repo, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         payload = UserCreateRequest(
             display_name="Test User",
@@ -164,7 +170,8 @@ class TestCreateWorkspaceMember:
         user_repository = AsyncMock()
         user_repository.find_by_email.return_value = None
         user_repository.save.side_effect = lambda user_entity: user_entity
-        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        user_repository.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         await use_case.execute(
             UserCreateRequest(display_name="Teammate", email="mate@example.com"),
@@ -183,7 +190,8 @@ class TestCreateWorkspaceMember:
         user_repository = AsyncMock()
         user_repository.find_by_email.return_value = None
         user_repository.save.side_effect = lambda user_entity: user_entity
-        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"))
+        user_repository.count_by_workspace.return_value = 1
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
 
         await use_case.execute(
             UserCreateRequest(display_name="Client", email="client@example.com", role="viewer"),
@@ -203,8 +211,9 @@ class TestCreateWorkspaceMember:
         user_repository.find_by_email.return_value = None
         user_repository.save.side_effect = lambda user_entity: user_entity
         verification_code_repository, email_sender = AsyncMock(), AsyncMock()
+        user_repository.count_by_workspace.return_value = 1
         use_case = CreateUserUseCase(
-            user_repository, verification_code_repository, email_sender, EmailLinks("http://localhost:5173")
+            user_repository, verification_code_repository, email_sender, EmailLinks("http://localhost:5173"), 5
         )
 
         await use_case.execute(
@@ -221,8 +230,9 @@ class TestCreateWorkspaceMember:
         user_repository.find_by_email.return_value = None
         user_repository.save.side_effect = lambda user_entity: user_entity
         verification_code_repository, email_sender = AsyncMock(), AsyncMock()
+        user_repository.count_by_workspace.return_value = 1
         use_case = CreateUserUseCase(
-            user_repository, verification_code_repository, email_sender, EmailLinks("http://localhost:5173")
+            user_repository, verification_code_repository, email_sender, EmailLinks("http://localhost:5173"), 5
         )
 
         await use_case.execute(
@@ -237,3 +247,32 @@ class TestCreateWorkspaceMember:
         assert "http://localhost:5173/verify-email?email=mate%40example.com&code=" in body
         assert "setPassword=1" in body
         assert "24 hours" in body
+
+
+class TestWorkspaceUserLimit:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("existing_users", [5, 6])
+    async def test_adding_a_user_at_the_cap_is_refused(self, existing_users):
+        user_repository = AsyncMock()
+        user_repository.count_by_workspace.return_value = existing_users
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
+
+        with pytest.raises(WorkspaceUserLimitExceededError):
+            await use_case.execute(
+                UserCreateRequest(display_name="Sixth", email="sixth@example.com"), ctx=make_request_context()
+            )
+
+        user_repository.save.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_the_count_covers_the_callers_workspace(self):
+        user_repository = AsyncMock()
+        user_repository.count_by_workspace.return_value = 4
+        user_repository.find_by_email.return_value = None
+        user_repository.save.side_effect = lambda user_entity: user_entity
+        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
+        ctx = make_request_context()
+
+        await use_case.execute(UserCreateRequest(display_name="Fifth", email="fifth@example.com"), ctx=ctx)
+
+        user_repository.count_by_workspace.assert_awaited_once_with(ctx.workspace_id)

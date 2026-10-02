@@ -37,7 +37,7 @@ async def get_credit_balance(
     """
     Get the caller's AI credit balance.
 
-    Requires ADMIN role: refinement is admin-only, so credits are meaningless to a Viewer.
+    Requires ADMIN or MEMBER role: Viewers cannot refine, so credits are meaningless to them.
 
     Args:
         ctx: Caller identity and workspace (from JWT)

@@ -1,7 +1,7 @@
 import time
 
 import sqlalchemy.exc
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -372,6 +372,12 @@ class UserRepositoryImpl(UserRepository):
             await self.db_session.rollback()
             self._log.exception("Error deleting user", extra={"operation": "delete_handing_over", "table": "users"})
             raise
+
+    async def count_by_workspace(self, workspace_id: EntityId) -> int:
+        result = await self.db_session.execute(
+            select(func.count()).select_from(UserModel).where(UserModel.workspace_id == workspace_id.value)
+        )
+        return result.scalar_one()
 
     async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
         """

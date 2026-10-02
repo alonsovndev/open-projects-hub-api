@@ -118,6 +118,10 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
+    async def count_by_workspace(self, workspace_id: EntityId) -> int:
+        """Number of accounts in the workspace, including deactivated and unverified ones."""
+
+    @abstractmethod
     async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
         """
         Atomically spend one AI credit and return the new balance.

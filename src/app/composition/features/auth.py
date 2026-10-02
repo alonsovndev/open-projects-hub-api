@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.composition.infrastructure import get_database_session, get_email_links, get_email_sender, get_jwt_handler
 from src.app.composition.repositories import get_user_repository, get_workspace_repository
+from src.app.composition.workspace_limits import get_workspace_limits
 from src.app.config.app_config import AppConfig
 from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.confirm_password_reset import ConfirmPasswordResetUseCase
@@ -116,9 +117,12 @@ async def get_register_use_case(
 async def get_verify_email_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
     verification_code_repository: EmailVerificationCodeRepository = Depends(get_verification_code_repository),
+    workspace_repository: WorkspaceRepository = Depends(get_workspace_repository),
 ) -> VerifyEmailUseCase:
     """VerifyEmailUseCase factory."""
-    return VerifyEmailUseCase(user_repository, verification_code_repository)
+    return VerifyEmailUseCase(
+        user_repository, verification_code_repository, workspace_repository, get_workspace_limits()
+    )
 
 
 async def get_resend_verification_use_case(

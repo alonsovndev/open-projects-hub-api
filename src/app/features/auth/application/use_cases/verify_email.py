@@ -6,8 +6,11 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
     VerificationRateLimitedError,
 )
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
+from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.validators.user_validators import UserValidators
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
+from src.app.features.workspaces.domain.value_objects.workspace_limits import WorkspaceLimits
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 from src.app.shared.logging import get_logger, mask_email
@@ -15,7 +18,8 @@ from src.app.shared.logging import get_logger, mask_email
 
 class VerifyEmailUseCase:
     """
-    Validates a verification code, marks the account verified, and grants its free credits.
+    Validates a verification code, marks the account verified, and grants its free credits
+    (Admins and members only, drawn from the workspace's credit ceiling).
 
     Enforces NFR-008-03: after 5 wrong guesses the code is locked and a new one must be
     requested. Unknown emails, already-verified accounts, and missing codes all raise the
@@ -26,9 +30,13 @@ class VerifyEmailUseCase:
         self,
         user_repository: UserRepository,
         verification_code_repository: EmailVerificationCodeRepository,
+        workspace_repository: WorkspaceRepository,
+        workspace_limits: WorkspaceLimits,
     ):
         self.user_repository = user_repository
         self.verification_code_repository = verification_code_repository
+        self.workspace_repository = workspace_repository
+        self.workspace_limits = workspace_limits
 
     async def execute(self, payload: VerifyEmailRequest) -> VerifyEmailResponse:
         log = get_logger(__name__)
@@ -74,7 +82,7 @@ class VerifyEmailUseCase:
         # is still valid and the user can simply retry.
         if payload.password is not None:
             user_entity.update_details(password_hash=await PasswordHandler.hash_password(payload.password))
-        user_entity.verify_email()
+        user_entity.verify_email(granted_credits=await self._reserve_free_credits(user_entity))
         await self.user_repository.update(user_entity)
 
         verification_code.mark_used()
@@ -85,3 +93,12 @@ class VerifyEmailUseCase:
             extra={"event_type": "auth.verify_email.success", "user_id": str(user_entity.id)},
         )
         return VerifyEmailResponse(verified=True)
+
+    async def _reserve_free_credits(self, user_entity: UserEntity) -> int:
+        if not user_entity.receives_free_credits() or user_entity.workspace_id is None:
+            return 0
+        return await self.workspace_repository.reserve_ai_credits(
+            user_entity.workspace_id,
+            self.workspace_limits.credits_per_user,
+            self.workspace_limits.ai_credits_ceiling,
+        )

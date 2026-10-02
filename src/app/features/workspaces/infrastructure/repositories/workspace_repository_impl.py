@@ -71,6 +71,25 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             return None
         return self._to_entity(model)
 
+    async def reserve_ai_credits(self, workspace_id: EntityId, amount: int, ceiling: int) -> int:
+        # Row lock makes read-and-bump atomic across concurrent verifications. No commit here:
+        # the caller's next commit persists the reservation together with the user's grant, and
+        # a failure before it releases both, so credits are never counted without being given.
+        granted_total = await self.db_session.scalar(
+            select(WorkspaceModel.ai_credits_granted_total)
+            .where(WorkspaceModel.id == workspace_id.value)
+            .with_for_update()
+        )
+        if granted_total is None:
+            raise ValueError(f"Workspace not found: {workspace_id.value}")
+        reserved = max(0, min(amount, ceiling - granted_total))
+        await self.db_session.execute(
+            update(WorkspaceModel)
+            .where(WorkspaceModel.id == workspace_id.value)
+            .values(ai_credits_granted_total=granted_total + reserved)
+        )
+        return reserved
+
     async def update(self, workspace: WorkspaceEntity) -> WorkspaceEntity:
         model = await self.db_session.get(WorkspaceModel, workspace.id.value)
         if model is None:

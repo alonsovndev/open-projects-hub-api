@@ -98,17 +98,17 @@ class TestCreditsAwaitEmailVerification:
         assert user.ai_credits_remaining == 0
         assert user.ai_credits_granted == 0
 
-    def test_verifying_the_email_grants_the_initial_credits(self):
+    def test_verifying_the_email_sets_the_granted_credits(self):
         user = self.build_pending_user()
 
-        user.verify_email()
+        user.verify_email(granted_credits=INITIAL_AI_CREDITS)
 
         assert user.is_email_verified is True
         assert user.ai_credits_remaining == INITIAL_AI_CREDITS
         assert user.ai_credits_granted == INITIAL_AI_CREDITS
 
-    def test_verifying_a_member_grants_no_credits(self):
-        """One sign-up yields one grant; members an Admin adds must not multiply it."""
+    def test_verifying_without_a_grant_leaves_no_credits(self):
+        """The caller reserves credits from the workspace ceiling; none reserved means none granted."""
         user = UserEntity.create_workspace_member(
             email="mate@example.com",
             display_name="Mate",
@@ -122,6 +122,13 @@ class TestCreditsAwaitEmailVerification:
         assert user.is_email_verified is True
         assert user.ai_credits_remaining == 0
         assert user.ai_credits_granted == 0
+
+    @pytest.mark.parametrize(
+        ("role", "receives_credits"),
+        [(UserRole.ADMIN, True), (UserRole.MEMBER, True), (UserRole.VIEWER, False)],
+    )
+    def test_only_admins_and_members_receive_free_credits(self, role, receives_credits):
+        assert build_user(role).receives_free_credits() is receives_credits
 
     def test_accounts_created_by_an_admin_are_verified_on_creation(self):
         assert build_user().is_email_verified is True

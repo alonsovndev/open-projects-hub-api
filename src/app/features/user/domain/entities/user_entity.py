@@ -163,18 +163,21 @@ class UserEntity(BaseEntity):
             workspace_id=workspace_id,
         )
 
-    def verify_email(self, now: datetime | None = None) -> None:
-        """
-        Confirm the account's email.
+    def receives_free_credits(self) -> bool:
+        """Admins and members get free platform credits; viewers never do (F-010)."""
+        return self._role in (UserRole.ADMIN, UserRole.MEMBER)
 
-        Only a workspace's Admin receives the free platform credits (F-010): each sign-up
-        creates one Admin, whereas an Admin can add any number of members and viewers, and
-        granting those credits too would let one sign-up mint unlimited free refinements.
+    def verify_email(self, granted_credits: int = 0, now: datetime | None = None) -> None:
+        """
+        Confirm the account's email and set its free platform credits.
+
+        The amount is decided by the caller, which reserves it from the workspace's credit
+        ceiling: granting here unconditionally would let one sign-up mint credits by adding
+        and removing members.
         """
         self._email_verified_at = now or datetime.now(UTC)
-        if self.is_admin():
-            self._ai_credits_remaining = INITIAL_AI_CREDITS
-            self._ai_credits_granted = INITIAL_AI_CREDITS
+        self._ai_credits_remaining = granted_credits
+        self._ai_credits_granted = granted_credits
         self.mark_as_updated()
 
     def update_details(

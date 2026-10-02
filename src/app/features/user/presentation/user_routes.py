@@ -179,12 +179,13 @@ async def create_user(
     """
     Add a member or viewer to the caller's workspace (Admin only).
 
-    The account is created verified, with no free platform credits. Creating another Admin
-    is refused (422). For self sign-up, use POST /v1/auth/register instead.
+    The account is created unverified and the person is emailed a code; free platform credits
+    are granted on verification (members only, not viewers). Refused with 409 once the workspace
+    has reached its user cap. Creating another Admin is refused (422). For self sign-up, use POST /v1/auth/register instead.
 
     Raises:
         403: Forbidden (non-admin user)
-        409: Conflict (email already exists)
+        409: Conflict (email already exists, or workspace user cap reached)
         422: Validation error (invalid payload or role)
     """
     return await create_user_use_case.execute(payload, ctx)
