@@ -46,7 +46,6 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
     ResetCodeRateLimitedError,
     VerificationRateLimitedError,
 )
-from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.presentation.auth_dependencies import get_current_user
 
@@ -115,14 +114,10 @@ async def register(
 
     Raises:
         400: Validation failed (weak password, invalid email, etc.)
-        409: Email already exists
         422: Unknown field in the request body (for example an attempted role override)
         500: Internal server error
     """
-    try:
-        return await register_use_case.execute(payload=payload)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+    return await register_use_case.execute(payload=payload)
 
 
 @router.post("/verify-email", response_model=VerifyEmailResponse)

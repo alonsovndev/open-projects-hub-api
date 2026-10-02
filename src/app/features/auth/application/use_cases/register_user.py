@@ -6,14 +6,20 @@ Following API spec requirements:
 - Role: admin of that workspace, assigned server-side and never taken from the request
 - Emails a verification code; the account cannot sign in until it is verified (FR-008-06)
 - Returns RegisterResponse (masked email and code expiry, no tokens)
+- Answers identically when a verified account already holds the email, and tells that
+  account's owner by email instead, so the form cannot be used to probe for accounts
 """
+
+from datetime import UTC, datetime, timedelta
 
 from src.app.features.auth.application.dtos.auth_dto import RegisterRequest, RegisterResponse
 from src.app.features.auth.application.services.email_links import EmailLinks
-from src.app.features.auth.application.use_cases.issue_verification_code import issue_verification_code
+from src.app.features.auth.application.use_cases.issue_verification_code import (
+    VERIFICATION_CODE_TTL_MINUTES,
+    issue_verification_code,
+)
 from src.app.features.auth.domain.repositories.email_verification_code_repository import EmailVerificationCodeRepository
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
@@ -58,7 +64,6 @@ class RegisterUserUseCase:
             RegisterResponse with the masked email and when the code expires
 
         Raises:
-            UserAlreadyExistsError: If email already exists
             ValueError: If validation fails
         """
         log = get_logger(__name__)
@@ -87,7 +92,7 @@ class RegisterUserUseCase:
                     "Registration attempt with existing email",
                     extra={"event_type": "auth.register.email_exists", "email": str(new_user_entity.email)},
                 )
-                raise UserAlreadyExistsError(str(new_user_entity.email))
+                return await self._answer_for_existing_account(str(new_user_entity.email))
 
             if existing_user:
                 log.info(
@@ -105,7 +110,7 @@ class RegisterUserUseCase:
                     "Race condition during registration",
                     extra={"event_type": "auth.register.race_condition", "email": str(new_user_entity.email)},
                 )
-                raise UserAlreadyExistsError(str(new_user_entity.email))
+                return await self._answer_for_existing_account(str(new_user_entity.email))
 
             code_expires_at = await issue_verification_code(
                 created_user, self.verification_code_repository, self.email_sender, self.email_links
@@ -120,10 +125,32 @@ class RegisterUserUseCase:
                 code_expires_at=code_expires_at.isoformat(),
             )
 
-        except (ValueError, UserAlreadyExistsError):
+        except ValueError:
             raise
         except Exception:
             log.exception(
                 "Unexpected error in RegisterUserUseCase", extra={"event_type": "auth.register.unexpected_error"}
             )
             raise
+
+    async def _answer_for_existing_account(self, email: str) -> RegisterResponse:
+        """Email the account's owner and return what a fresh sign-up would, so callers can't tell them apart."""
+        try:
+            await self.email_sender.send(
+                to=email,
+                subject="You already have an Open Projects Hub account",
+                body=(
+                    "Someone tried to create an account with this email, but you already have one.\n\n"
+                    f"Sign in: {self.email_links.sign_in()}\n\n"
+                    'If you forgot your password, use "Forgot password" on the sign-in page.\n\n'
+                    "If this wasn't you, you can ignore this email."
+                ),
+            )
+        except Exception:
+            get_logger(__name__).exception(
+                "Existing-account notice failed to send",
+                extra={"event_type": "auth.register.notice_email_failed", "email": mask_email(email)},
+            )
+
+        decoy_expires_at = datetime.now(UTC) + timedelta(minutes=VERIFICATION_CODE_TTL_MINUTES)
+        return RegisterResponse(email=mask_email(email), code_expires_at=decoy_expires_at.isoformat())

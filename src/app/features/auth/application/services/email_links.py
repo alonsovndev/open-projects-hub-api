@@ -14,5 +14,8 @@ class EmailLinks:
             params["setPassword"] = "1"
         return f"{self.base_url.rstrip('/')}/verify-email?{urlencode(params)}"
 
+    def sign_in(self) -> str:
+        return f"{self.base_url.rstrip('/')}/login"
+
     def reset_password(self, email: str, code: str) -> str:
         return f"{self.base_url.rstrip('/')}/reset-password?{urlencode({'email': email, 'code': code})}"

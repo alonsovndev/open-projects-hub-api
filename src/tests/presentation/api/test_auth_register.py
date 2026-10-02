@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import RegisterResponse
-from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 
 
 @pytest.fixture
@@ -42,24 +41,6 @@ class TestRegisterEndpoint:
         }
         assert "token" not in data
         assert "accessToken" not in data
-
-    def test_register_with_duplicate_email_returns_409(self, client):
-        """Test registration with existing email returns 409 Conflict."""
-        with patch(
-            "src.app.features.auth.application.use_cases.register_user.RegisterUserUseCase.execute",
-            new=AsyncMock(side_effect=UserAlreadyExistsError("Email already registered")),
-        ):
-            response = client.post(
-                "/v1/auth/register",
-                json={
-                    "email": "existing@example.com",
-                    "password": "SecurePass1",
-                    "displayName": "Duplicate User",
-                },
-            )
-
-        assert response.status_code == 409
-        assert "Email already registered" in response.json()["detail"]
 
     def test_register_with_invalid_email_format_returns_422(self, client):
         """Test registration with invalid email format returns 422."""

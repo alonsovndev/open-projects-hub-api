@@ -271,7 +271,12 @@ added to the workspace by its Admin through `POST /v1/users`.
 }
 ```
 
-**Errors:** 409 email already registered · 422 invalid body (including a `role` field).
+**Errors:** 422 invalid body (including a `role` field).
+
+**Existing accounts:** if a verified account already holds the email, the response is the same
+(with a code expiry that no code backs) so the endpoint can't be used to probe for accounts.
+The address's owner gets an "you already have an account" email instead, and no account or
+workspace is created.
 
 **Undeliverable codes:** the sender (`SMTP_FROM_ADDRESS`) must be a full address on a domain
 verified in Resend. Without SMTP configured in dev, run `make seed-admin`

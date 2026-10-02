@@ -17,7 +17,6 @@ from src.app.features.auth.application.dtos.auth_dto import RegisterRequest, Reg
 from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.register_user import RegisterUserUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
-from src.app.features.user.domain.exceptions.user_exceptions import UserAlreadyExistsError
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -160,8 +159,8 @@ class TestRegisterUserUseCase:
         assert result.verification_required is True
 
     @pytest.mark.asyncio
-    async def test_execute_raises_error_when_email_exists(self):
-        """Test that duplicate email raises UserAlreadyExistsError."""
+    async def test_execute_answers_like_a_new_sign_up_when_email_exists(self):
+        """A verified email must not be distinguishable from a free one; its owner is told by email."""
         existing_user = UserEntity(
             id=EntityId.generate(),
             email=Email("existing@example.com"),
@@ -172,14 +171,17 @@ class TestRegisterUserUseCase:
         )
         user_repository = build_open_instance_repo()
         user_repository.find_by_email.return_value = existing_user
-        use_case, _, email_sender = build_use_case(user_repository)
+        use_case, verification_code_repository, email_sender = build_use_case(user_repository)
 
-        with pytest.raises(UserAlreadyExistsError) as exc_info:
-            await use_case.execute(build_payload("existing@example.com"))
+        result = await use_case.execute(build_payload("existing@example.com"))
 
-        assert "existing@example.com" in str(exc_info.value)
+        assert result.verification_required is True
+        assert result.code_expires_at
         use_case.workspace_repository.create_with_admin.assert_not_called()
-        email_sender.send.assert_not_called()
+        verification_code_repository.create.assert_not_called()
+        email_sender.send.assert_called_once()
+        assert email_sender.send.call_args.kwargs["to"] == "existing@example.com"
+        assert "already have" in email_sender.send.call_args.kwargs["body"]
 
     @pytest.mark.asyncio
     async def test_execute_hashes_password_before_storing(self):
@@ -241,17 +243,18 @@ class TestRegisterUserUseCase:
         assert saved_workspace(use_case).name == "Acme"
 
     @pytest.mark.asyncio
-    async def test_execute_raises_conflict_when_the_email_is_taken_concurrently(self):
+    async def test_execute_answers_like_a_new_sign_up_when_the_email_is_taken_concurrently(self):
         """The workspace insert and the admin insert commit together, so a lost race persists nothing."""
         user_repository = build_open_instance_repo()
-        use_case, _, email_sender = build_use_case(user_repository)
+        use_case, verification_code_repository, email_sender = build_use_case(user_repository)
         use_case.workspace_repository.create_with_admin.side_effect = None
         use_case.workspace_repository.create_with_admin.return_value = None
 
-        with pytest.raises(UserAlreadyExistsError):
-            await use_case.execute(build_payload())
+        result = await use_case.execute(build_payload())
 
-        email_sender.send.assert_not_called()
+        assert result.verification_required is True
+        verification_code_repository.create.assert_not_called()
+        email_sender.send.assert_called_once()
 
 
 class TestRegisterOverPendingAccounts:
@@ -281,14 +284,13 @@ class TestRegisterOverPendingAccounts:
         email_sender.send.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_a_verified_account_still_blocks_the_email(self):
+    async def test_a_verified_account_is_never_replaced(self):
         verified = self.pending_account(UserRole.MEMBER)
         verified.verify_email()
         user_repository = build_open_instance_repo()
         user_repository.find_by_email.return_value = verified
         use_case, _, _ = build_use_case(user_repository)
 
-        with pytest.raises(UserAlreadyExistsError):
-            await use_case.execute(build_payload("owner@example.com"))
+        await use_case.execute(build_payload("owner@example.com"))
 
         use_case.workspace_repository.create_with_admin.assert_not_called()
