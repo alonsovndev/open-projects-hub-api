@@ -101,7 +101,7 @@ async def register(
 
     Public endpoint - no authentication required. Each sign-up creates a new, empty
     workspace and makes the account its Admin; a role supplied in the request body is
-    rejected. Teammates and viewers are added to a workspace by its Admin through
+    rejected. Teammates are added to a workspace by its Admin through
     POST /v1/users.
 
     Args:

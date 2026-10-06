@@ -49,12 +49,12 @@ Content-Type: application/json
   "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
   "email": "user@example.com",
   "displayName": "John Doe",
-  "role": "viewer",
+  "role": "admin",
   "loggedInAt": "2026-04-30T17:00:00.000Z",
   "user": {
     "email": "user@example.com",
     "displayName": "John Doe",
-    "role": "viewer"
+    "role": "admin"
   }
 }
 ```
@@ -68,7 +68,7 @@ Content-Type: application/json
 | refreshToken | string | JWT refresh token (single-use rotation) |
 | email | string | User's email address |
 | displayName | string | User's display name |
-| role | string | User role (admin or viewer) |
+| role | string | User role (admin or member) |
 | loggedInAt | string | ISO 8601 timestamp when login occurred |
 | user | object | Nested user detail object (email, displayName, name, role) |
 
@@ -91,7 +91,7 @@ The token contains the following claims:
 |-------|-------------|
 | sub | User ID (subject) |
 | email | User email |
-| role | User role (admin, member or viewer) |
+| role | User role (admin or member) |
 | wid | Workspace ID. Every workspace-scoped route takes the workspace from this claim; a token without it gets 401 and must be refreshed |
 | iat | Issued at (Unix timestamp) |
 | exp | Expiration time (Unix timestamp) |
@@ -253,8 +253,8 @@ Refresh tokens use single-use rotation: the old refresh token is revoked after u
 Open self sign-up. Each registration creates a **new, empty workspace** and makes the
 account its **Admin**; the account is created **unverified** with no AI credits and is
 emailed a verification code. No tokens are returned: the account can sign in only after
-`POST /v1/auth/verify-email` succeeds. Teammates (`member`) and clients (`viewer`) are
-added to the workspace by its Admin through `POST /v1/users`.
+`POST /v1/auth/verify-email` succeeds. Teammates (`member`) are added to the workspace by its Admin
+through `POST /v1/users`. Clients have no account.
 
 **Request:** `{"displayName": "Jane Doe", "email": "jane@example.com", "password": "SecurePass1", "workspaceName": "Jane's Studio"}`
 

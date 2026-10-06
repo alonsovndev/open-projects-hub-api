@@ -48,22 +48,3 @@ class TestGetUserById:
 
         with pytest.raises(UserNotFoundError):
             await use_case.execute(stranger_id, make_request_context())
-
-    @pytest.mark.asyncio
-    async def test_a_viewer_cannot_look_up_teammates(self):
-        teammate_id = str(uuid4())
-        use_case = build_use_case(build_user(teammate_id, TEST_WORKSPACE_ID))
-
-        with pytest.raises(UserNotFoundError):
-            await use_case.execute(teammate_id, make_request_context(role=UserRole.VIEWER))
-
-        use_case.user_repository.find_by_id.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_a_viewer_can_look_up_themselves(self):
-        viewer_id = str(uuid4())
-        use_case = build_use_case(build_user(viewer_id, TEST_WORKSPACE_ID))
-
-        result = await use_case.execute(viewer_id, make_request_context(user_id=viewer_id, role=UserRole.VIEWER))
-
-        assert result.id == viewer_id

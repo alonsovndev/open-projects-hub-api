@@ -18,7 +18,7 @@ class UserEntity(BaseEntity):
         email: Email,
         display_name: str,
         password_hash: str,
-        role: UserRole = UserRole.VIEWER,
+        role: UserRole = UserRole.MEMBER,
         token_version: int = 0,
         ai_credits_remaining: int = INITIAL_AI_CREDITS,
         ai_credits_granted: int = INITIAL_AI_CREDITS,
@@ -119,7 +119,7 @@ class UserEntity(BaseEntity):
         workspace_id: EntityId,
     ) -> "UserEntity":
         """
-        A teammate or viewer added by a workspace Admin, pending email verification.
+        A teammate added by a workspace Admin, pending email verification.
 
         Not verified on creation: with open sign-up any stranger can be an Admin, so an
         Admin's word does not prove the address is theirs to give. Until the person confirms
@@ -162,10 +162,6 @@ class UserEntity(BaseEntity):
             email_verified_at=None,
             workspace_id=workspace_id,
         )
-
-    def receives_free_credits(self) -> bool:
-        """Admins and members get free platform credits; viewers never do (F-010)."""
-        return self._role in (UserRole.ADMIN, UserRole.MEMBER)
 
     def verify_email(self, granted_credits: int = 0, now: datetime | None = None) -> None:
         """

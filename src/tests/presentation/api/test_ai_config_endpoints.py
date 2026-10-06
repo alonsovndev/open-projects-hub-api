@@ -52,17 +52,6 @@ def admin_token(app_jwt_handler):
     )
 
 
-@pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
@@ -92,10 +81,6 @@ class TestCreditBalanceEndpoint:
 
     def test_requires_authentication(self, client: TestClient):
         assert client.get("/v1/users/me/credits").status_code == 401
-
-    def test_is_admin_only(self, client: TestClient, viewer_token: str):
-        response = client.get("/v1/users/me/credits", headers=auth(viewer_token))
-        assert response.status_code == 403
 
 
 class TestListApiKeysEndpoint:
@@ -145,9 +130,6 @@ class TestListApiKeysEndpoint:
 
         assert RAW_KEY not in response.text
         assert "apiKey" not in response.text
-
-    def test_is_admin_only(self, client: TestClient, viewer_token: str):
-        assert client.get("/v1/users/me/api-keys", headers=auth(viewer_token)).status_code == 403
 
 
 class TestSaveApiKeyEndpoint:
@@ -221,14 +203,6 @@ class TestSaveApiKeyEndpoint:
             headers=auth(admin_token),
         )
         assert response.status_code == 422
-
-    def test_is_admin_only(self, client: TestClient, viewer_token: str):
-        response = client.post(
-            "/v1/users/me/api-keys",
-            json={"provider": "openai", "apiKey": RAW_KEY},
-            headers=auth(viewer_token),
-        )
-        assert response.status_code == 403
 
 
 class TestDeleteApiKeyEndpoint:

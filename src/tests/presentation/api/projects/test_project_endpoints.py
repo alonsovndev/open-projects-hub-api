@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from src.app.config.app_config import AppConfig
 from src.app.features.projects.application.dtos.project_dto import ProjectResponse
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
@@ -30,17 +31,6 @@ def admin_token(app_jwt_handler):
         user_id="550e8400-e29b-41d4-a716-446655440001",
         email="admin@example.com",
         role="admin",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
-@pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
         workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
@@ -74,6 +64,7 @@ def mock_project_response(mock_project_entity):
         id=str(mock_project_entity.id.value),
         name=mock_project_entity.name,
         code=mock_project_entity.code,
+        access_code=mock_project_entity.access_code,
         description=mock_project_entity.description,
         created_by=str(mock_project_entity.created_by.value),
         client_id=str(mock_project_entity.client_id.value),
@@ -148,16 +139,6 @@ class TestCreateProjectEndpoint:
 
         assert response.status_code == 409
         assert "limit" in response.json()["detail"]
-
-    def test_create_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test creating project as viewer returns 403."""
-        response = client.post(
-            "/v1/projects",
-            json={"name": "Test Project"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
 
 class TestListProjectsEndpoint:
@@ -269,6 +250,7 @@ class TestUpdateProjectEndpoint:
             id=mock_project_response.id,
             name="Updated Name",
             code=mock_project_response.code,
+            access_code=mock_project_response.access_code,
             description=mock_project_response.description,
             created_by=mock_project_response.created_by,
             client_id=mock_project_response.client_id,
@@ -294,16 +276,6 @@ class TestUpdateProjectEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Updated Name"
-
-    def test_update_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test updating project as viewer returns 403."""
-        response = client.patch(
-            "/v1/projects/550e8400-e29b-41d4-a716-446655440001",
-            json={"name": "Updated"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
 
 class TestDeleteProjectEndpoint:
@@ -337,15 +309,6 @@ class TestDeleteProjectEndpoint:
 
         assert response.status_code == 404
 
-    def test_delete_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test deleting project as viewer returns 403."""
-        response = client.delete(
-            "/v1/projects/550e8400-e29b-41d4-a716-446655440001",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
 
 class TestArchiveProjectEndpoint:
     """Test POST /v1/projects/{project_id}/archive endpoint."""
@@ -356,6 +319,7 @@ class TestArchiveProjectEndpoint:
             id=mock_project_response.id,
             name=mock_project_response.name,
             code=mock_project_response.code,
+            access_code=mock_project_response.access_code,
             description=mock_project_response.description,
             created_by=mock_project_response.created_by,
             client_id=mock_project_response.client_id,
@@ -395,15 +359,6 @@ class TestArchiveProjectEndpoint:
 
         assert response.status_code == 404
 
-    def test_archive_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test archiving project as viewer returns 403."""
-        response = client.post(
-            "/v1/projects/550e8400-e29b-41d4-a716-446655440100/archive",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
 
 class TestReactivateProjectEndpoint:
     """Test POST /v1/projects/{project_id}/reactivate endpoint."""
@@ -414,6 +369,7 @@ class TestReactivateProjectEndpoint:
             id=mock_project_response.id,
             name=mock_project_response.name,
             code=mock_project_response.code,
+            access_code=mock_project_response.access_code,
             description=mock_project_response.description,
             created_by=mock_project_response.created_by,
             client_id=mock_project_response.client_id,
@@ -453,11 +409,29 @@ class TestReactivateProjectEndpoint:
 
         assert response.status_code == 404
 
-    def test_reactivate_project_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test reactivating project as viewer returns 403."""
-        response = client.post(
-            "/v1/projects/550e8400-e29b-41d4-a716-446655440100/reactivate",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
 
-        assert response.status_code == 403
+class TestRegenerateAccessCodeEndpoint:
+    """Test POST /v1/projects/{project_id}/access-code/regenerate endpoint."""
+
+    URL = "/v1/projects/550e8400-e29b-41d4-a716-446655440100/access-code/regenerate"
+    USE_CASE = (
+        "src.app.features.projects.application.use_cases.regenerate_access_code.RegenerateAccessCodeUseCase.execute"
+    )
+
+    def test_returns_the_project_with_its_new_access_code(
+        self, client: TestClient, admin_token: str, mock_project_response
+    ):
+        with patch(self.USE_CASE, new=AsyncMock(return_value=mock_project_response)):
+            response = client.post(self.URL, headers={"Authorization": f"Bearer {admin_token}"})
+
+        assert response.status_code == 200
+        assert response.json()["accessCode"] == mock_project_response.access_code
+
+    def test_unknown_project_returns_404(self, client: TestClient, admin_token: str):
+        with patch(self.USE_CASE, new=AsyncMock(side_effect=ProjectNotFoundError("missing"))):
+            response = client.post(self.URL, headers={"Authorization": f"Bearer {admin_token}"})
+
+        assert response.status_code == 404
+
+    def test_requires_authentication(self, client: TestClient):
+        assert client.post(self.URL).status_code == 401

@@ -17,6 +17,7 @@ Use Cases:
 - Delete Project: Remove project
 - Archive Project: Mark project as archived (excluded from active limits)
 - Reactivate Project: Restore archived/completed project to active
+- Regenerate Access Code: Replace the code clients use to open the Client Review page
 
 Cross-Feature Dependencies:
 Projects depends on ClientRepository to validate that client_id exists
@@ -46,6 +47,7 @@ from src.app.features.projects.application.use_cases.delete_project import Delet
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.reactivate_project import ReactivateProjectUseCase
+from src.app.features.projects.application.use_cases.regenerate_access_code import RegenerateAccessCodeUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
@@ -129,3 +131,10 @@ async def get_reactivate_project_use_case(
 ) -> ReactivateProjectUseCase:
     """ReactivateProjectUseCase factory. Injects active-project limit from configuration."""
     return ReactivateProjectUseCase(repository, max_active_projects=_get_max_active_projects())
+
+
+async def get_regenerate_access_code_use_case(
+    repository: ProjectRepository = Depends(get_project_repository),
+) -> RegenerateAccessCodeUseCase:
+    """RegenerateAccessCodeUseCase factory."""
+    return RegenerateAccessCodeUseCase(repository)

@@ -78,7 +78,7 @@ The API implements multiple layers of security to protect user data and prevent 
 ## Authorization
 
 **Current Implementation:**
-- **Roles:** admin, viewer
+- **Roles:** admin, member (client stakeholders have no account; they open the public Client Review page with a project access code)
 - **Method:** JWT token includes role claim
 - **Enforcement:** `verify_jwt_token` dependency checks token
 - **Protected Endpoints:** Require valid JWT token

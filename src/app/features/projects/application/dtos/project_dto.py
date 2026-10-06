@@ -22,6 +22,7 @@ class ProjectResponse(BaseModel):
     id: str
     name: str
     code: str
+    access_code: str
     description: str | None
     created_by: str
     client_id: str

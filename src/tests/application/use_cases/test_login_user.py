@@ -89,7 +89,7 @@ class TestLoginUserUseCase:
             email=Email("user@example.com"),
             display_name="Regular User",
             password_hash=password_hash,
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
             email_verified_at=datetime.now(UTC),
         )
 
@@ -101,7 +101,7 @@ class TestLoginUserUseCase:
 
         result = await use_case.execute(payload)
 
-        assert result.role == "viewer"
+        assert result.role == "member"
 
     @pytest.mark.asyncio
     async def test_remember_me_issues_a_7_day_session(self, jwt_handler, mock_admin_user):

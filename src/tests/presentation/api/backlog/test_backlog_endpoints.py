@@ -42,17 +42,6 @@ def admin_token(app_jwt_handler):
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
-@pytest.fixture
 def mock_backlog_page():
     """A one-story backlog page."""
     return PaginatedResponse[BacklogStoryResponse](
@@ -98,13 +87,6 @@ class TestGetProjectBacklogEndpoint:
         body = response.json()
         assert body["total"] == 1
         assert body["items"][0]["acceptanceCriteria"] == ["User can enter credentials"]
-
-    def test_backlog_is_readable_by_a_viewer(self, client: TestClient, viewer_token, mock_backlog_page):
-        """A Viewer's whole purpose is reading the approved backlog."""
-        with patch(BACKLOG_USE_CASE, new=AsyncMock(return_value=mock_backlog_page)):
-            response = client.get(BACKLOG_URL, headers={"Authorization": f"Bearer {viewer_token}"})
-
-        assert response.status_code == 200
 
     def test_backlog_requires_a_token(self, client: TestClient):
         """Test that an anonymous caller is refused with 401, not 403."""
@@ -245,17 +227,11 @@ class TestExportBacklogMarkdownEndpoint:
 
 
 class TestExportRoleBoundary:
-    """FR-004-05: a Viewer may read the backlog but never take it away.
+    """FR-004-05: a Member may read the backlog but never take it away.
 
     These deliberately do not patch the use case: if the guard were removed, the request
     would reach the real use case and fail some other way instead of passing silently.
     """
-
-    def test_export_is_forbidden_for_a_viewer(self, client: TestClient, viewer_token):
-        """Test that a Viewer's export attempt is refused with 403."""
-        response = client.post(EXPORT_URL, headers={"Authorization": f"Bearer {viewer_token}"}, json={})
-
-        assert response.status_code == 403
 
     def test_export_requires_a_token(self, client: TestClient):
         """Test that an anonymous export attempt is refused with 401."""

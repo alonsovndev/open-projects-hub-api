@@ -69,6 +69,7 @@ from src.app.composition.features.auth import (
 # Feature: Backlog
 # ============================================================================
 from src.app.composition.features.backlog import get_export_backlog_markdown_use_case, get_get_project_backlog_use_case
+from src.app.composition.features.client_review import get_get_client_review_use_case
 
 # ============================================================================
 # Feature: Clients
@@ -97,6 +98,7 @@ from src.app.composition.features.projects import (
     get_project_by_id_use_case,
     get_project_repository,
     get_reactivate_project_use_case,
+    get_regenerate_access_code_use_case,
     get_update_project_use_case,
 )
 
@@ -133,7 +135,6 @@ from src.app.composition.features.users import (
     get_get_user_profile_use_case,
     get_list_workspace_users_use_case,
     get_update_user_profile_use_case,
-    get_update_user_role_use_case,
     get_update_user_status_use_case,
 )
 
@@ -200,6 +201,8 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     # Backlog
     "get_export_backlog_markdown_use_case",
     "get_get_project_backlog_use_case",
+    # Client Review
+    "get_get_client_review_use_case",
     # Dashboard
     "get_dashboard_stats_use_case",
     # Projects
@@ -210,6 +213,7 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_project_by_id_use_case",
     "get_project_repository",
     "get_reactivate_project_use_case",
+    "get_regenerate_access_code_use_case",
     "get_update_project_use_case",
     # Refinement
     "get_approve_stories_bulk_use_case",
@@ -231,7 +235,6 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_get_user_profile_use_case",
     "get_list_workspace_users_use_case",
     "get_update_user_profile_use_case",
-    "get_update_user_role_use_case",
     "get_update_user_status_use_case",
     # Workspaces
     "get_update_workspace_use_case",

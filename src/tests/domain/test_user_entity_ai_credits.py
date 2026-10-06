@@ -123,12 +123,5 @@ class TestCreditsAwaitEmailVerification:
         assert user.ai_credits_remaining == 0
         assert user.ai_credits_granted == 0
 
-    @pytest.mark.parametrize(
-        ("role", "receives_credits"),
-        [(UserRole.ADMIN, True), (UserRole.MEMBER, True), (UserRole.VIEWER, False)],
-    )
-    def test_only_admins_and_members_receive_free_credits(self, role, receives_credits):
-        assert build_user(role).receives_free_credits() is receives_credits
-
     def test_accounts_created_by_an_admin_are_verified_on_creation(self):
         assert build_user().is_email_verified is True

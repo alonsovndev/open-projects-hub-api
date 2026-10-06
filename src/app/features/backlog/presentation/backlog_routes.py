@@ -31,7 +31,7 @@ async def get_project_backlog(
     """
     Get a project's approved backlog with acceptance criteria.
 
-    Admin and Viewer. Drafts are excluded structurally — unapproved work lives in
+    Admin and Member. Drafts are excluded structurally — unapproved work lives in
     the client and never reaches this table.
 
     Args:
@@ -89,9 +89,8 @@ async def export_backlog_markdown(
     """
     Export a project's backlog as a downloadable Markdown file.
 
-    Admin only — a Viewer may read the backlog but not take it away. An empty scope is
-    warned about via X-Export-Warning rather than rejected, so the Admin still receives a
-    usable template.
+    Admin and Member. An empty scope is warned about via X-Export-Warning rather than
+    rejected, so the caller still receives a usable template.
 
     Args:
         project_id: The project to export

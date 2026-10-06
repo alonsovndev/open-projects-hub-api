@@ -1,6 +1,16 @@
 {
   "components": {
     "schemas": {
+      "AIProvider": {
+        "description": "A third-party AI provider a user can hold their own API key for.\n\nValues match the `provider` enum in the API contract and the Postgres `aiprovider` type.",
+        "enum": [
+          "gemini",
+          "openai",
+          "deepseek"
+        ],
+        "title": "AIProvider",
+        "type": "string"
+      },
       "AdminLoginResponse": {
         "description": "Response model for admin login.\nMatches frontend AdminLoginApiResponse interface.",
         "properties": {
@@ -28,6 +38,10 @@
             "title": "Role",
             "type": "string"
           },
+          "sessionExpiresAt": {
+            "title": "Sessionexpiresat",
+            "type": "string"
+          },
           "token": {
             "title": "Token",
             "type": "string"
@@ -40,6 +54,7 @@
           "token",
           "accessToken",
           "refreshToken",
+          "sessionExpiresAt",
           "email",
           "displayName",
           "loggedInAt",
@@ -47,6 +62,42 @@
           "user"
         ],
         "title": "AdminLoginResponse",
+        "type": "object"
+      },
+      "ApiKeyResponse": {
+        "description": "A configured provider key, as the API is willing to describe it.\n\n`masked_key` is the only representation of the secret that exists above the database;\nthere is deliberately no field carrying the key itself (FR-010-07).",
+        "properties": {
+          "configuredAt": {
+            "format": "date-time",
+            "title": "Configuredat",
+            "type": "string"
+          },
+          "lastValidatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastvalidatedat"
+          },
+          "maskedKey": {
+            "title": "Maskedkey",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AIProvider"
+          }
+        },
+        "required": [
+          "provider",
+          "maskedKey",
+          "configuredAt"
+        ],
+        "title": "ApiKeyResponse",
         "type": "object"
       },
       "ApproveStoriesBulkRequest": {
@@ -138,6 +189,77 @@
           "userId"
         ],
         "title": "AssignStoryRequest",
+        "type": "object"
+      },
+      "BacklogStoryResponse": {
+        "description": "A single approved story as the backlog view presents it.",
+        "properties": {
+          "acceptanceCriteria": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Acceptancecriteria",
+            "type": "array"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "acceptanceCriteria",
+          "status",
+          "priority",
+          "points",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "BacklogStoryResponse",
         "type": "object"
       },
       "BulkApprovedStory": {
@@ -260,6 +382,38 @@
           "updatedAt"
         ],
         "title": "ClientResponse",
+        "type": "object"
+      },
+      "ClientReviewResponse": {
+        "description": "A project's approved stories, with nothing that identifies the freelancer's workspace.\n\nThe caller is anonymous, so this deliberately omits the project id and code, the client\nrecord, and every user reference (creator, assignee).",
+        "properties": {
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "projectName": {
+            "title": "Projectname",
+            "type": "string"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/BacklogStoryResponse"
+            },
+            "title": "Stories",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "projectName",
+          "phase",
+          "total",
+          "stories"
+        ],
+        "title": "ClientReviewResponse",
         "type": "object"
       },
       "CreateClientRequest": {
@@ -410,6 +564,14 @@
       "CreateStoryRequest": {
         "description": "DTO for creating a story.",
         "properties": {
+          "acceptanceCriteria": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Acceptancecriteria",
+            "type": "array"
+          },
           "description": {
             "anyOf": [
               {
@@ -460,6 +622,25 @@
         "title": "CreateStoryRequest",
         "type": "object"
       },
+      "CreditBalanceResponse": {
+        "description": "Current AI credit balance for the authenticated user.",
+        "properties": {
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "totalGranted": {
+            "title": "Totalgranted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "credits",
+          "totalGranted"
+        ],
+        "title": "CreditBalanceResponse",
+        "type": "object"
+      },
       "DashboardStatsResponse": {
         "description": "DTO for dashboard statistics response.",
         "properties": {
@@ -508,12 +689,45 @@
         "title": "DashboardStatsResponse",
         "type": "object"
       },
+      "ForgotPasswordRequest": {
+        "description": "Request model for initiating a password reset.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest",
+        "type": "object"
+      },
+      "ForgotPasswordResponse": {
+        "description": "Response model for a password reset request.\n\nAlways returns the same generic message regardless of whether the email\nis registered, so the endpoint never discloses account existence.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ForgotPasswordResponse",
+        "type": "object"
+      },
       "GenerateStoriesRequest": {
         "description": "Request model for generating multiple stories from raw notes.",
         "properties": {
           "projectId": {
             "title": "Projectid",
             "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/RefinementProvider",
+            "default": "platform"
           },
           "rawNotes": {
             "title": "Rawnotes",
@@ -530,9 +744,29 @@
       "GenerateStoriesResponse": {
         "description": "Response model for bulk story generation.",
         "properties": {
+          "creditsRemaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creditsremaining"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/RefinementProvider",
+            "default": "platform"
+          },
           "rawNotes": {
             "title": "Rawnotes",
             "type": "string"
+          },
+          "redactionCount": {
+            "default": 0,
+            "title": "Redactioncount",
+            "type": "integer"
           },
           "stories": {
             "items": {
@@ -589,6 +823,23 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "ListApiKeysResponse": {
+        "description": "Every provider key the authenticated user has configured.",
+        "properties": {
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyResponse"
+            },
+            "title": "Keys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "title": "ListApiKeysResponse",
+        "type": "object"
+      },
       "LoginRequest": {
         "description": "Request model for user login.",
         "properties": {
@@ -600,6 +851,11 @@
           "password": {
             "title": "Password",
             "type": "string"
+          },
+          "rememberMe": {
+            "default": false,
+            "title": "Rememberme",
+            "type": "boolean"
           }
         },
         "required": [
@@ -607,6 +863,62 @@
           "password"
         ],
         "title": "LoginRequest",
+        "type": "object"
+      },
+      "LogoutResponse": {
+        "description": "Response model for logout.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "LogoutResponse",
+        "type": "object"
+      },
+      "MarkdownExportRequest": {
+        "additionalProperties": false,
+        "description": "Scope for a Markdown export.\n\nEvery field is optional; an empty body exports the project's whole backlog. `status`\nfilters on the story lifecycle (todo/in_progress/blocked/done) rather than on approval\nstate \u2014 a row in the backlog is approved by definition, since unapproved work is still\na draft and lives outside this table.",
+        "properties": {
+          "dateFrom": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datefrom"
+          },
+          "dateTo": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dateto"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoryStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "MarkdownExportRequest",
         "type": "object"
       },
       "PaginatedClientsResponse": {
@@ -639,6 +951,51 @@
           "perPage"
         ],
         "title": "PaginatedClientsResponse",
+        "type": "object"
+      },
+      "PaginatedResponse_BacklogStoryResponse_": {
+        "example": {
+          "items": [],
+          "page": 1,
+          "per_page": 20,
+          "total": 42
+        },
+        "properties": {
+          "items": {
+            "description": "List of items for current page",
+            "items": {
+              "$ref": "#/components/schemas/BacklogStoryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "description": "Current page number (1-indexed)",
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "description": "Number of items per page",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of items available",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "per_page",
+          "items"
+        ],
+        "title": "PaginatedResponse[BacklogStoryResponse]",
         "type": "object"
       },
       "PaginatedResponse_ProjectResponse_": {
@@ -734,6 +1091,10 @@
       "ProjectResponse": {
         "description": "Response model for project data.",
         "properties": {
+          "accessCode": {
+            "title": "Accesscode",
+            "type": "string"
+          },
           "clientId": {
             "title": "Clientid",
             "type": "string"
@@ -828,6 +1189,7 @@
           "id",
           "name",
           "code",
+          "accessCode",
           "description",
           "createdBy",
           "clientId",
@@ -872,6 +1234,17 @@
         "title": "ProjectSummary",
         "type": "object"
       },
+      "RefinementProvider": {
+        "description": "What a single refinement run should be billed against.\n\n`PLATFORM` spends one of the user's free credits on the platform's own key; every other\nvalue spends the user's own provider quota and leaves the credit balance untouched.",
+        "enum": [
+          "platform",
+          "gemini",
+          "openai",
+          "deepseek"
+        ],
+        "title": "RefinementProvider",
+        "type": "string"
+      },
       "RefreshTokenRequest": {
         "description": "Request model for token refresh.",
         "properties": {
@@ -896,18 +1269,200 @@
           "refreshToken": {
             "title": "Refreshtoken",
             "type": "string"
+          },
+          "sessionExpiresAt": {
+            "title": "Sessionexpiresat",
+            "type": "string"
           }
         },
         "required": [
           "accessToken",
-          "refreshToken"
+          "refreshToken",
+          "sessionExpiresAt"
         ],
         "title": "RefreshTokenResponse",
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "additionalProperties": false,
+        "description": "Request model for public self-registration.\n\nDeliberately has no `role` field: registration is anonymous, so a role taken from the\nrequest body would let anyone mint an Admin account. The role is assigned server-side.",
+        "properties": {
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "workspaceName": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspacename"
+          }
+        },
+        "required": [
+          "displayName",
+          "email",
+          "password"
+        ],
+        "title": "RegisterRequest",
+        "type": "object"
+      },
+      "RegisterResponse": {
+        "description": "Response model for a registration awaiting email verification.\n\nCarries no tokens: the account cannot sign in until its email is verified (FR-008-06).",
+        "properties": {
+          "codeExpiresAt": {
+            "title": "Codeexpiresat",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "nextStep": {
+            "default": "verify-email",
+            "title": "Nextstep",
+            "type": "string"
+          },
+          "verificationRequired": {
+            "default": true,
+            "title": "Verificationrequired",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "codeExpiresAt"
+        ],
+        "title": "RegisterResponse",
+        "type": "object"
+      },
+      "ResendResetCodeRequest": {
+        "description": "Request model for resending a password reset code.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ResendResetCodeRequest",
+        "type": "object"
+      },
+      "ResendVerificationRequest": {
+        "description": "Request model for resending an email verification code.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ResendVerificationRequest",
+        "type": "object"
+      },
+      "ResendVerificationResponse": {
+        "description": "Response model for a verification code resend.\n\nAlways the same generic message, so the endpoint never discloses whether the email\nbelongs to a pending account.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ResendVerificationResponse",
+        "type": "object"
+      },
+      "ResetPasswordRequest": {
+        "description": "Request model for completing a password reset.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "newPassword": {
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "newPassword"
+        ],
+        "title": "ResetPasswordRequest",
+        "type": "object"
+      },
+      "ResetPasswordResponse": {
+        "description": "Response model for a completed password reset.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ResetPasswordResponse",
+        "type": "object"
+      },
+      "SaveApiKeyRequest": {
+        "description": "Request to add or replace the key for one provider.",
+        "properties": {
+          "apiKey": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Apikey",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AIProvider"
+          }
+        },
+        "required": [
+          "provider",
+          "apiKey"
+        ],
+        "title": "SaveApiKeyRequest",
         "type": "object"
       },
       "StoryResponse": {
         "description": "DTO for story response.",
         "properties": {
+          "acceptanceCriteria": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Acceptancecriteria",
+            "type": "array"
+          },
           "assignedTo": {
             "anyOf": [
               {
@@ -978,6 +1533,7 @@
           "id",
           "title",
           "description",
+          "acceptanceCriteria",
           "projectId",
           "createdBy",
           "assignedTo",
@@ -989,6 +1545,17 @@
         ],
         "title": "StoryResponse",
         "type": "object"
+      },
+      "StoryStatus": {
+        "description": "Story status enumeration.",
+        "enum": [
+          "todo",
+          "in_progress",
+          "blocked",
+          "done"
+        ],
+        "title": "StoryStatus",
+        "type": "string"
       },
       "StorySummary": {
         "description": "DTO for recent story summary.",
@@ -1200,6 +1767,20 @@
       "UpdateStoryRequest": {
         "description": "DTO for updating a story.",
         "properties": {
+          "acceptanceCriteria": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptancecriteria"
+          },
           "description": {
             "anyOf": [
               {
@@ -1259,6 +1840,34 @@
         "title": "UpdateStoryRequest",
         "type": "object"
       },
+      "UpdateUserStatusRequest": {
+        "description": "Request model for an Admin activating or deactivating a teammate.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
+        ],
+        "title": "UpdateUserStatusRequest",
+        "type": "object"
+      },
+      "UpdateWorkspaceRequest": {
+        "description": "Request DTO for renaming the caller's workspace.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "UpdateWorkspaceRequest",
+        "type": "object"
+      },
       "UserCreateRequest": {
         "properties": {
           "displayName": {
@@ -1270,10 +1879,6 @@
             "title": "Email",
             "type": "string"
           },
-          "password": {
-            "title": "Password",
-            "type": "string"
-          },
           "role": {
             "anyOf": [
               {
@@ -1283,14 +1888,13 @@
                 "type": "null"
               }
             ],
-            "default": "viewer",
+            "default": "member",
             "title": "Role"
           }
         },
         "required": [
           "displayName",
-          "email",
-          "password"
+          "email"
         ],
         "title": "UserCreateRequest",
         "type": "object"
@@ -1313,6 +1917,16 @@
           "role": {
             "title": "Role",
             "type": "string"
+          },
+          "workspace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1338,6 +1952,11 @@
             "title": "Id",
             "type": "string"
           },
+          "isActive": {
+            "default": true,
+            "title": "Isactive",
+            "type": "boolean"
+          },
           "role": {
             "title": "Role",
             "type": "string"
@@ -1350,6 +1969,29 @@
           "role"
         ],
         "title": "UserResponse",
+        "type": "object"
+      },
+      "ValidateApiKeyResponse": {
+        "description": "Result of testing a stored key against its provider.",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/AIProvider"
+          },
+          "quotaWarning": {
+            "default": false,
+            "title": "Quotawarning",
+            "type": "boolean"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "valid"
+        ],
+        "title": "ValidateApiKeyResponse",
         "type": "object"
       },
       "ValidationError": {
@@ -1384,6 +2026,90 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VerifyEmailRequest": {
+        "description": "Request model for confirming an account's email with its verification code.",
+        "properties": {
+          "code": {
+            "maxLength": 16,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "maxLength": 72,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "VerifyEmailRequest",
+        "type": "object"
+      },
+      "VerifyEmailResponse": {
+        "description": "Response model for a verified email.",
+        "properties": {
+          "verified": {
+            "default": true,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "title": "VerifyEmailResponse",
+        "type": "object"
+      },
+      "WorkspaceDetail": {
+        "description": "The workspace the signed-in user belongs to.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "WorkspaceDetail",
+        "type": "object"
+      },
+      "WorkspaceResponse": {
+        "description": "Response DTO for workspace data.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "WorkspaceResponse",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1394,7 +2120,7 @@
     }
   },
   "info": {
-    "description": "REST API for Open Projects Hub — project, client, and story management with JWT authentication and role-based access control. See [docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/blob/main/docs/api/README.md) for auth flows, pagination, and code examples.",
+    "description": "REST API for Open Projects Hub \u2014 project, client, and story management with JWT authentication and role-based access control. See [docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/blob/main/docs/api/README.md) for auth flows, pagination, and code examples.",
     "title": "Open Projects Hub API",
     "version": "1.0.0"
   },
@@ -1468,9 +2194,51 @@
         "summary": "Get Readiness Check"
       }
     },
+    "/v1/auth/forgot-password": {
+      "post": {
+        "description": "Request a password reset code by email.\n\nAlways returns 200 with the same generic message, whether or not the\nemail is registered, to avoid disclosing account existence.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: ForgotPasswordRequest with the account email\n    use_case: Injected RequestPasswordResetUseCase\n\nReturns:\n    ForgotPasswordResponse with a generic confirmation message",
+        "operationId": "forgot_password_v1_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forgot Password",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/v1/auth/login": {
       "post": {
-        "description": "Authenticate user and return JWT token with user details.\n\nRate limited to 10 attempts per minute per IP address to prevent brute force attacks.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: LoginRequest with email and password\n    login_use_case: Injected LoginUserUseCase\n\nReturns:\n    AdminLoginResponse with JWT token and user details\n\nRaises:\n    401: Invalid credentials\n    429: Too many requests (rate limit exceeded)\n    500: Internal server error",
+        "description": "Authenticate user and return JWT token with user details.\n\nRate limited to 10 attempts per minute per IP address to prevent brute force attacks.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: LoginRequest with email and password\n    login_use_case: Injected LoginUserUseCase\n\nReturns:\n    AdminLoginResponse with JWT token and user details\n\nRaises:\n    401: Invalid credentials\n    403: Email not verified yet (body carries code EMAIL_NOT_VERIFIED)\n    429: Too many requests (rate limit exceeded)\n    500: Internal server error",
         "operationId": "login_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -1505,6 +2273,53 @@
           }
         },
         "summary": "Login",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "description": "Log out the current session by revoking its refresh token server-side.\n\nRequires a valid access token (Authorization header) plus the session's\nrefresh token in the body. Idempotent: an already-expired/invalid\nrefresh token still returns success rather than an error.\n\nArgs:\n    payload: RefreshTokenRequest with the session's refresh token\n    logout_use_case: Injected LogoutUseCase\n\nReturns:\n    LogoutResponse confirming the session was invalidated",
+        "operationId": "logout_v1_auth_logout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Logout",
         "tags": [
           "Authentication"
         ]
@@ -1554,13 +2369,13 @@
     },
     "/v1/auth/register": {
       "post": {
-        "description": "Register new user and return JWT token (auto-login).\n\nRate limited to 5 attempts per minute per IP address to prevent abuse.\n\nPublic endpoint - no authentication required.\nNew users default to 'viewer' role. To create admin users,\nuse POST /v1/users (requires existing admin authentication).\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: UserCreateRequest with email, password, displayName (role defaults to viewer)\n    register_use_case: Injected RegisterUserUseCase\n\nReturns:\n    AdminLoginResponse with JWT token and user details\n\nRaises:\n    400: Validation failed (weak password, invalid email, etc.)\n    409: Email already exists\n    500: Internal server error",
+        "description": "Register new admin account and email it a verification code.\n\nNo tokens are issued: the account signs in only after POST /verify-email succeeds.\n\nRate limited to 5 attempts per minute per IP address to prevent abuse.\n\nPublic endpoint - no authentication required. Each sign-up creates a new, empty\nworkspace and makes the account its Admin; a role supplied in the request body is\nrejected. Teammates are added to a workspace by its Admin through\nPOST /v1/users.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: RegisterRequest with email, password, displayName, optional workspaceName\n    register_use_case: Injected RegisterUserUseCase\n\nReturns:\n    RegisterResponse with the masked email and when the verification code expires\n\nRaises:\n    400: Validation failed (weak password, invalid email, etc.)\n    422: Unknown field in the request body (for example an attempted role override)\n    500: Internal server error",
         "operationId": "register_v1_auth_register_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserCreateRequest"
+                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           },
@@ -1571,7 +2386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminLoginResponse"
+                  "$ref": "#/components/schemas/RegisterResponse"
                 }
               }
             },
@@ -1594,9 +2409,177 @@
         ]
       }
     },
+    "/v1/auth/resend-reset-code": {
+      "post": {
+        "description": "Resend a password reset code, invalidating the previous one.\n\nRate limited to 3 resends per email per 15-minute window (enforced in\nResendResetCodeUseCase); the route-level limiter above is a coarser\nper-IP backstop.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: ResendResetCodeRequest with the account email\n    use_case: Injected ResendResetCodeUseCase\n\nReturns:\n    ForgotPasswordResponse with a generic confirmation message\n\nRaises:\n    429: Resend limit exceeded for this email",
+        "operationId": "resend_reset_code_v1_auth_resend_reset_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendResetCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resend Reset Code",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/v1/auth/resend-verification": {
+      "post": {
+        "description": "Resend an email verification code, invalidating the previous one.\n\nRate limited to 3 resends per email per 15-minute window (enforced in\nResendVerificationUseCase); the route-level limiter above is a coarser\nper-IP backstop.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: ResendVerificationRequest with the account email\n    use_case: Injected ResendVerificationUseCase\n\nReturns:\n    ResendVerificationResponse with a generic confirmation message\n\nRaises:\n    429: Resend limit exceeded for this email",
+        "operationId": "resend_verification_v1_auth_resend_verification_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendVerificationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resend Verification",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "description": "Complete a password reset using a previously issued code.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: ResetPasswordRequest with email, code, and new password\n    use_case: Injected ConfirmPasswordResetUseCase\n\nReturns:\n    ResetPasswordResponse confirming the password was changed\n\nRaises:\n    400: New password fails validation\n    404: Reset code invalid or expired\n    429: Too many validation attempts against this code",
+        "operationId": "reset_password_v1_auth_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Password",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/v1/auth/verify-email": {
+      "post": {
+        "description": "Confirm a registered account's email with the code it was sent.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: VerifyEmailRequest with the account email and code\n    use_case: Injected VerifyEmailUseCase\n\nReturns:\n    VerifyEmailResponse confirming the email was verified\n\nRaises:\n    400: Code invalid, expired, or superseded\n    429: Too many validation attempts against this code",
+        "operationId": "verify_email_v1_auth_verify_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyEmailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Email",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/v1/clients": {
       "get": {
-        "description": "Get all clients with pagination.\n\nRequires authentication.\n\nArgs:\n    current_user: Current authenticated user\n    use_case: Injected GetClientsUseCase\n    offset: Number of results to skip (default 0)\n    limit: Maximum number of results (1-100, default 100)\n\nReturns:\n    PaginatedClientsResponse with client list and pagination metadata\n\nRaises:\n    401: Unauthorized\n    500: Internal server error",
+        "description": "Get all clients with pagination.\n\nAdmin and Member: clients are the freelancer's own business relationships, so they\nnever reach the public Client Review page.\n\nArgs:\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetClientsUseCase\n    offset: Number of results to skip (default 0)\n    limit: Maximum number of results (1-100, default 100)\n\nReturns:\n    PaginatedClientsResponse with client list and pagination metadata\n\nRaises:\n    401: Unauthorized\n    403: Forbidden (admin only)\n    500: Internal server error",
         "operationId": "get_clients_v1_clients_get",
         "parameters": [
           {
@@ -1656,7 +2639,7 @@
         ]
       },
       "post": {
-        "description": "Create a new client.\n\nRequires ADMIN role. The created_by user is extracted from the JWT token.\n\nArgs:\n    request: CreateClientRequest with client details (name, email, phone, etc.)\n    current_user: Current authenticated admin user (from JWT)\n    use_case: Injected CreateClientUseCase\n\nReturns:\n    ClientResponse with created client data\n\nRaises:\n    400: Validation failed (invalid name, email, phone, etc.)\n    401/403: Unauthorized or forbidden\n    500: Internal server error",
+        "description": "Create a new client.\n\nRequires ADMIN role. The created_by user is extracted from the JWT token.\n\nArgs:\n    request: CreateClientRequest with client details (name, email, phone, etc.)\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected CreateClientUseCase\n\nReturns:\n    ClientResponse with created client data\n\nRaises:\n    400: Validation failed (invalid name, email, phone, etc.)\n    401/403: Unauthorized or forbidden\n    500: Internal server error",
         "operationId": "create_client_v1_clients_post",
         "requestBody": {
           "content": {
@@ -1703,7 +2686,7 @@
     },
     "/v1/clients/{client_id}": {
       "delete": {
-        "description": "Delete a client.\n\nRequires ADMIN role. Cannot delete if the client still has active projects;\narchived projects are removed as part of the deletion.\n\nArgs:\n    client_id: Client UUID\n    current_user: Current authenticated admin user\n    use_case: Injected DeleteClientUseCase\n\nRaises:\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    409: Client still has active projects\n    500: Internal server error",
+        "description": "Delete a client.\n\nRequires ADMIN role. Cannot delete if the client still has active projects;\narchived projects are removed as part of the deletion.\n\nArgs:\n    client_id: Client UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected DeleteClientUseCase\n\nRaises:\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    409: Client still has active projects\n    500: Internal server error",
         "operationId": "delete_client_v1_clients__client_id__delete",
         "parameters": [
           {
@@ -1743,7 +2726,7 @@
         ]
       },
       "get": {
-        "description": "Get a client by ID.\n\nRequires authentication.\n\nArgs:\n    client_id: Client UUID\n    current_user: Current authenticated user\n    use_case: Injected GetClientByIdUseCase\n\nReturns:\n    ClientResponse with client data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    404: Client not found\n    500: Internal server error",
+        "description": "Get a client by ID.\n\nAdmin only, for the same reason as the list endpoint.\n\nArgs:\n    client_id: Client UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetClientByIdUseCase\n\nReturns:\n    ClientResponse with client data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    403: Forbidden (admin only)\n    404: Client not found\n    500: Internal server error",
         "operationId": "get_client_by_id_v1_clients__client_id__get",
         "parameters": [
           {
@@ -1789,9 +2772,9 @@
           "Clients"
         ]
       },
-      "put": {
-        "description": "Update a client.\n\nRequires ADMIN role.\n\nArgs:\n    client_id: Client UUID\n    request: UpdateClientRequest with fields to update\n    current_user: Current authenticated admin user\n    use_case: Injected UpdateClientUseCase\n\nReturns:\n    ClientResponse with updated client data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    500: Internal server error",
-        "operationId": "update_client_v1_clients__client_id__put",
+      "patch": {
+        "description": "Update a client.\n\nRequires ADMIN role.\n\nArgs:\n    client_id: Client UUID\n    request: UpdateClientRequest with fields to update\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected UpdateClientUseCase\n\nReturns:\n    ClientResponse with updated client data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Client not found\n    500: Internal server error",
+        "operationId": "update_client_v1_clients__client_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -1849,7 +2832,7 @@
     },
     "/v1/dashboard/stats": {
       "get": {
-        "description": "Get dashboard statistics for the current user.\n\nRequires authentication. Returns aggregated counts of projects and stories.\n\nArgs:\n    current_user: Current authenticated user\n    use_case: Injected GetDashboardStatsUseCase\n\nReturns:\n    DashboardStatsResponse with statistics\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    500: Internal server error",
+        "description": "Get dashboard statistics for the caller's workspace.\n\nRequires authentication. Returns aggregated counts of the workspace's projects and\nstories, plus the stories assigned to the caller.\n\nArgs:\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetDashboardStatsUseCase\n\nReturns:\n    DashboardStatsResponse with statistics\n\nRaises:\n    401: Unauthorized\n    500: Internal server error",
         "operationId": "get_dashboard_stats_v1_dashboard_stats_get",
         "responses": {
           "200": {
@@ -1876,7 +2859,7 @@
     },
     "/v1/projects": {
       "get": {
-        "description": "List projects with pagination and optional filters.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_status: Optional status filter (active, completed, archived)\n    client_id: Optional client UUID filter\n    created_from: Optional lower bound on created_at (ISO datetime)\n    created_to: Optional upper bound on created_at (ISO datetime)\n    updated_from: Optional lower bound on updated_at (ISO datetime)\n    updated_to: Optional upper bound on updated_at (ISO datetime)\n    search: Optional substring match on name or code (case-insensitive)\n    current_user: Current authenticated user\n    use_case: Injected ListProjectsUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of ProjectResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
+        "description": "List projects with pagination and optional filters.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_status: Optional status filter (active, completed, archived)\n    client_id: Optional client UUID filter\n    created_from: Optional lower bound on created_at (ISO datetime)\n    created_to: Optional upper bound on created_at (ISO datetime)\n    updated_from: Optional lower bound on updated_at (ISO datetime)\n    updated_to: Optional upper bound on updated_at (ISO datetime)\n    search: Optional substring match on name or code (case-insensitive)\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ListProjectsUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of ProjectResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
         "operationId": "list_projects_v1_projects_get",
         "parameters": [
           {
@@ -2053,7 +3036,7 @@
         ]
       },
       "post": {
-        "description": "Create a new project.\n\nRequires ADMIN role. The created_by user is extracted from the JWT token.\n\nArgs:\n    payload: CreateProjectRequest with project details (name, code, client_id, optional fields)\n    current_user: Current authenticated admin user (from JWT)\n    use_case: Injected CreateProjectUseCase\n\nReturns:\n    ProjectResponse with created project data (id, name, status, timestamps)\n\nRaises:\n    400: Validation failed (invalid name, dates, etc.)\n    401/403: Unauthorized or forbidden\n    500: Internal server error",
+        "description": "Create a new project.\n\nRequires ADMIN role. The created_by user is extracted from the JWT token.\n\nArgs:\n    payload: CreateProjectRequest with project details (name, code, client_id, optional fields)\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected CreateProjectUseCase\n\nReturns:\n    ProjectResponse with created project data (id, name, status, timestamps)\n\nRaises:\n    400: Validation failed (invalid name, dates, etc.)\n    401/403: Unauthorized or forbidden\n    500: Internal server error",
         "operationId": "create_project_v1_projects_post",
         "requestBody": {
           "content": {
@@ -2100,7 +3083,7 @@
     },
     "/v1/projects/{project_id}": {
       "delete": {
-        "description": "Delete project.\n\nRequires ADMIN role. Cascade deletes all related stories.\n\nArgs:\n    project_id: Project UUID\n    current_user: Current authenticated admin user\n    use_case: Injected DeleteProjectUseCase\n\nRaises:\n    400: Invalid UUID\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
+        "description": "Delete project.\n\nRequires ADMIN role. Cascade deletes all related stories.\n\nArgs:\n    project_id: Project UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected DeleteProjectUseCase\n\nRaises:\n    400: Invalid UUID\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
         "operationId": "delete_project_v1_projects__project_id__delete",
         "parameters": [
           {
@@ -2140,7 +3123,7 @@
         ]
       },
       "get": {
-        "description": "Get project by ID.\n\nRequires authentication.\n\nArgs:\n    project_id: Project UUID\n    current_user: Current authenticated user\n    use_case: Injected GetProjectByIdUseCase\n\nReturns:\n    ProjectResponse with project data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    404: Project not found\n    500: Internal server error",
+        "description": "Get project by ID.\n\nRequires authentication.\n\nArgs:\n    project_id: Project UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetProjectByIdUseCase\n\nReturns:\n    ProjectResponse with project data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    404: Project not found\n    500: Internal server error",
         "operationId": "get_project_by_id_v1_projects__project_id__get",
         "parameters": [
           {
@@ -2187,7 +3170,7 @@
         ]
       },
       "patch": {
-        "description": "Update project.\n\nRequires ADMIN role. Supports partial updates — only provided fields are changed.\n\nArgs:\n    project_id: Project UUID\n    payload: UpdateProjectRequest with fields to update\n    current_user: Current authenticated admin user\n    use_case: Injected UpdateProjectUseCase\n\nReturns:\n    ProjectResponse with updated project data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
+        "description": "Update project.\n\nRequires ADMIN role. Supports partial updates \u2014 only provided fields are changed.\n\nArgs:\n    project_id: Project UUID\n    payload: UpdateProjectRequest with fields to update\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected UpdateProjectUseCase\n\nReturns:\n    ProjectResponse with updated project data\n\nRaises:\n    400: Validation failed\n    401/403: Unauthorized or forbidden\n    404: Project not found\n    500: Internal server error",
         "operationId": "update_project_v1_projects__project_id__patch",
         "parameters": [
           {
@@ -2244,6 +3227,55 @@
         ]
       }
     },
+    "/v1/projects/{project_id}/access-code/regenerate": {
+      "post": {
+        "description": "Replace the project's access code.\n\nThe previous code and any link built from it stop working immediately. Use this when a\ncode was shared with someone who should no longer see the project.\n\nRaises:\n    404: Project not found\n    401/403: Unauthorized or forbidden",
+        "operationId": "regenerate_access_code_v1_projects__project_id__access_code_regenerate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Regenerate Access Code",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
     "/v1/projects/{project_id}/archive": {
       "post": {
         "description": "Archive a project, excluding it from active-project limits.\n\nRequires ADMIN role.\n\nRaises:\n    404: Project not found\n    401/403: Unauthorized or forbidden",
@@ -2290,6 +3322,164 @@
         "summary": "Archive Project",
         "tags": [
           "Projects"
+        ]
+      }
+    },
+    "/v1/projects/{project_id}/backlog": {
+      "get": {
+        "description": "Get a project's approved backlog with acceptance criteria.\n\nAdmin and Member. Drafts are excluded structurally \u2014 unapproved work lives in\nthe client and never reaches this table.\n\nArgs:\n    project_id: The project to read\n    limit: Maximum number of stories per page\n    offset: Number of stories to skip\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetProjectBacklogUseCase\n\nReturns:\n    PaginatedResponse of backlog stories in priority-then-age order\n\nRaises:\n    401: Missing or invalid JWT\n    404: Project not found",
+        "operationId": "get_project_backlog_v1_projects__project_id__backlog_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_BacklogStoryResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Project Backlog",
+        "tags": [
+          "Backlog & Export"
+        ]
+      }
+    },
+    "/v1/projects/{project_id}/exports/markdown": {
+      "post": {
+        "description": "Export a project's backlog as a downloadable Markdown file.\n\nAdmin and Member. An empty scope is warned about via X-Export-Warning rather than\nrejected, so the caller still receives a usable template.\n\nArgs:\n    project_id: The project to export\n    scope: Optional status and date-range narrowing; an absent body exports everything\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ExportBacklogMarkdownUseCase\n\nReturns:\n    The Markdown document as a file attachment\n\nRaises:\n    401: Missing or invalid JWT\n    403: Caller is not an Admin\n    404: Project not found\n    422: Invalid scope (unknown status, inverted date range)",
+        "operationId": "export_backlog_markdown_v1_projects__project_id__exports_markdown_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MarkdownExportRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Scope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The backlog as a Markdown file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=\"<project>-backlog-<date>.md\"",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Export-Story-Count": {
+                "description": "Number of stories in the document.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Export-Warning": {
+                "description": "Present when the scope matched nothing, or was truncated by the export cap.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Backlog Markdown",
+        "tags": [
+          "Backlog & Export"
         ]
       }
     },
@@ -2344,7 +3534,7 @@
     },
     "/v1/refinement/approve-stories": {
       "post": {
-        "description": "Approve several refined stories and save them to the backlog.\n\nRequires ADMIN role. All-or-nothing on validation: a foreign project or an invalid\nstory rejects the whole batch before anything is saved.\n\nArgs:\n    payload: ApproveStoriesBulkRequest with the story contents\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ApproveStoriesBulkUseCase\n\nReturns:\n    ApproveStoriesBulkResponse with approved count and the created stories\n\nRaises:\n    404: A project is not in the caller's workspace\n    422: Empty batch or invalid story content",
+        "description": "Approve several refined stories and save them to the backlog.\n\nRequires ADMIN role. All-or-nothing: a foreign project or an invalid story rejects the\nwhole batch before anything is saved, and a failure mid-save removes the stories\nalready created.\n\nArgs:\n    payload: ApproveStoriesBulkRequest with the story contents\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ApproveStoriesBulkUseCase\n\nReturns:\n    ApproveStoriesBulkResponse with approved count and the created stories\n\nRaises:\n    404: A project is not in the caller's workspace\n    422: Empty batch or invalid story content",
         "operationId": "approve_stories_bulk_v1_refinement_approve_stories_post",
         "requestBody": {
           "content": {
@@ -2485,7 +3675,7 @@
     },
     "/v1/stories": {
       "get": {
-        "description": "List stories with optional filters.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_id: Optional project filter\n    story_status: Optional status filter (todo, in_progress, done)\n    priority: Optional priority filter (low, medium, high)\n    assigned_to: Optional assigned user filter\n    current_user: Current authenticated user\n    use_case: Injected ListStoriesUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of StoryResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
+        "description": "List stories with optional filters.\n\nRequires authentication.\n\nArgs:\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    project_id: Optional project filter\n    story_status: Optional status filter (todo, in_progress, done)\n    priority: Optional priority filter (low, medium, high)\n    assigned_to: Optional assigned user filter\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ListStoriesUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of StoryResponse objects\n\nRaises:\n    400: Invalid query parameters\n    401: Unauthorized\n    500: Internal server error",
         "operationId": "list_stories_v1_stories_get",
         "parameters": [
           {
@@ -2609,7 +3799,7 @@
         ]
       },
       "post": {
-        "description": "Create a new story.\n\nRequires authentication. Anyone can create stories.\nThe created_by user is extracted from the JWT token.\n\nArgs:\n    payload: CreateStoryRequest with story details (title, description, project_id, etc.)\n    current_user: Current authenticated user (from JWT)\n    use_case: Injected CreateStoryUseCase\n\nReturns:\n    StoryResponse with created story data\n\nRaises:\n    400: Validation failed (invalid title, priority, etc.)\n    401: Unauthorized\n    500: Internal server error",
+        "description": "Create a new story.\n\nAdmin only. The created_by user is extracted from the JWT token.\n\nArgs:\n    payload: CreateStoryRequest with story details (title, description, project_id, etc.)\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected CreateStoryUseCase\n\nReturns:\n    StoryResponse with created story data\n\nRaises:\n    400: Validation failed (invalid title, priority, etc.)\n    401: Unauthorized\n    403: Forbidden (admin only)\n    500: Internal server error",
         "operationId": "create_story_v1_stories_post",
         "requestBody": {
           "content": {
@@ -2656,7 +3846,7 @@
     },
     "/v1/stories/by-project/{project_id}": {
       "get": {
-        "description": "Get all stories for a specific project.\n\nRequires authentication.\n\nArgs:\n    project_id: Project UUID\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    current_user: Current authenticated user\n    use_case: Injected GetStoriesByProjectUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of StoryResponse objects\n\nRaises:\n    401: Unauthorized\n    500: Internal server error",
+        "description": "Get all stories for a specific project.\n\nRequires authentication.\n\nArgs:\n    project_id: Project UUID\n    limit: Maximum number of results (1-100, default 20)\n    offset: Number of results to skip (default 0)\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetStoriesByProjectUseCase\n\nReturns:\n    PaginatedResponse containing pagination metadata and list of StoryResponse objects\n\nRaises:\n    401: Unauthorized\n    500: Internal server error",
         "operationId": "get_stories_by_project_v1_stories_by_project__project_id__get",
         "parameters": [
           {
@@ -2728,7 +3918,7 @@
     },
     "/v1/stories/{story_id}": {
       "delete": {
-        "description": "Delete story.\n\nRequires authentication. Only the story creator or an admin can delete.\n\nArgs:\n    story_id: Story UUID\n    current_user: Current authenticated user\n    use_case: Injected DeleteStoryUseCase\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    403: Forbidden (not owner or admin)\n    404: Story not found\n    500: Internal server error",
+        "description": "Delete story.\n\nAdmin only.\n\nArgs:\n    story_id: Story UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected DeleteStoryUseCase\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    403: Forbidden (admin only)\n    404: Story not found\n    500: Internal server error",
         "operationId": "delete_story_v1_stories__story_id__delete",
         "parameters": [
           {
@@ -2768,7 +3958,7 @@
         ]
       },
       "get": {
-        "description": "Get story by ID.\n\nRequires authentication.\n\nArgs:\n    story_id: Story UUID\n    current_user: Current authenticated user\n    use_case: Injected GetStoryByIdUseCase\n\nReturns:\n    StoryResponse with story data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    404: Story not found\n    500: Internal server error",
+        "description": "Get story by ID.\n\nRequires authentication.\n\nArgs:\n    story_id: Story UUID\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetStoryByIdUseCase\n\nReturns:\n    StoryResponse with story data\n\nRaises:\n    400: Invalid UUID\n    401: Unauthorized\n    404: Story not found\n    500: Internal server error",
         "operationId": "get_story_by_id_v1_stories__story_id__get",
         "parameters": [
           {
@@ -2815,7 +4005,7 @@
         ]
       },
       "patch": {
-        "description": "Update story.\n\nRequires authentication. Only the story creator or an admin can update.\nSupports partial updates — only provided fields are changed.\n\nArgs:\n    story_id: Story UUID\n    payload: UpdateStoryRequest with fields to update\n    current_user: Current authenticated user\n    use_case: Injected UpdateStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    403: Forbidden (not owner or admin)\n    404: Story not found\n    500: Internal server error",
+        "description": "Update story.\n\nAdmin only. Supports partial updates \u2014 only provided fields are changed.\n\nArgs:\n    story_id: Story UUID\n    payload: UpdateStoryRequest with fields to update\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected UpdateStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    403: Forbidden (admin only)\n    404: Story not found\n    500: Internal server error",
         "operationId": "update_story_v1_stories__story_id__patch",
         "parameters": [
           {
@@ -2874,7 +4064,7 @@
     },
     "/v1/stories/{story_id}/assign": {
       "post": {
-        "description": "Assign story to a user.\n\nRequires authentication.\n\nArgs:\n    story_id: Story UUID\n    payload: AssignStoryRequest with user_id to assign\n    current_user: Current authenticated user\n    use_case: Injected AssignStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    404: Story not found\n    500: Internal server error",
+        "description": "Assign story to a user.\n\nAdmin only.\n\nArgs:\n    story_id: Story UUID\n    payload: AssignStoryRequest with user_id to assign\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected AssignStoryUseCase\n\nReturns:\n    StoryResponse with updated story data\n\nRaises:\n    400: Validation failed\n    401: Unauthorized\n    403: Forbidden (admin only)\n    404: Story not found\n    500: Internal server error",
         "operationId": "assign_story_v1_stories__story_id__assign_post",
         "parameters": [
           {
@@ -2932,8 +4122,72 @@
       }
     },
     "/v1/users": {
+      "get": {
+        "description": "List the users of the caller's workspace (Admin and Member).\n\nRaises:\n    401: Unauthorized",
+        "operationId": "list_workspace_users_v1_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  },
+                  "title": "Response List Workspace Users V1 Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Workspace Users",
+        "tags": [
+          "Users"
+        ]
+      },
       "post": {
-        "description": "Create a new user (admin only).\n\nRequires ADMIN role. For public self-registration, use POST /v1/auth/register instead.\nAdmins can specify the role (admin or viewer) when creating users.\nDefaults to viewer if not specified.\n\nArgs:\n    payload: UserCreateRequest with email, password, displayName, optional role\n    create_user_use_case: Injected CreateUserUseCase\n    current_user: Current authenticated admin user\n\nReturns:\n    UserResponse with created user data\n\nRaises:\n    403: Forbidden (non-admin user)\n    409: Conflict (email already exists)\n    422: Validation error (invalid payload)",
+        "description": "Add a member to the caller's workspace (Admin only).\n\nThe account is created unverified and the person is emailed a code; free platform credits\nare granted on verification . Refused with 409 once the workspace\nhas reached its user cap. Creating another Admin is refused (422). For self sign-up, use POST /v1/auth/register instead.\n\nRaises:\n    403: Forbidden (non-admin user)\n    409: Conflict (email already exists, or workspace user cap reached)\n    422: Validation error (invalid payload or role)",
         "operationId": "create_user_v1_users_post",
         "requestBody": {
           "content": {
@@ -2975,6 +4229,192 @@
         "summary": "Create User",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/v1/users/me/api-keys": {
+      "get": {
+        "description": "List the caller's configured provider keys, masked.\n\nThere is no endpoint that returns a key in plaintext (FR-010-07); this is the only\nread path, and it exposes the mask alone.\n\nArgs:\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ListApiKeysUseCase\n\nReturns:\n    ListApiKeysResponse with one masked entry per configured provider",
+        "operationId": "list_api_keys_v1_users_me_api_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListApiKeysResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Api Keys",
+        "tags": [
+          "AI Credits & API Keys"
+        ]
+      },
+      "post": {
+        "description": "Add or replace the caller's key for one provider.\n\nPosting again for the same provider rotates the key: the stored secret is overwritten,\nso the previous key stops working immediately.\n\nArgs:\n    payload: SaveApiKeyRequest with provider and the raw key\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected SaveApiKeyUseCase\n\nReturns:\n    ApiKeyResponse describing the stored key in masked form\n\nRaises:\n    400: Key does not match the provider's documented format\n    422: Provider refused the key\n    429: Validation budget for this user is spent",
+        "operationId": "save_api_key_v1_users_me_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Api Key",
+        "tags": [
+          "AI Credits & API Keys"
+        ]
+      }
+    },
+    "/v1/users/me/api-keys/{provider}": {
+      "delete": {
+        "description": "Delete the caller's key for one provider.\n\nThe key material is hard-deleted, not flagged (NFR-010-04).\n\nArgs:\n    provider: Provider whose key should be removed\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected DeleteApiKeyUseCase\n\nRaises:\n    404: No key is configured for that provider",
+        "operationId": "delete_api_key_v1_users_me_api_keys__provider__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AIProvider"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Api Key",
+        "tags": [
+          "AI Credits & API Keys"
+        ]
+      }
+    },
+    "/v1/users/me/api-keys/{provider}/validate": {
+      "post": {
+        "description": "Re-test the caller's stored key against its provider.\n\nArgs:\n    provider: Provider whose key should be tested\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected ValidateApiKeyUseCase\n\nReturns:\n    ValidateApiKeyResponse reporting acceptance and any low-quota warning\n\nRaises:\n    404: No key is configured for that provider\n    422: Provider refused the key\n    429: Validation budget for this user is spent",
+        "operationId": "validate_api_key_v1_users_me_api_keys__provider__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AIProvider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateApiKeyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Validate Api Key",
+        "tags": [
+          "AI Credits & API Keys"
+        ]
+      }
+    },
+    "/v1/users/me/credits": {
+      "get": {
+        "description": "Get the caller's AI credit balance.\n\nRequires ADMIN or MEMBER role.\n\nArgs:\n    ctx: Caller identity and workspace (from JWT)\n    use_case: Injected GetCreditBalanceUseCase\n\nReturns:\n    CreditBalanceResponse with remaining and originally granted credits",
+        "operationId": "get_credit_balance_v1_users_me_credits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditBalanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Credit Balance",
+        "tags": [
+          "AI Credits & API Keys"
         ]
       }
     },
@@ -3102,8 +4542,48 @@
       }
     },
     "/v1/users/{user_id}": {
+      "delete": {
+        "description": "Permanently delete a teammate (Admin only).\n\nProjects and stories they created, and stories assigned to them, move to the calling\nAdmin. Their stored AI keys are erased. This cannot be undone.\n\nRaises:\n    400: Target is the Admin\n    403: Forbidden (non-admin caller)\n    404: User not found (or in another workspace)",
+        "operationId": "delete_user_v1_users__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete User",
+        "tags": [
+          "Users"
+        ]
+      },
       "get": {
-        "description": "Get user by ID.\n\nRequires authentication.\n\nArgs:\n    user_id: User UUID\n    get_user_use_case: Injected GetUserByIdUseCase\n    current_user: Current authenticated user\n\nReturns:\n    UserResponse with user details (id, email, displayName, role)\n\nRaises:\n    401: Unauthorized\n    404: User not found\n    500: Internal server error",
+        "description": "Get a user of the caller's workspace by ID.\n\nUsers of other workspaces answer 404.\n\nRaises:\n    401: Unauthorized\n    404: User not found (or not visible to the caller)",
         "operationId": "get_user_by_id_v1_users__user_id__get",
         "parameters": [
           {
@@ -3147,6 +4627,178 @@
         "summary": "Get User By Id",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/v1/users/{user_id}/status": {
+      "patch": {
+        "description": "Activate or deactivate a teammate (Admin only).\n\nAn inactive account stays in the team list but cannot sign in, refresh a session or be\nassigned stories. An access token already issued works until it expires.\n\nRaises:\n    400: Target is the Admin\n    403: Forbidden (non-admin caller)\n    404: User not found (or in another workspace)",
+        "operationId": "update_user_status_v1_users__user_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update User Status",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/viewer/{access_code}": {
+      "get": {
+        "description": "Get a project's approved stories by its access code.\n\nPublic: no token. Limited to 30 requests a minute per IP because the access code is the\nonly credential. Read-only and approved stories only; drafts never reach the stories table.\n\nArgs:\n    request: Required by the rate limiter\n    access_code: The code the freelancer shared with their client, e.g. PRJ-7K3M9XQ2\n    limit: Maximum number of stories per page\n    offset: Number of stories to skip\n    use_case: Injected GetClientReviewUseCase\n\nReturns:\n    The project name, phase and approved stories in priority-then-age order\n\nRaises:\n    404: No project has this access code (also returned for a malformed code)\n    429: Rate limit exceeded",
+        "operationId": "get_client_review_v1_viewer__access_code__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "access_code",
+            "required": true,
+            "schema": {
+              "title": "Access Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Client Review",
+        "tags": [
+          "Client Review"
+        ]
+      }
+    },
+    "/v1/workspaces/me": {
+      "patch": {
+        "description": "Rename the caller's workspace.\n\nRequires ADMIN role. The workspace comes from the JWT, never from the path.\n\nRaises:\n    401/403: Unauthorized or forbidden\n    404: Workspace not found\n    422: Invalid name",
+        "operationId": "update_workspace_v1_workspaces_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Workspace",
+        "tags": [
+          "Workspaces"
         ]
       }
     }

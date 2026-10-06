@@ -27,6 +27,7 @@ def to_project_response(
         id=str(entity.id.value),
         name=entity.name,
         code=entity.code,
+        access_code=entity.access_code,
         description=entity.description,
         created_by=str(entity.created_by.value),
         client_id=str(entity.client_id.value),

@@ -25,12 +25,12 @@ def admin_token(app_jwt_handler):
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate valid viewer JWT token."""
+def member_token(app_jwt_handler):
+    """Generate valid member JWT token."""
     return app_jwt_handler.create_access_token(
         user_id="550e8400-e29b-41d4-a716-446655440456",
-        email="viewer@example.com",
-        role=UserRole.VIEWER.value,
+        email="member@example.com",
+        role=UserRole.MEMBER.value,
         workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
@@ -65,11 +65,11 @@ class TestAuthDependencies:
 
         assert response.status_code == 401
 
-    def test_create_user_with_viewer_token_returns_403(self, client, viewer_token):
-        """Test accessing admin-only user creation route with a viewer token returns 403."""
+    def test_create_user_with_member_token_returns_403(self, client, member_token):
+        """Test accessing admin-only user creation route with a member token returns 403."""
         response = client.post(
             "/v1/users",
-            headers={"Authorization": f"Bearer {viewer_token}"},
+            headers={"Authorization": f"Bearer {member_token}"},
             json={
                 "email": "new@example.com",
                 "password": "Password123",

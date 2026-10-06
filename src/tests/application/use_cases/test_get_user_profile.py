@@ -30,7 +30,7 @@ class TestGetUserProfileUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -42,7 +42,7 @@ class TestGetUserProfileUseCase:
         assert result.id == str(user_entity.id.value)
         assert result.email == "user@example.com"
         assert result.display_name == "Test User"
-        assert result.role == "viewer"
+        assert result.role == "member"
 
         mock_repo.find_by_id.assert_awaited_once()
 

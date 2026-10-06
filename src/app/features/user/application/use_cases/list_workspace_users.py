@@ -6,7 +6,7 @@ from src.app.shared.logging import set_user_id
 
 
 class ListWorkspaceUsersUseCase:
-    """The caller's teammates and viewers, for the Team settings page and assignee pickers."""
+    """The caller's teammates, for the Team settings page and assignee pickers."""
 
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository

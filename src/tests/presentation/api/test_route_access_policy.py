@@ -5,8 +5,8 @@ exist behave correctly; this one proves no route ships *without* a guard, so a n
 unguarded mutation fails the suite instead of reaching production unnoticed.
 
 Adding an entry to any allowlist below is a security decision, not a formality:
-`_PUBLIC_ROUTES` opens a route to anonymous callers and `_SELF_SERVICE_ROUTES` lets a
-Viewer write, while removing one from `_EDITOR_ONLY_READS` exposes that data to Viewers.
+`_PUBLIC_ROUTES` opens a route to anonymous callers and `_SELF_SERVICE_ROUTES` lets any
+signed-in user write.
 
 Tenant isolation is checked here too: every route under a tenant prefix must resolve the
 caller's workspace from the token (`get_request_context`), because that is the only
@@ -26,9 +26,10 @@ from src.app.shared.presentation.auth_dependencies import (
 
 _MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
-# Reachable without a token: liveness probes and the auth handshake itself (a caller
-# cannot authenticate before it has logged in). Keyed by (method, path) so that adding a
-# different verb on the same path does not silently inherit the exemption.
+# Reachable without a token: liveness probes, the auth handshake itself (a caller cannot
+# authenticate before it has logged in) and the Client Review page, whose access code is its
+# only credential. Keyed by (method, path) so that adding a different verb on the same path
+# does not silently inherit the exemption.
 _PUBLIC_ROUTES = frozenset(
     {
         ("GET", "/"),
@@ -43,6 +44,7 @@ _PUBLIC_ROUTES = frozenset(
         ("POST", "/v1/auth/reset-password"),
         ("POST", "/v1/auth/verify-email"),
         ("POST", "/v1/auth/resend-verification"),
+        ("GET", "/v1/viewer/{access_code}"),
     }
 )
 
@@ -53,18 +55,6 @@ _SELF_SERVICE_ROUTES = frozenset(
         ("POST", "/v1/auth/logout"),
         ("PATCH", "/v1/users/me/profile"),
         ("POST", "/v1/users/me/password"),
-    }
-)
-
-# Reads a Viewer must not reach. The mutation rule above cannot express these: a GET is
-# not a write, but client records are the freelancer's other business relationships.
-_EDITOR_ONLY_READS = frozenset(
-    {
-        ("GET", "/v1/clients"),
-        ("GET", "/v1/clients/{client_id}"),
-        ("GET", "/v1/users"),
-        ("GET", "/v1/users/me/credits"),
-        ("GET", "/v1/users/me/api-keys"),
     }
 )
 
@@ -124,8 +114,8 @@ class TestRouteAccessPolicy:
 
         assert unguarded == [], f"Routes reachable without authentication: {unguarded}"
 
-    def test_every_mutating_route_requires_an_editor_role(self):
-        viewer_writable = sorted(
+    def test_every_mutating_route_requires_a_role_guard(self):
+        unguarded_writes = sorted(
             f"{method} {path}"
             for method, path, route in _route_methods()
             if method in _MUTATING_METHODS
@@ -134,26 +124,26 @@ class TestRouteAccessPolicy:
             and not _ROLE_GUARDS & _dependency_calls(route)
         )
 
-        assert viewer_writable == [], f"Mutating routes a Viewer could reach: {viewer_writable}"
-
-    def test_editor_only_reads_exclude_viewers(self):
-        """Read authorization is not implied by the mutation rule, so it is listed explicitly."""
-        viewer_readable = sorted(
-            f"{method} {path}"
-            for method, path, route in _route_methods()
-            if (method, path) in _EDITOR_ONLY_READS and not _ROLE_GUARDS & _dependency_calls(route)
-        )
-
-        assert viewer_readable == [], f"Editor-only reads a Viewer could reach: {viewer_readable}"
+        assert unguarded_writes == [], f"Mutating routes with no role guard: {unguarded_writes}"
 
     def test_admin_only_routes_require_admin(self):
-        member_reachable = sorted(
+        non_admin_reachable = sorted(
             f"{method} {path}"
             for method, path, route in _route_methods()
             if (method, path) in _ADMIN_ONLY_ROUTES and require_admin not in _dependency_calls(route)
         )
 
-        assert member_reachable == [], f"Admin-only routes a Member could reach: {member_reachable}"
+        assert non_admin_reachable == [], f"Admin-only routes a Member could reach: {non_admin_reachable}"
+
+    def test_public_routes_other_than_health_and_auth_are_read_only(self):
+        """An anonymous caller must never be able to write workspace data."""
+        public_writes = sorted(
+            f"{method} {path}"
+            for method, path in _PUBLIC_ROUTES
+            if method in _MUTATING_METHODS and not path.startswith("/v1/auth/")
+        )
+
+        assert public_writes == [], f"Public routes that write: {public_writes}"
 
     def test_every_tenant_route_takes_its_workspace_from_the_token(self):
         """A tenant route without the request context would have no workspace to filter by."""
@@ -173,9 +163,7 @@ class TestRouteAccessPolicy:
 
         stale = sorted(
             f"{method} {path}"
-            for method, path in (
-                _PUBLIC_ROUTES | _SELF_SERVICE_ROUTES | _EDITOR_ONLY_READS | _ADMIN_ONLY_ROUTES | _ACCOUNT_ROUTES
-            )
+            for method, path in (_PUBLIC_ROUTES | _SELF_SERVICE_ROUTES | _ADMIN_ONLY_ROUTES | _ACCOUNT_ROUTES)
             if (method, path) not in existing
         )
 

@@ -95,7 +95,7 @@ class VerifyEmailUseCase:
         return VerifyEmailResponse(verified=True)
 
     async def _reserve_free_credits(self, user_entity: UserEntity) -> int:
-        if not user_entity.receives_free_credits() or user_entity.workspace_id is None:
+        if user_entity.workspace_id is None:
             return 0
         return await self.workspace_repository.reserve_ai_credits(
             user_entity.workspace_id,

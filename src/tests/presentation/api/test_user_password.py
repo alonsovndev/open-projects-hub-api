@@ -22,12 +22,12 @@ def app_jwt_handler():
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate valid viewer JWT token."""
+def member_token(app_jwt_handler):
+    """Generate valid member JWT token."""
     return app_jwt_handler.create_access_token(
         user_id="12345678-90ab-cdef-1234-567890abcdef",
         email="user@example.com",
-        role="viewer",
+        role="member",
         workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
@@ -35,7 +35,7 @@ def viewer_token(app_jwt_handler):
 class TestChangePasswordEndpoint:
     """Tests for POST /v1/users/me/password endpoint."""
 
-    def test_change_password_success(self, client, viewer_token):
+    def test_change_password_success(self, client, member_token):
         """Test successful password change."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -43,7 +43,7 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "OldPass123", "newPassword": "NewPass456"},
             )
 
@@ -59,7 +59,7 @@ class TestChangePasswordEndpoint:
 
         assert response.status_code == 401
 
-    def test_change_password_incorrect_current_password(self, client, viewer_token):
+    def test_change_password_incorrect_current_password(self, client, member_token):
         """Test that incorrect current password returns 400."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -67,14 +67,14 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "WrongPass", "newPassword": "NewPass456"},
             )
 
         assert response.status_code == 400
         assert "Current password is incorrect" in response.json()["detail"]
 
-    def test_change_password_weak_new_password(self, client, viewer_token):
+    def test_change_password_weak_new_password(self, client, member_token):
         """Test that weak new password returns 400."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -82,14 +82,14 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "OldPass123", "newPassword": "Short1"},
             )
 
         assert response.status_code == 400
         assert "8 characters" in response.json()["detail"]
 
-    def test_change_password_missing_letter(self, client, viewer_token):
+    def test_change_password_missing_letter(self, client, member_token):
         """Test that password without letter returns 400."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -97,14 +97,14 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "OldPass123", "newPassword": "12345678"},
             )
 
         assert response.status_code == 400
         assert "letter" in response.json()["detail"]
 
-    def test_change_password_missing_digit(self, client, viewer_token):
+    def test_change_password_missing_digit(self, client, member_token):
         """Test that password without digit returns 400."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -112,14 +112,14 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "OldPass123", "newPassword": "NoDigitsHere"},
             )
 
         assert response.status_code == 400
         assert "digit" in response.json()["detail"]
 
-    def test_change_password_user_not_found(self, client, viewer_token):
+    def test_change_password_user_not_found(self, client, member_token):
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -127,13 +127,13 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"currentPassword": "OldPass123", "newPassword": "NewPass456"},
             )
 
         assert response.status_code == 404
 
-    def test_change_password_uses_camel_case(self, client, viewer_token):
+    def test_change_password_uses_camel_case(self, client, member_token):
         """Test that API accepts camelCase field names."""
         with patch(
             "src.app.features.user.application.use_cases.change_password.ChangePasswordUseCase.execute",
@@ -141,7 +141,7 @@ class TestChangePasswordEndpoint:
         ):
             response = client.post(
                 "/v1/users/me/password",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={
                     "currentPassword": "OldPass123",  # camelCase
                     "newPassword": "NewPass456",  # camelCase

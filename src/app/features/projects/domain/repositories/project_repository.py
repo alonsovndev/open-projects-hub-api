@@ -2,6 +2,9 @@
 
 Every read, count and delete is confined to one workspace (`workspace_id`). A project of
 another workspace behaves exactly like one that does not exist.
+
+The one exception is `find_by_access_code`: a client stakeholder has no session and so no
+workspace, and the access code is unique instance-wide precisely so it can stand in for one.
 """
 
 from abc import ABC, abstractmethod
@@ -24,6 +27,18 @@ class ProjectRepository(ABC):
 
         Returns:
             Tuple of (ProjectEntity, client_name) if found, None otherwise
+        """
+
+    @abstractmethod
+    async def find_by_access_code(self, access_code: str) -> ProjectEntity | None:
+        """
+        Find the project a client stakeholder opens with its access code, in any workspace.
+
+        Args:
+            access_code: The normalized access code
+
+        Returns:
+            The ProjectEntity if the code belongs to a project, None otherwise
         """
 
     @abstractmethod

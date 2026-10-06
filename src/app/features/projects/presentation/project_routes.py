@@ -13,6 +13,7 @@ from src.app.composition import (
     get_list_projects_use_case,
     get_project_by_id_use_case,
     get_reactivate_project_use_case,
+    get_regenerate_access_code_use_case,
     get_update_project_use_case,
 )
 from src.app.features.projects.application.dtos.project_dto import (
@@ -26,6 +27,7 @@ from src.app.features.projects.application.use_cases.delete_project import Delet
 from src.app.features.projects.application.use_cases.get_project_by_id import GetProjectByIdUseCase
 from src.app.features.projects.application.use_cases.list_projects import ListProjectsUseCase
 from src.app.features.projects.application.use_cases.reactivate_project import ReactivateProjectUseCase
+from src.app.features.projects.application.use_cases.regenerate_access_code import RegenerateAccessCodeUseCase
 from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
 from src.app.features.projects.domain.exceptions.project_exceptions import (
     ActiveProjectLimitExceededError,
@@ -277,3 +279,25 @@ async def reactivate_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ActiveProjectLimitExceededError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+
+@router.post("/{project_id}/access-code/regenerate", response_model=ProjectResponse)
+async def regenerate_access_code(
+    project_id: UUID,
+    ctx: RequestContext = Depends(require_editor),
+    use_case: RegenerateAccessCodeUseCase = Depends(get_regenerate_access_code_use_case),
+) -> ProjectResponse:
+    """
+    Replace the project's access code.
+
+    The previous code and any link built from it stop working immediately. Use this when a
+    code was shared with someone who should no longer see the project.
+
+    Raises:
+        404: Project not found
+        401/403: Unauthorized or forbidden
+    """
+    try:
+        return await use_case.execute(project_id=str(project_id), ctx=ctx)
+    except ProjectNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

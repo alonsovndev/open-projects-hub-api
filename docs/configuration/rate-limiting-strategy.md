@@ -18,6 +18,7 @@
 | `/v1/auth/login` | 10 req/minute | Mitigate brute-force attacks |
 | `/v1/auth/register` | 5 req/minute | Prevent account spam |
 | `/v1/auth/refresh` | 10/15 minutes | Limit token refresh attempts |
+| `/v1/viewer/{access_code}` | 30 req/minute | Public Client Review route; the access code is its only credential, so cap guessing |
 
 ### Configuration
 

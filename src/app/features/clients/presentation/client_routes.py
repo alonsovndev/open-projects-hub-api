@@ -82,8 +82,8 @@ async def get_clients(
     """
     Get all clients with pagination.
 
-    Admin only: a client Viewer must not be able to enumerate the other clients a
-    freelancer works with.
+    Admin and Member: clients are the freelancer's own business relationships, so they
+    never reach the public Client Review page.
 
     Args:
         ctx: Caller identity and workspace (from JWT)

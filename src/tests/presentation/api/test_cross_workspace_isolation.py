@@ -205,15 +205,6 @@ class TestTokenAndRoleBoundaries:
 
         assert response.status_code == 401
 
-    def test_a_viewer_cannot_write(self, client, jwt_handler):
-        response = client.post(
-            "/v1/clients",
-            json={"name": "Acme"},
-            headers={"Authorization": f"Bearer {token_for(jwt_handler, 'viewer')}"},
-        )
-
-        assert response.status_code == 403
-
     def test_a_member_cannot_add_users(self, client, jwt_handler):
         response = client.post(
             "/v1/users",

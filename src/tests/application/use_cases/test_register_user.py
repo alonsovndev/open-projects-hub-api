@@ -88,7 +88,7 @@ class TestRegisterUserUseCase:
                 display_name="New User",
                 email="newuser@example.com",
                 password="SecurePass123",
-                role="viewer",
+                role="member",
             )
 
         await use_case.execute(build_payload())
