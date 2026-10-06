@@ -16,6 +16,18 @@ from src.app.shared.logging import get_logger, set_user_id
 
 log = get_logger(__name__)
 
+# The Client Review route carries its only credential (the project access code) in the path,
+# so logging the raw path would write a live credential next to the client's IP.
+_CREDENTIAL_PATH_PREFIX = "/v1/viewer/"
+_CREDENTIAL_PATH_PLACEHOLDER = "/v1/viewer/{access_code}"
+
+
+def loggable_path(path: str) -> str:
+    """The request path with any credential segment replaced by its route template."""
+    if path.startswith(_CREDENTIAL_PATH_PREFIX):
+        return _CREDENTIAL_PATH_PLACEHOLDER
+    return path
+
 
 async def request_logging_middleware(request: Request, call_next: Callable) -> Response:
     """Log all HTTP requests with method, path, status, and latency.
@@ -45,7 +57,7 @@ async def request_logging_middleware(request: Request, call_next: Callable) -> R
         "HTTP request processed",
         extra={
             "method": request.method,
-            "path": request.url.path,
+            "path": loggable_path(request.url.path),
             "status_code": response.status_code,
             "latency_ms": round(latency_ms, 2),
             "client_host": request.client.host if request.client else None,

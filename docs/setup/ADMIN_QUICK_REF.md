@@ -45,8 +45,8 @@ curl -X POST http://localhost:8000/v1/users \
 
 | Role | Permissions | Created By |
 |------|-------------|------------|
-| `viewer` | Read-only access | Default for public registration |
-| `admin` | Full access + user management | Seed script or admin user |
+| `member` | Full access to projects, stories and refinement | Added by the workspace Admin (`POST /v1/users`) |
+| `admin` | Full access + user management | Public registration or seed script |
 
 ---
 
@@ -54,8 +54,8 @@ curl -X POST http://localhost:8000/v1/users \
 
 | Endpoint | Auth | Role Created | Can Specify Role? |
 |----------|------|--------------|-------------------|
-| `POST /v1/auth/register` | ❌ Public | `viewer` | ❌ No |
-| `POST /v1/users` | ✅ Admin | `viewer` (default) | ✅ Yes (`admin` or `viewer`) |
+| `POST /v1/auth/register` | ❌ Public | `admin` (of a new workspace) | ❌ No |
+| `POST /v1/users` | ✅ Admin | `member` | Only `member` is accepted |
 
 ---
 

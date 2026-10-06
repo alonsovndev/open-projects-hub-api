@@ -45,7 +45,7 @@ def user_entity():
         email=Email("test@example.com"),
         password_hash="hashed_password",
         display_name="Test User",
-        role=UserRole.VIEWER,
+        role=UserRole.MEMBER,
     )
 
 
@@ -228,7 +228,7 @@ class TestRefreshTokenSessionLifetime:
             email=Email("test@example.com"),
             password_hash="hashed_password",
             display_name="Test User",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
             token_version=1,  # bumped since the token below was issued at version 0
         )
         stale_refresh_token = jwt_handler.create_refresh_token(

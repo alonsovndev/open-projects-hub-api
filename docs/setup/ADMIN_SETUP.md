@@ -14,15 +14,15 @@ This guide explains how to create admin users in the Open Projects Hub API.
 ## Overview
 
 The system supports two types of users:
-- **`viewer`** - Can view projects and stories (default role for public registration)
-- **`admin`** - Full access including user management, project/story creation, and deletion
+- **`member`** - Teammate: full access to clients, projects, stories and refinement
+- **`admin`** - Workspace owner: everything a member can do, plus user management
 
 ### User Creation Endpoints
 
 | Endpoint | Auth Required | Default Role | Can Specify Role? |
 |----------|---------------|--------------|-------------------|
-| `POST /v1/auth/register` | ❌ No (public) | `viewer` | ❌ No |
-| `POST /v1/users` | ✅ Yes (admin only) | `viewer` | ✅ Yes |
+| `POST /v1/auth/register` | ❌ No (public) | `admin` (of a new workspace) | ❌ No |
+| `POST /v1/users` | ✅ Yes (admin only) | `member` | Only `member` is accepted |
 
 ---
 
@@ -174,19 +174,19 @@ curl -X POST http://localhost:8000/v1/users \
 }
 ```
 
-### Creating Viewer Users
+### Adding Members
 
-To create a viewer user (or omit `role` to default to viewer):
+Clients do not have accounts. They review a project through its **access code** on the public
+Client Review page (`/viewer`); see the [API README](../api/README.md#client-review-public).
+To add a teammate (the only role `POST /v1/users` accepts is `member`):
 
 ```bash
 curl -X POST http://localhost:8000/v1/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -d '{
-    "email": "viewer@mycompany.com",
-    "password": "ViewerPass123!",
-    "displayName": "John Viewer",
-    "role": "viewer"
+    "email": "teammate@mycompany.com",
+    "displayName": "Jane Teammate"
   }'
 ```
 
@@ -291,6 +291,6 @@ chmod +x scripts/seed_admin.py
 |------|--------|---------|
 | Create first admin | Seed script | `ADMIN_EMAIL=... ADMIN_PASSWORD=... make seed-admin` |
 | Create additional admins | API | `POST /v1/users` with `role: "admin"` |
-| Public registration | API | `POST /v1/auth/register` (always creates viewers) |
+| Public registration | API | `POST /v1/auth/register` (always creates an admin of a new workspace) |
 
 For questions or issues, refer to the [main documentation](../README.md) or open an issue.

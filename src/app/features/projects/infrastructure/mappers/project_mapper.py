@@ -37,6 +37,7 @@ class ProjectMapper:
             updated_at=model.updated_at,
             phase=ProjectPhase(model.phase),
             workspace_id=EntityId.from_string(str(model.workspace_id)) if model.workspace_id else None,
+            access_code=model.access_code,
         )
 
     @staticmethod
@@ -60,6 +61,7 @@ class ProjectMapper:
             existing_model.status = entity.status.value
             existing_model.priority = entity.priority.value
             existing_model.phase = entity.phase.value
+            existing_model.access_code = entity.access_code
             existing_model.start_date = entity.start_date
             existing_model.end_date = entity.end_date
             existing_model.updated_at = entity.updated_at
@@ -77,6 +79,7 @@ class ProjectMapper:
             priority=entity.priority.value,
             phase=entity.phase.value,
             workspace_id=entity.workspace_id.value if entity.workspace_id else None,
+            access_code=entity.access_code,
             start_date=entity.start_date,
             end_date=entity.end_date,
             created_at=entity.created_at,

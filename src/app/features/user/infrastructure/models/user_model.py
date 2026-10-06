@@ -25,9 +25,7 @@ class UserModel(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(
-        pg_enum("admin", "member", "viewer", name="userrole", create_type=False), nullable=False, default="viewer"
-    )
+    role = Column(pg_enum("admin", "member", name="userrole", create_type=False), nullable=False, default="member")
     # Bumped on forced logout (e.g. after a password reset) to invalidate every
     # refresh token issued before that point, without needing a token ledger.
     token_version = Column(Integer, nullable=False, server_default="0", default=0)

@@ -37,7 +37,7 @@ class TestCreateUserUseCase:
             email=Email("newuser@example.com"),
             display_name="New User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.save.return_value = created_entity
 
@@ -65,7 +65,7 @@ class TestCreateUserUseCase:
             email=Email("existing@example.com"),
             display_name="Existing User",
             password_hash="hashed",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
 
         mock_repo = AsyncMock()
@@ -116,7 +116,7 @@ class TestCreateUserUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="$2b$12$hashed_password_here",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.save.return_value = created_entity
 
@@ -144,7 +144,7 @@ class TestCreateUserUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.save.return_value = created_entity
 
@@ -184,21 +184,6 @@ class TestCreateWorkspaceMember:
         assert created.is_email_verified is False
         assert created.ai_credits_remaining == 0
         assert created.ai_credits_granted == 0
-
-    @pytest.mark.asyncio
-    async def test_a_viewer_can_be_created(self):
-        user_repository = AsyncMock()
-        user_repository.find_by_email.return_value = None
-        user_repository.save.side_effect = lambda user_entity: user_entity
-        user_repository.count_by_workspace.return_value = 1
-        use_case = CreateUserUseCase(user_repository, AsyncMock(), AsyncMock(), EmailLinks("http://localhost:5173"), 5)
-
-        await use_case.execute(
-            UserCreateRequest(display_name="Client", email="client@example.com", role="viewer"),
-            ctx=make_request_context(),
-        )
-
-        assert user_repository.save.call_args[0][0].role is UserRole.VIEWER
 
     def test_an_admin_role_is_refused(self):
         """No second Admin until roles can be changed and accounts removed."""

@@ -16,7 +16,7 @@ from src.app.shared.logging import get_logger, set_user_id
 
 class CreateUserUseCase:
     """
-    Adds a member or viewer to the caller's workspace (up to the workspace user cap) and emails
+    Adds a member to the caller's workspace (up to the workspace user cap) and emails
     them a verification code.
 
     The account signs in only after the person confirms the address and chooses their own

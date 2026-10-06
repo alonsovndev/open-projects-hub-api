@@ -37,17 +37,6 @@ def admin_token(app_jwt_handler):
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
-@pytest.fixture
 def mock_client_entity():
     """Create a mock client entity."""
     entity_id = EntityId.from_string("550e8400-e29b-41d4-a716-446655440200")
@@ -108,16 +97,6 @@ class TestCreateClientEndpoint:
         )
 
         assert response.status_code == 401
-
-    def test_create_client_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test creating client as viewer returns 403."""
-        response = client.post(
-            "/v1/clients",
-            json={"name": "Test Client"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
     def test_create_client_validation_error(self, client: TestClient, admin_token: str):
         """Test creating client with empty name returns 422."""
@@ -281,16 +260,6 @@ class TestUpdateClientEndpoint:
         assert data["name"] == "Updated Name"
         assert data["company"] == "Updated Company"
 
-    def test_update_client_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test updating client as viewer returns 403."""
-        response = client.patch(
-            "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
-            json={"name": "Updated"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
     def test_update_client_not_found(self, client: TestClient, admin_token: str):
         """Test updating non-existent client returns 404."""
         with patch(
@@ -331,15 +300,6 @@ class TestDeleteClientEndpoint:
             )
 
         assert response.status_code == 204
-
-    def test_delete_client_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test deleting client as viewer returns 403."""
-        response = client.delete(
-            "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
     def test_delete_client_not_found(self, client: TestClient, admin_token: str):
         """Test deleting non-existent client returns 404."""
@@ -395,16 +355,3 @@ class TestClientReadBoundaries:
     """Client records name the freelancer's other business relationships, so the reads are
     admin-only too — not just the writes. No use case is patched: the 403 has to come from
     the route guard rather than from a stub that would also hide a missing guard."""
-
-    def test_list_clients_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.get("/v1/clients", headers={"Authorization": f"Bearer {viewer_token}"})
-
-        assert response.status_code == 403
-
-    def test_get_client_by_id_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.get(
-            "/v1/clients/550e8400-e29b-41d4-a716-446655440200",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403

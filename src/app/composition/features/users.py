@@ -13,7 +13,6 @@ Use Cases:
 - Get User by ID: Retrieve user details
 - Get User Profile: Retrieve current user's profile
 - Update User Profile: Modify profile information
-- Update User Role: Admin changes a teammate's role
 - Update User Status: Admin activates or deactivates a teammate
 - Delete User: Admin permanently deletes a teammate, handing their work to the Admin
 - Change Password: Update user password with validation
@@ -43,7 +42,6 @@ from src.app.features.user.application.use_cases.get_user_by_id import GetUserBy
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.app.features.user.application.use_cases.list_workspace_users import ListWorkspaceUsersUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
-from src.app.features.user.application.use_cases.update_user_role import UpdateUserRoleUseCase
 from src.app.features.user.application.use_cases.update_user_status import UpdateUserStatusUseCase
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.shared.infrastructure.email.email_sender import EmailSender
@@ -95,13 +93,6 @@ async def get_change_password_use_case(
 ) -> ChangePasswordUseCase:
     """ChangePasswordUseCase factory."""
     return ChangePasswordUseCase(user_repository)
-
-
-async def get_update_user_role_use_case(
-    user_repository: UserRepository = Depends(get_user_repository),
-) -> UpdateUserRoleUseCase:
-    """UpdateUserRoleUseCase factory."""
-    return UpdateUserRoleUseCase(user_repository)
 
 
 async def get_update_user_status_use_case(

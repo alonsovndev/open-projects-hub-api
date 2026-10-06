@@ -3,6 +3,7 @@
 from datetime import UTC, date, datetime
 
 from src.app.features.projects.domain.validators.project_validators import ProjectValidators
+from src.app.features.projects.domain.value_objects.access_code import generate_access_code
 from src.app.features.projects.domain.value_objects.project_phase import ProjectPhase
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
@@ -34,6 +35,7 @@ class ProjectEntity(BaseEntity):
         updated_at: datetime,
         phase: ProjectPhase = ProjectPhase.default(),
         workspace_id: EntityId | None = None,
+        access_code: str | None = None,
     ):
         """
         Initialize ProjectEntity.
@@ -52,6 +54,7 @@ class ProjectEntity(BaseEntity):
             created_at: Timestamp when project was created
             updated_at: Timestamp when project was last updated
             phase: Project phase (discovery, planning) — MVP scope only
+            access_code: Key a client stakeholder types to review the project; generated when omitted
 
         Raises:
             ValueError: If validation fails
@@ -74,6 +77,7 @@ class ProjectEntity(BaseEntity):
         self._end_date = end_date
         self._phase = phase
         self._workspace_id = workspace_id
+        self._access_code = access_code or generate_access_code()
 
     @property
     def name(self) -> str:
@@ -128,6 +132,16 @@ class ProjectEntity(BaseEntity):
     @property
     def workspace_id(self) -> EntityId | None:
         return self._workspace_id
+
+    @property
+    def access_code(self) -> str:
+        """Get the code a client stakeholder uses to open the Client Review page."""
+        return self._access_code
+
+    def regenerate_access_code(self) -> None:
+        """Replace the access code, which revokes every link and code already shared."""
+        self._access_code = generate_access_code()
+        self.mark_as_updated()
 
     def update_details(
         self,

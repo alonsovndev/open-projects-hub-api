@@ -20,7 +20,7 @@ def to_user_response(user_entity: UserEntity) -> UserResponse:
 
 def map_create_request_to_entity(payload: UserCreateRequest, password_hash: str, workspace_id: EntityId) -> UserEntity:
     """
-    Convert a UserCreateRequest DTO to a member or viewer of the given workspace.
+    Convert a UserCreateRequest DTO to a member of the given workspace.
 
     Args:
         payload: The user creation request with email, display_name, and optional role

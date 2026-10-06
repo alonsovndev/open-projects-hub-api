@@ -7,18 +7,18 @@ from src.app.features.user.domain.value_objects.user_role import UserRole
 
 def _validate_assignable_role(role: str | None) -> str:
     """
-    Only teammates and viewers can be given to someone in a workspace.
+    Only teammates can be added to a workspace.
 
     A workspace has exactly one Admin, so Admin is never assignable.
 
     Raises:
-        ValueError: If role is not member or viewer
+        ValueError: If role is not member
     """
     if role is None:
         return UserRole.MEMBER.value
 
     role_lower = role.lower().strip()
-    assignable_roles = [UserRole.MEMBER.value, UserRole.VIEWER.value]
+    assignable_roles = [UserRole.MEMBER.value]
     if role_lower not in assignable_roles:
         raise ValueError(f"Role must be one of: {', '.join(assignable_roles)}")
 
@@ -52,19 +52,6 @@ class UserCreateRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def validate_role(cls, role: str | None) -> str:
-        return _validate_assignable_role(role)
-
-
-class UpdateUserRoleRequest(BaseModel):
-    """Request model for an Admin changing a teammate's role."""
-
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
-    role: str
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, role: str) -> str:
         return _validate_assignable_role(role)
 
 

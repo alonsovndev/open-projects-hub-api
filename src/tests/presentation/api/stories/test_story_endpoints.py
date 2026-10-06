@@ -32,17 +32,6 @@ def admin_token(app_jwt_handler):
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
-@pytest.fixture
 def mock_story_response():
     """Create a mock story response DTO."""
     return StoryResponse(
@@ -339,96 +328,11 @@ class TestAssignStoryEndpoint:
 
 
 class TestStoryRoleBoundaries:
-    """Viewer boundary for /v1/stories (US-EP4-BE-001).
+    """Member boundary for /v1/stories (US-EP4-BE-001).
 
     The write cases deliberately do not patch their use case: a 403 has to come from the
     route guard, not from a stub that would also hide a missing guard.
     """
-
-    def test_create_story_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.post(
-            "/v1/stories",
-            json={
-                "title": "Test Story",
-                "description": "Test description",
-                "project_id": "550e8400-e29b-41d4-a716-446655440001",
-                "priority": "medium",
-            },
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
-    def test_update_story_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.patch(
-            "/v1/stories/550e8400-e29b-41d4-a716-446655440100",
-            json={"title": "Updated Title"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
-    def test_delete_story_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.delete(
-            "/v1/stories/550e8400-e29b-41d4-a716-446655440100",
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
-    def test_assign_story_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.post(
-            "/v1/stories/550e8400-e29b-41d4-a716-446655440100/assign",
-            json={"user_id": "550e8400-e29b-41d4-a716-446655440003"},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
-    def test_list_stories_allowed_for_viewer(self, client: TestClient, viewer_token: str, mock_story_response):
-        """Read access is granted to viewers, not merely 'not denied'."""
-        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-
-        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_story_response])
-
-        with patch(
-            "src.app.features.stories.application.use_cases.list_stories.ListStoriesUseCase.execute",
-            new=AsyncMock(return_value=paginated_response),
-        ):
-            response = client.get("/v1/stories", headers={"Authorization": f"Bearer {viewer_token}"})
-
-        assert response.status_code == 200
-        assert response.json()["items"][0]["title"] == "Test Story"
-
-    def test_get_story_by_id_allowed_for_viewer(self, client: TestClient, viewer_token: str, mock_story_response):
-        with patch(
-            "src.app.features.stories.application.use_cases.get_story_by_id.GetStoryByIdUseCase.execute",
-            new=AsyncMock(return_value=mock_story_response),
-        ):
-            response = client.get(
-                "/v1/stories/550e8400-e29b-41d4-a716-446655440100",
-                headers={"Authorization": f"Bearer {viewer_token}"},
-            )
-
-        assert response.status_code == 200
-
-    def test_get_stories_by_project_allowed_for_viewer(
-        self, client: TestClient, viewer_token: str, mock_story_response
-    ):
-        from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
-
-        paginated_response = PaginatedResponse(total=1, page=1, per_page=20, items=[mock_story_response])
-
-        with patch(
-            "src.app.features.stories.application.use_cases.get_stories_by_project.GetStoriesByProjectUseCase.execute",
-            new=AsyncMock(return_value=paginated_response),
-        ):
-            response = client.get(
-                "/v1/stories/by-project/550e8400-e29b-41d4-a716-446655440001",
-                headers={"Authorization": f"Bearer {viewer_token}"},
-            )
-
-        assert response.status_code == 200
 
     def test_create_story_with_invalid_token_returns_401(self, client: TestClient):
         response = client.post(

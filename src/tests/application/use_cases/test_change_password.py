@@ -30,7 +30,7 @@ class TestChangePasswordUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="old_hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
         mock_repo.save.return_value = user_entity
@@ -63,7 +63,7 @@ class TestChangePasswordUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -106,7 +106,7 @@ class TestChangePasswordUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -134,7 +134,7 @@ class TestChangePasswordUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -162,7 +162,7 @@ class TestChangePasswordUseCase:
             email=Email("user@example.com"),
             display_name="Test User",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 

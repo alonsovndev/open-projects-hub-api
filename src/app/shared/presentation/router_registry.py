@@ -7,6 +7,7 @@ Centralizes API route registration with versioning and tagging.
 from src.app.features.ai_config.presentation.ai_config_routes import router as ai_config_router
 from src.app.features.auth.presentation.auth_routes import router as auth_router
 from src.app.features.backlog.presentation.backlog_routes import router as backlog_router
+from src.app.features.client_review.presentation.client_review_routes import router as client_review_router
 from src.app.features.clients.presentation.client_routes import router as client_router
 from src.app.features.dashboard.presentation.dashboard_routes import router as dashboard_router
 from src.app.features.projects.presentation.project_routes import router as project_router
@@ -57,3 +58,6 @@ def register_routers(app) -> None:
 
     # Dashboard routes
     app.include_router(dashboard_router, prefix="/v1/dashboard", tags=["Dashboard"])
+
+    # Client Review: public, read-only, access-code based (no token)
+    app.include_router(client_review_router, prefix="/v1/viewer", tags=["Client Review"])

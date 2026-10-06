@@ -117,23 +117,6 @@ class TestVerifyEmailUseCase:
         assert member.ai_credits_granted == INITIAL_AI_CREDITS
 
     @pytest.mark.asyncio
-    async def test_a_verified_viewer_gets_no_credits_and_reserves_none(
-        self, mock_user_repository, mock_verification_code_repository, mock_workspace_repository
-    ):
-        viewer = _invitee(UserRole.VIEWER)
-        mock_user_repository.find_by_email.return_value = viewer
-        mock_verification_code_repository.find_latest_active_by_user_id.return_value = await _make_valid_code(viewer)
-
-        use_case = VerifyEmailUseCase(
-            mock_user_repository, mock_verification_code_repository, mock_workspace_repository, LIMITS
-        )
-        await use_case.execute(VerifyEmailRequest(email="new@example.com", code="ABC234", password="MyOwnPass123"))
-
-        assert viewer.is_email_verified is True
-        assert viewer.ai_credits_remaining == 0
-        mock_workspace_repository.reserve_ai_credits.assert_not_awaited()
-
-    @pytest.mark.asyncio
     async def test_a_member_gets_only_what_is_left_under_the_workspace_ceiling(
         self, mock_user_repository, mock_verification_code_repository, mock_workspace_repository
     ):

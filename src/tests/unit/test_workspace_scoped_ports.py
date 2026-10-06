@@ -28,6 +28,9 @@ UNSCOPED_BY_DESIGN = {
     ("StoryRepository", "save"),
     # The workspace is the argument itself.
     ("ProjectRepository", "count_active_by_workspace"),
+    # The one deliberate cross-workspace read: a client stakeholder has no session, so the
+    # unguessable, instance-wide-unique access code stands in for the workspace.
+    ("ProjectRepository", "find_by_access_code"),
     # Scoped through BacklogQuery.workspace_id, which is a required field.
     ("StoryRepository", "find_backlog"),
     ("StoryRepository", "count_backlog"),

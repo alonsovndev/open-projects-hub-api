@@ -47,7 +47,7 @@ def mock_user_entity():
         email=Email("test@example.com"),
         display_name="Test User",
         password_hash="$2b$12$somehashedpassword",
-        role=UserRole.VIEWER,
+        role=UserRole.MEMBER,
         email_verified_at=datetime.now(UTC),
     )
 

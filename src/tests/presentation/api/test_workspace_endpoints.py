@@ -36,7 +36,7 @@ class TestUpdateWorkspaceEndpoint:
         assert response.status_code == 200
         assert response.json() == {"id": WORKSPACE_ID, "name": "New"}
 
-    @pytest.mark.parametrize("role", ["member", "viewer"])
+    @pytest.mark.parametrize("role", ["member"])
     def test_non_admin_is_forbidden(self, client: TestClient, role: str):
         response = client.patch(
             "/v1/workspaces/me", json={"name": "New"}, headers={"Authorization": f"Bearer {_token(role)}"}

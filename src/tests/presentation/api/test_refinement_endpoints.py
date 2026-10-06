@@ -34,17 +34,6 @@ def admin_token(app_jwt_handler):
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate viewer JWT token for tests."""
-    return app_jwt_handler.create_access_token(
-        user_id="550e8400-e29b-41d4-a716-446655440002",
-        email="viewer@example.com",
-        role="viewer",
-        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
-    )
-
-
-@pytest.fixture
 def mock_story_response():
     """Create a mock story response DTO."""
     return StoryResponse(
@@ -110,19 +99,6 @@ class TestGenerateStoriesEndpoint:
         )
 
         assert response.status_code == 401
-
-    def test_generate_stories_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        """Test generating stories with viewer role returns 403."""
-        response = client.post(
-            "/v1/refinement/generate-stories",
-            json={
-                "projectId": "550e8400-e29b-41d4-a716-446655440001",
-                "rawNotes": "Some raw notes that are long enough",
-            },
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
     def test_generate_stories_validation_error_empty_notes(self, client: TestClient, admin_token: str):
         """Test generating stories with empty notes returns 422."""
@@ -241,15 +217,6 @@ class TestApproveStoryEndpoint:
 
         assert response.status_code == 401
 
-    def test_approve_story_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.post(
-            "/v1/refinement/approve-story",
-            json=APPROVE_BODY,
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
-
     def test_removed_draft_routes_no_longer_exist(self, client: TestClient, admin_token: str):
         draft_url = "/v1/refinement/drafts/550e8400-e29b-41d4-a716-446655440100"
         headers = {"Authorization": f"Bearer {admin_token}"}
@@ -292,15 +259,6 @@ class TestApproveStoriesBulkEndpoint:
         response = client.post("/v1/refinement/approve-stories", json={"stories": [APPROVE_BODY]})
 
         assert response.status_code == 401
-
-    def test_approve_stories_bulk_forbidden_for_viewer(self, client: TestClient, viewer_token: str):
-        response = client.post(
-            "/v1/refinement/approve-stories",
-            json={"stories": [APPROVE_BODY]},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        assert response.status_code == 403
 
 
 @pytest.mark.integration

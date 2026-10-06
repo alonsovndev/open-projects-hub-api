@@ -100,6 +100,36 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
+    async def find_by_access_code(self, access_code: str) -> ProjectEntity | None:
+        """
+        Find the project a client stakeholder opens with its access code, in any workspace.
+
+        Args:
+            access_code: The normalized access code
+
+        Returns:
+            The ProjectEntity if the code belongs to a project, None otherwise
+
+        Raises:
+            SQLAlchemyError: If database error occurs
+        """
+        try:
+            result = await self._session.execute(select(ProjectModel).where(ProjectModel.access_code == access_code))
+            model = result.scalar_one_or_none()
+            return ProjectMapper.to_entity(model) if model else None
+
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "find_by_access_code", "table": "projects"}
+            )
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching project by access code",
+                extra={"operation": "find_by_access_code", "table": "projects"},
+            )
+            raise
+
     async def find_all(
         self,
         *,
