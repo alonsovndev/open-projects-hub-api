@@ -6,6 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.exceptions.story_exceptions import StoryNotFoundError
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, set_user_id
 
 
@@ -21,13 +22,13 @@ class GetStoryByIdUseCase:
         """
         self._repository = story_repository
 
-    async def execute(self, story_id: str, user_id: str) -> StoryResponse:
+    async def execute(self, story_id: str, ctx: RequestContext) -> StoryResponse:
         """
         Execute get story by ID use case.
 
         Args:
             story_id: Story UUID
-            user_id: Current user ID
+            ctx: Caller identity and workspace
 
         Returns:
             StoryResponse with story data
@@ -36,13 +37,13 @@ class GetStoryByIdUseCase:
             StoryNotFoundError: If story not found
         """
         log = get_logger(__name__)
-        set_user_id(user_id)
+        set_user_id(str(ctx.user_id))
         log.info(
             "Fetching story by ID",
             extra={"event_type": "stories.fetch_by_id.started", "story_id": story_id},
         )
 
-        entity = await self._repository.find_by_id(UUID(story_id))
+        entity = await self._repository.find_by_id(UUID(story_id), workspace_id=ctx.workspace_id.value)
 
         if not entity:
             log.warning(

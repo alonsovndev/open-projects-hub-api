@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import ResendResetCodeRequest
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_reset_code import MAX_REQUESTS_PER_WINDOW
 from src.app.features.auth.application.use_cases.resend_reset_code import ResendResetCodeUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import ResetCodeRateLimitedError
@@ -49,7 +50,9 @@ class TestResendResetCodeUseCase:
     ):
         mock_user_repository.find_by_email.return_value = user_entity
         mock_reset_code_repository.count_created_since.return_value = MAX_REQUESTS_PER_WINDOW - 1
-        use_case = ResendResetCodeUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = ResendResetCodeUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         await use_case.execute(ResendResetCodeRequest(email="admin@example.com"))
 
@@ -62,7 +65,9 @@ class TestResendResetCodeUseCase:
     ):
         mock_user_repository.find_by_email.return_value = user_entity
         mock_reset_code_repository.count_created_since.return_value = MAX_REQUESTS_PER_WINDOW
-        use_case = ResendResetCodeUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = ResendResetCodeUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         with pytest.raises(ResetCodeRateLimitedError):
             await use_case.execute(ResendResetCodeRequest(email="admin@example.com"))
@@ -72,7 +77,9 @@ class TestResendResetCodeUseCase:
     @pytest.mark.asyncio
     async def test_unknown_email_no_ops(self, mock_user_repository, mock_reset_code_repository, mock_email_sender):
         mock_user_repository.find_by_email.return_value = None
-        use_case = ResendResetCodeUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = ResendResetCodeUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         await use_case.execute(ResendResetCodeRequest(email="ghost@example.com"))
 

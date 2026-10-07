@@ -1,4 +1,11 @@
-"""Project repository interface."""
+"""Project repository interface.
+
+Every read, count and delete is confined to one workspace (`workspace_id`). A project of
+another workspace behaves exactly like one that does not exist.
+
+The one exception is `find_by_access_code`: a client stakeholder has no session and so no
+workspace, and the access code is unique instance-wide precisely so it can stand in for one.
+"""
 
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -11,7 +18,7 @@ class ProjectRepository(ABC):
     """Repository interface for Project aggregate."""
 
     @abstractmethod
-    async def find_by_id(self, project_id: UUID) -> tuple[ProjectEntity, str] | None:
+    async def find_by_id(self, project_id: UUID, *, workspace_id: UUID) -> tuple[ProjectEntity, str] | None:
         """
         Find project by ID with client name.
 
@@ -23,8 +30,22 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
+    async def find_by_access_code(self, access_code: str) -> ProjectEntity | None:
+        """
+        Find the project a client stakeholder opens with its access code, in any workspace.
+
+        Args:
+            access_code: The normalized access code
+
+        Returns:
+            The ProjectEntity if the code belongs to a project, None otherwise
+        """
+
+    @abstractmethod
     async def find_all(
         self,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
         status: str | None = None,
@@ -66,7 +87,7 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def delete(self, project_id: UUID) -> bool:
+    async def delete(self, project_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Delete a project by ID.
 
@@ -80,6 +101,8 @@ class ProjectRepository(ABC):
     @abstractmethod
     async def count(
         self,
+        *,
+        workspace_id: UUID,
         status: str | None = None,
         client_id: str | None = None,
         created_from: datetime | None = None,
@@ -105,7 +128,7 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def exists(self, project_id: UUID) -> bool:
+    async def exists(self, project_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Check if a project exists by ID.
 
@@ -117,7 +140,7 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def get_story_counts(self, project_id: UUID) -> tuple[int, int]:
+    async def get_story_counts(self, project_id: UUID, *, workspace_id: UUID) -> tuple[int, int]:
         """
         Get total and completed story counts for a project.
 
@@ -129,7 +152,9 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def get_story_counts_batch(self, project_ids: list[UUID]) -> dict[UUID, tuple[int, int]]:
+    async def get_story_counts_batch(
+        self, project_ids: list[UUID], *, workspace_id: UUID
+    ) -> dict[UUID, tuple[int, int]]:
         """
         Get story counts for multiple projects in a single query.
 
@@ -141,19 +166,19 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def count_active_by_user(self, user_id: UUID) -> int:
+    async def count_active_by_workspace(self, workspace_id: UUID) -> int:
         """
-        Count active projects owned by a specific user.
+        Count a workspace's active projects (the plan limit is per workspace, not per user).
 
         Args:
-            user_id: User UUID
+            workspace_id: Workspace UUID
 
         Returns:
-            Number of active projects for the user
+            Number of active projects in the workspace
         """
 
     @abstractmethod
-    async def has_active_projects_for_client(self, client_id: UUID) -> bool:
+    async def has_active_projects_for_client(self, client_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Check whether a client has any active projects.
 
@@ -165,7 +190,7 @@ class ProjectRepository(ABC):
         """
 
     @abstractmethod
-    async def delete_archived_by_client(self, client_id: UUID) -> int:
+    async def delete_archived_by_client(self, client_id: UUID, *, workspace_id: UUID) -> int:
         """
         Delete all archived projects for a client (cascade removes stories).
 

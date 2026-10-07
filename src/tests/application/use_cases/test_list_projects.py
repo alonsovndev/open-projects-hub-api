@@ -16,6 +16,7 @@ from src.app.features.projects.domain.value_objects.project_priority import Proj
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestListProjectsUseCase:
@@ -62,7 +63,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user")
+        result = await use_case.execute(ctx=make_request_context())
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 2
@@ -80,6 +81,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
         mock_repo.find_all.assert_called_once_with(
             limit=20,
@@ -91,6 +93,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
 
     @pytest.mark.asyncio
@@ -103,7 +106,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", limit=10, offset=20)
+        result = await use_case.execute(ctx=make_request_context(), limit=10, offset=20)
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 100
@@ -118,6 +121,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
         mock_repo.find_all.assert_called_once_with(
             limit=10,
@@ -129,6 +133,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
 
     @pytest.mark.asyncio
@@ -157,7 +162,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", status="active")
+        result = await use_case.execute(ctx=make_request_context(), status="active")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 1
@@ -171,6 +176,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
         mock_repo.find_all.assert_called_once_with(
             limit=20,
@@ -182,6 +188,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
 
     @pytest.mark.asyncio
@@ -200,7 +207,7 @@ class TestListProjectsUseCase:
         updated_to = datetime(2026, 7, 31, tzinfo=UTC)
 
         await use_case.execute(
-            user_id="test-user",
+            ctx=make_request_context(),
             limit=10,
             offset=5,
             status="active",
@@ -220,6 +227,7 @@ class TestListProjectsUseCase:
             updated_from=updated_from,
             updated_to=updated_to,
             search="payroll",
+            workspace_id=TEST_WORKSPACE_UUID,
         )
         mock_repo.find_all.assert_called_once_with(
             limit=10,
@@ -231,6 +239,7 @@ class TestListProjectsUseCase:
             updated_from=updated_from,
             updated_to=updated_to,
             search="payroll",
+            workspace_id=TEST_WORKSPACE_UUID,
         )
 
     @pytest.mark.asyncio
@@ -243,7 +252,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user")
+        result = await use_case.execute(ctx=make_request_context())
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 0
@@ -259,7 +268,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user", limit=50, offset=100, status="completed")
+        result = await use_case.execute(ctx=make_request_context(), limit=50, offset=100, status="completed")
 
         assert isinstance(result, PaginatedResponse)
         assert result.total == 200
@@ -273,6 +282,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
         mock_repo.find_all.assert_called_once_with(
             limit=50,
@@ -284,6 +294,7 @@ class TestListProjectsUseCase:
             updated_from=None,
             updated_to=None,
             search=None,
+            workspace_id=TEST_WORKSPACE_UUID,
         )
 
     @pytest.mark.asyncio
@@ -312,7 +323,7 @@ class TestListProjectsUseCase:
 
         use_case = ListProjectsUseCase(mock_repo)
 
-        result = await use_case.execute(user_id="test-user")
+        result = await use_case.execute(ctx=make_request_context())
 
         assert isinstance(result, PaginatedResponse)
         assert len(result.items) == 1

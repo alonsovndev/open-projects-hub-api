@@ -1,6 +1,8 @@
 app:
   name: Open Projects Hub API
   version: 1.0.0
+  # Where emailed links point (verify-email, reset-password).
+  frontend_base_url: !ENV ${FRONTEND_BASE_URL:http://localhost:5173}
 
 jwt:
   secret_key: !ENV ${SECRET_KEY}
@@ -63,9 +65,25 @@ auth:
   persist_session_state: true
 
 ai:
-  provider: gemini    # gemini | mock
-  gemini_api_key: !ENV ${GEMINI_API_KEY}
-  gemini_model: gemini-2.5-flash
+  providers:
+    gemini:
+      model: gemini-3.1-flash-lite
+      api_key: !ENV ${GEMINI_API_KEY}
+    openai:
+      model: gpt-4o-mini
+    deepseek:
+      model: deepseek-chat
 
 project_limits:
   max_active_per_admin: 3
+
+workspace_limits:
+  max_users: 5
+  ai_credits_ceiling: 25
+  credits_per_user: 5
+
+security:
+  # Base64-encoded 32-byte master key for AES-256-GCM encryption of user-supplied
+  # provider API keys (F-010 NFR-010-01). Generate with:
+  #   python -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
+  api_key_encryption_key: !ENV ${API_KEY_ENCRYPTION_KEY}

@@ -15,7 +15,7 @@ class RefinementValidators:
     @staticmethod
     def validate_title(title: str) -> None:
         """
-        Validate story draft title.
+        Validate story title.
 
         Args:
             title: Title to validate

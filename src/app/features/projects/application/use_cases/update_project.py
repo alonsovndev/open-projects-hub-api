@@ -6,6 +6,7 @@ from src.app.features.projects.application.mappers.project_mapper import to_proj
 from src.app.features.projects.domain.exceptions.project_exceptions import ProjectNotFoundError
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
@@ -25,14 +26,14 @@ class UpdateProjectUseCase:
         self._project_repository = project_repository
         self._client_repository = client_repository
 
-    async def execute(self, project_id: str, request: UpdateProjectRequest, created_by: str) -> ProjectResponse:
+    async def execute(self, project_id: str, request: UpdateProjectRequest, ctx: RequestContext) -> ProjectResponse:
         """
         Execute update project use case.
 
         Args:
             project_id: Project UUID string
             request: UpdateProjectRequest DTO with fields to update
-            created_by: User ID performing the update
+            ctx: Caller identity and workspace
 
         Returns:
             ProjectResponse if updated
@@ -43,12 +44,13 @@ class UpdateProjectUseCase:
             RuntimeError: If save fails unexpectedly
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
 
         # Parse and validate UUID
         entity_id = EntityId.from_string(project_id)
 
-        result = await self._project_repository.find_by_id(entity_id.value)
+        result = await self._project_repository.find_by_id(entity_id.value, workspace_id=workspace_id)
 
         if not result:
             log.error(
@@ -64,7 +66,7 @@ class UpdateProjectUseCase:
         client_entity_id = None
         if request.client_id is not None:
             client_entity_id = EntityId.from_string(request.client_id)
-            client = await self._client_repository.find_by_id(client_entity_id.value)
+            client = await self._client_repository.find_by_id(client_entity_id.value, workspace_id=workspace_id)
             if not client:
                 log.error(
                     "Client not found for project update",
@@ -96,7 +98,9 @@ class UpdateProjectUseCase:
             )
             raise RuntimeError("Failed to update project")
 
-        total_stories, completed_stories = await self._project_repository.get_story_counts(entity_id.value)
+        total_stories, completed_stories = await self._project_repository.get_story_counts(
+            entity_id.value, workspace_id=workspace_id
+        )
 
         log.info(
             "Project updated",

@@ -329,3 +329,90 @@ class TestStoryEntityProperties:
         assert story.points == 5
         assert story.created_at == now
         assert story.updated_at == now
+
+
+class TestStoryAcceptanceCriteria:
+    """Test the acceptance criteria that the backlog view and Markdown export read."""
+
+    def test_create_defaults_to_no_criteria(self):
+        """A story created without criteria has an empty list, never None."""
+        story = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+        )
+
+        assert story.acceptance_criteria == []
+
+    def test_create_keeps_criteria_in_order(self):
+        """Criteria order is meaningful in the export, so it must be preserved."""
+        story = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["First", "Second", "Third"],
+        )
+
+        assert story.acceptance_criteria == ["First", "Second", "Third"]
+
+    def test_criteria_property_returns_a_copy(self):
+        """Mutating the returned list must not reach into the entity."""
+        story = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["Original"],
+        )
+
+        story.acceptance_criteria.append("Injected")
+
+        assert story.acceptance_criteria == ["Original"]
+
+    def test_update_details_replaces_criteria(self):
+        """Test that update_details swaps the whole list."""
+        story = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["Old"],
+        )
+
+        story.update_details(acceptance_criteria=["New one", "New two"])
+
+        assert story.acceptance_criteria == ["New one", "New two"]
+
+    def test_update_details_can_clear_criteria(self):
+        """An explicit empty list clears the criteria; None leaves them alone."""
+        story = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["Old"],
+        )
+
+        story.update_details(acceptance_criteria=[])
+        assert story.acceptance_criteria == []
+
+        story.update_details(acceptance_criteria=["Restored"])
+        story.update_details(title="Renamed")
+        assert story.acceptance_criteria == ["Restored"]
+
+    def test_blank_criterion_is_rejected(self):
+        """A blank criterion would render as an empty bullet in the export."""
+        with pytest.raises(ValidationError, match="empty entries"):
+            StoryEntity.create(
+                title="Test Story",
+                project_id=EntityId.generate(),
+                created_by=EntityId.generate(),
+                acceptance_criteria=["Valid", "   "],
+            )
+
+    def test_overlong_criterion_is_rejected(self):
+        """Test that a criterion beyond the documented 500-character limit is rejected."""
+        with pytest.raises(ValidationError, match="cannot exceed"):
+            StoryEntity.create(
+                title="Test Story",
+                project_id=EntityId.generate(),
+                created_by=EntityId.generate(),
+                acceptance_criteria=["x" * 501],
+            )

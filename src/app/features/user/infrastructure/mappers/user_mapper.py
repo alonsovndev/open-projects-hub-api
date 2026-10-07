@@ -20,6 +20,11 @@ class UserMapper:
             password_hash=model.password_hash,
             role=UserRole(model.role),
             token_version=model.token_version or 0,
+            ai_credits_remaining=model.ai_credits_remaining,
+            ai_credits_granted=model.ai_credits_granted,
+            email_verified_at=model.email_verified_at,
+            deactivated_at=model.deactivated_at,
+            workspace_id=EntityId.from_string(str(model.workspace_id)) if model.workspace_id else None,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -34,6 +39,11 @@ class UserMapper:
             password_hash=entity.password_hash,
             role=entity.role.value,
             token_version=entity.token_version,
+            ai_credits_remaining=entity.ai_credits_remaining,
+            ai_credits_granted=entity.ai_credits_granted,
+            email_verified_at=entity.email_verified_at,
+            deactivated_at=entity.deactivated_at,
+            workspace_id=entity.workspace_id.value if entity.workspace_id else None,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

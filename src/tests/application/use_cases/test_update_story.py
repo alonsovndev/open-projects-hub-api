@@ -18,6 +18,7 @@ from src.app.features.stories.domain.value_objects.story_priority import StoryPr
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
 
 
 class TestUpdateStoryUseCase:
@@ -51,12 +52,12 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert isinstance(result, StoryResponse)
         assert result.title == "New Title"
-        mock_repo.find_by_id.assert_called_once_with(story_id)
+        mock_repo.find_by_id.assert_called_once_with(story_id, workspace_id=TEST_WORKSPACE_UUID)
         mock_repo.save.assert_called_once()
 
     @pytest.mark.asyncio
@@ -93,7 +94,7 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert result.title == "New Title"
@@ -115,7 +116,7 @@ class TestUpdateStoryUseCase:
             await use_case.execute(
                 story_id=str(uuid4()),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
         mock_repo.find_by_id.assert_called_once()
@@ -166,7 +167,7 @@ class TestUpdateStoryUseCase:
             result = await use_case.execute(
                 story_id=str(story_id),
                 request=request,
-                created_by="test-user",
+                ctx=make_request_context(),
             )
 
             assert result.status == status_str
@@ -200,7 +201,7 @@ class TestUpdateStoryUseCase:
         result = await use_case.execute(
             story_id=str(story_id),
             request=request,
-            created_by="test-user",
+            ctx=make_request_context(),
         )
 
         assert isinstance(result, StoryResponse)

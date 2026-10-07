@@ -6,6 +6,7 @@ from src.app.features.stories.application.dtos.story_dto import StoryResponse
 from src.app.features.stories.application.mappers.story_mapper import to_story_response
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, set_user_id
 
 
@@ -24,7 +25,7 @@ class GetStoriesByProjectUseCase:
     async def execute(
         self,
         project_id: str,
-        user_id: str,
+        ctx: RequestContext,
         limit: int = 20,
         offset: int = 0,
     ) -> PaginatedResponse[StoryResponse]:
@@ -33,7 +34,7 @@ class GetStoriesByProjectUseCase:
 
         Args:
             project_id: Project UUID
-            user_id: Current user ID
+            ctx: Caller identity and workspace
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
 
@@ -41,7 +42,7 @@ class GetStoriesByProjectUseCase:
             PaginatedResponse containing pagination metadata and StoryResponse items
         """
         log = get_logger(__name__)
-        set_user_id(user_id)
+        set_user_id(str(ctx.user_id))
         log.info(
             "Fetching stories by project",
             extra={
@@ -54,9 +55,10 @@ class GetStoriesByProjectUseCase:
 
         project_uuid = UUID(project_id)
 
-        total = await self._repository.count(project_id=project_uuid)
+        total = await self._repository.count(workspace_id=ctx.workspace_id.value, project_id=project_uuid)
         entities = await self._repository.find_by_project_id(
             project_id=project_uuid,
+            workspace_id=ctx.workspace_id.value,
             limit=limit,
             offset=offset,
         )

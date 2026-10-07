@@ -31,7 +31,7 @@ class TestUpdateUserProfileUseCase:
             email=Email("user@example.com"),
             display_name="Old Name",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -40,7 +40,7 @@ class TestUpdateUserProfileUseCase:
             email=Email("user@example.com"),
             display_name="New Name",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.update.return_value = updated_entity
 
@@ -81,7 +81,7 @@ class TestUpdateUserProfileUseCase:
             email=Email("user@example.com"),
             display_name="Old Name",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 
@@ -104,7 +104,7 @@ class TestUpdateUserProfileUseCase:
             email=Email("user@example.com"),
             display_name="Old Name",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
 

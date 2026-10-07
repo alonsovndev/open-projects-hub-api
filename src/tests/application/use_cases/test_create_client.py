@@ -10,6 +10,7 @@ from src.app.features.clients.application.use_cases.create_client import CreateC
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientEmailExistsError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestCreateClientUseCase:
@@ -37,7 +38,7 @@ class TestCreateClientUseCase:
 
         request = CreateClientRequest(name="New Client")
 
-        result = await use_case.execute(request=request, created_by="test-user")
+        result = await use_case.execute(request=request, ctx=make_request_context())
 
         assert isinstance(result, ClientResponse)
         assert result.name == "New Client"
@@ -75,7 +76,7 @@ class TestCreateClientUseCase:
             notes="Important client",
         )
 
-        result = await use_case.execute(request=request, created_by="test-user")
+        result = await use_case.execute(request=request, ctx=make_request_context())
 
         assert isinstance(result, ClientResponse)
         assert result.name == "Full Client"
@@ -100,7 +101,7 @@ class TestCreateClientUseCase:
         )
 
         with pytest.raises(ClientEmailExistsError, match=r"Client with email duplicate@example.com already exists"):
-            await use_case.execute(request=request, created_by="test-user")
+            await use_case.execute(request=request, ctx=make_request_context())
 
         mock_repo.save.assert_not_called()
 
@@ -156,7 +157,7 @@ class TestCreateClientUseCase:
         request = CreateClientRequest(name="Test Client")
 
         with pytest.raises(AttributeError):
-            await use_case.execute(request=request, created_by="test-user")
+            await use_case.execute(request=request, ctx=make_request_context())
 
         mock_repo.save.assert_called_once()
 
@@ -177,7 +178,7 @@ class TestCreateClientUseCase:
 
         request = CreateClientRequest(name="Client Without Email")
 
-        result = await use_case.execute(request=request, created_by="test-user")
+        result = await use_case.execute(request=request, ctx=make_request_context())
 
         assert result.name == "Client Without Email"
         mock_repo.find_by_email.assert_not_called()

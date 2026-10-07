@@ -17,6 +17,7 @@ from src.app.features.projects.domain.value_objects.project_priority import Proj
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestCreateProjectUseCase:
@@ -31,7 +32,7 @@ class TestCreateProjectUseCase:
         created_by = EntityId.generate()
         client_id = EntityId.generate()
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -66,7 +67,7 @@ class TestCreateProjectUseCase:
         # Execute
         result = await use_case.execute(
             request=request,
-            created_by=str(created_by.value),
+            ctx=make_request_context(user_id=str(created_by.value)),
         )
 
         # Assert
@@ -86,7 +87,7 @@ class TestCreateProjectUseCase:
         start = date(2026, 5, 1)
         end = date(2026, 12, 31)
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -125,7 +126,7 @@ class TestCreateProjectUseCase:
         # Execute
         result = await use_case.execute(
             request=request,
-            created_by=str(created_by.value),
+            ctx=make_request_context(user_id=str(created_by.value)),
         )
 
         # Assert
@@ -192,7 +193,7 @@ class TestCreateProjectUseCase:
         mock_client_repo = AsyncMock()
         client_id = EntityId.generate()
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -214,7 +215,7 @@ class TestCreateProjectUseCase:
         with pytest.raises(RuntimeError, match="Failed to create project"):
             await use_case.execute(
                 request=request,
-                created_by=str(uuid4()),
+                ctx=make_request_context(user_id=str(uuid4())),
             )
 
         mock_project_repo.save.assert_called_once()
@@ -228,7 +229,7 @@ class TestCreateProjectUseCase:
         created_by_uuid = uuid4()
         client_id = EntityId.generate()
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         # Mock client lookup
         mock_client = AsyncMock()
@@ -263,7 +264,7 @@ class TestCreateProjectUseCase:
         # Execute
         result = await use_case.execute(
             request=request,
-            created_by=str(created_by_uuid),
+            ctx=make_request_context(user_id=str(created_by_uuid)),
         )
 
         # Assert
@@ -294,7 +295,7 @@ class TestCreateProjectUseCase:
         created_by = EntityId.generate()
         client_id = EntityId.generate()
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         mock_client = AsyncMock()
         mock_client.name = "Test Client"
@@ -314,7 +315,7 @@ class TestCreateProjectUseCase:
             phase="planning",
         )
 
-        result = await use_case.execute(request=request, created_by=str(created_by.value))
+        result = await use_case.execute(request=request, ctx=make_request_context(user_id=str(created_by.value)))
 
         assert result.phase == "planning"
 
@@ -326,7 +327,7 @@ class TestCreateProjectUseCase:
         mock_client_repo = AsyncMock()
         mock_client_repo.find_by_id.return_value = None
 
-        mock_project_repo.count_active_by_user.return_value = 0
+        mock_project_repo.count_active_by_workspace.return_value = 0
 
         use_case = CreateProjectUseCase(mock_project_repo, mock_client_repo)
 
@@ -341,7 +342,7 @@ class TestCreateProjectUseCase:
         with pytest.raises(NotFoundError, match=r"Client.*not found"):
             await use_case.execute(
                 request=request,
-                created_by=str(uuid4()),
+                ctx=make_request_context(user_id=str(uuid4())),
             )
 
         mock_project_repo.save.assert_not_called()

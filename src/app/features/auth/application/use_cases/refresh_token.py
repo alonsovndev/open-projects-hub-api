@@ -79,7 +79,7 @@ class RefreshTokenUseCase:
             # Verify user still exists
             user_entity = await self.user_repository.find_by_email(Email(email))
 
-            if not user_entity:
+            if not user_entity or not user_entity.is_active:
                 log.warning(
                     "Refresh token used for non-existent user",
                     extra={"event_type": "auth.refresh.user_not_found", "email": email},
@@ -107,6 +107,7 @@ class RefreshTokenUseCase:
                 user_id=str(user_entity.id),
                 email=str(user_entity.email),
                 role=user_entity.role.value,
+                workspace_id=str(user_entity.workspace_id) if user_entity.workspace_id else None,
             )
 
             # Generate new refresh token (token rotation) — carries the same

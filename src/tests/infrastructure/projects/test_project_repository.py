@@ -13,6 +13,7 @@ from src.app.features.projects.domain.value_objects.project_status import Projec
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
 from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID
 
 
 @pytest.fixture
@@ -39,6 +40,7 @@ def repository(mock_session):
 def sample_project_entity():
     """Create sample project entity."""
     return ProjectEntity.create(
+        workspace_id=EntityId.generate(),
         name="Test Project",
         code="TEST",
         created_by=EntityId.generate(),
@@ -84,7 +86,7 @@ class TestFindById:
         mock_result.one_or_none.return_value = (sample_project_model, "Test Client")
         mock_session.execute.return_value = mock_result
 
-        entity_tuple = await repository.find_by_id(sample_project_model.id)
+        entity_tuple = await repository.find_by_id(sample_project_model.id, workspace_id=TEST_WORKSPACE_UUID)
 
         assert entity_tuple is not None
         entity, client_name = entity_tuple
@@ -101,7 +103,7 @@ class TestFindById:
         mock_result.one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        entity = await repository.find_by_id(EntityId.generate().value)
+        entity = await repository.find_by_id(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         assert entity is None
 
@@ -113,7 +115,7 @@ class TestFindById:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.find_by_id(EntityId.generate().value)
+            await repository.find_by_id(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
 
 class TestFindAll:
@@ -127,7 +129,7 @@ class TestFindAll:
         mock_result.scalars.return_value.all.return_value = [(sample_project_model, "Test Client")]
         mock_session.execute.return_value = mock_result
 
-        entities = await repository.find_all()
+        entities = await repository.find_all(workspace_id=TEST_WORKSPACE_UUID)
 
         assert len(entities) == 1
         entity, client_name = entities[0]
@@ -142,7 +144,7 @@ class TestFindAll:
         mock_result.all.return_value = [(sample_project_model, "Test Client")]
         mock_session.execute.return_value = mock_result
 
-        entities = await repository.find_all(status="active")
+        entities = await repository.find_all(status="active", workspace_id=TEST_WORKSPACE_UUID)
 
         assert len(entities) == 1
         mock_session.execute.assert_called_once()
@@ -154,7 +156,7 @@ class TestFindAll:
         mock_result.all.return_value = [(sample_project_model, "Test Client")]
         mock_session.execute.return_value = mock_result
 
-        entities = await repository.find_all(limit=10, offset=5)
+        entities = await repository.find_all(limit=10, offset=5, workspace_id=TEST_WORKSPACE_UUID)
 
         assert len(entities) == 1
         mock_session.execute.assert_called_once()
@@ -169,7 +171,7 @@ class TestFindAll:
         mock_session.execute.return_value = mock_result
 
         client_id = "550e8400-e29b-41d4-a716-446655440003"
-        await repository.find_all(client_id=client_id)
+        await repository.find_all(client_id=client_id, workspace_id=TEST_WORKSPACE_UUID)
 
         stmt = mock_session.execute.call_args.args[0]
         where_clauses = list(stmt.whereclause.get_children() if isinstance(stmt.whereclause, ColumnElement) else [])
@@ -186,7 +188,7 @@ class TestFindAll:
 
         created_from = datetime(2026, 1, 1, tzinfo=UTC)
         created_to = datetime(2026, 6, 30, tzinfo=UTC)
-        await repository.find_all(created_from=created_from, created_to=created_to)
+        await repository.find_all(created_from=created_from, created_to=created_to, workspace_id=TEST_WORKSPACE_UUID)
 
         stmt = mock_session.execute.call_args.args[0]
         assert stmt.whereclause is not None
@@ -198,7 +200,7 @@ class TestFindAll:
         mock_result.all.return_value = []
         mock_session.execute.return_value = mock_result
 
-        await repository.find_all(search="payroll")
+        await repository.find_all(search="payroll", workspace_id=TEST_WORKSPACE_UUID)
 
         stmt = mock_session.execute.call_args.args[0]
         assert stmt.whereclause is not None
@@ -211,7 +213,7 @@ class TestFindAll:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.find_all()
+            await repository.find_all(workspace_id=TEST_WORKSPACE_UUID)
 
 
 class TestSave:
@@ -273,7 +275,7 @@ class TestDelete:
         mock_result.scalar_one_or_none.return_value = sample_project_model
         mock_session.execute.return_value = mock_result
 
-        deleted = await repository.delete(sample_project_model.id)
+        deleted = await repository.delete(sample_project_model.id, workspace_id=TEST_WORKSPACE_UUID)
 
         assert deleted is True
         mock_session.delete.assert_called_once()
@@ -286,7 +288,7 @@ class TestDelete:
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        deleted = await repository.delete(EntityId.generate().value)
+        deleted = await repository.delete(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         assert deleted is False
         mock_session.delete.assert_not_called()
@@ -299,7 +301,7 @@ class TestDelete:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.delete(EntityId.generate().value)
+            await repository.delete(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         mock_session.rollback.assert_called_once()
 
@@ -314,7 +316,7 @@ class TestCount:
         mock_result.scalar_one.return_value = 5
         mock_session.execute.return_value = mock_result
 
-        count = await repository.count()
+        count = await repository.count(workspace_id=TEST_WORKSPACE_UUID)
 
         assert count == 5
         mock_session.execute.assert_called_once()
@@ -326,7 +328,7 @@ class TestCount:
         mock_result.scalar_one.return_value = 3
         mock_session.execute.return_value = mock_result
 
-        count = await repository.count(status="active")
+        count = await repository.count(status="active", workspace_id=TEST_WORKSPACE_UUID)
 
         assert count == 3
         mock_session.execute.assert_called_once()
@@ -338,7 +340,9 @@ class TestCount:
         mock_result.scalar_one.return_value = 2
         mock_session.execute.return_value = mock_result
 
-        count = await repository.count(client_id="550e8400-e29b-41d4-a716-446655440003", search="payroll")
+        count = await repository.count(
+            client_id="550e8400-e29b-41d4-a716-446655440003", search="payroll", workspace_id=TEST_WORKSPACE_UUID
+        )
 
         assert count == 2
         stmt = mock_session.execute.call_args.args[0]
@@ -352,33 +356,33 @@ class TestCount:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.count()
+            await repository.count(workspace_id=TEST_WORKSPACE_UUID)
 
 
 class TestCountActiveByUser:
-    """Test count_active_by_user method."""
+    """Test count_active_by_workspace method."""
 
     @pytest.mark.asyncio
-    async def test_count_active_by_user_returns_count(self, repository, mock_session):
+    async def test_count_active_by_workspace_returns_count(self, repository, mock_session):
         """Test counting active projects for a user."""
         mock_result = Mock()
         mock_result.scalar_one.return_value = 2
         mock_session.execute.return_value = mock_result
 
-        count = await repository.count_active_by_user(EntityId.generate().value)
+        count = await repository.count_active_by_workspace(EntityId.generate().value)
 
         assert count == 2
         mock_session.execute.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_count_active_by_user_raises_exception_on_database_error(self, repository, mock_session):
+    async def test_count_active_by_workspace_raises_exception_on_database_error(self, repository, mock_session):
         """Test counting active projects raises exception when database error occurs."""
         from sqlalchemy.exc import SQLAlchemyError
 
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.count_active_by_user(EntityId.generate().value)
+            await repository.count_active_by_workspace(EntityId.generate().value)
 
 
 class TestHasActiveProjectsForClient:
@@ -391,7 +395,9 @@ class TestHasActiveProjectsForClient:
         mock_result.scalar_one_or_none.return_value = EntityId.generate().value
         mock_session.execute.return_value = mock_result
 
-        result = await repository.has_active_projects_for_client(EntityId.generate().value)
+        result = await repository.has_active_projects_for_client(
+            EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID
+        )
 
         assert result is True
 
@@ -402,7 +408,9 @@ class TestHasActiveProjectsForClient:
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        result = await repository.has_active_projects_for_client(EntityId.generate().value)
+        result = await repository.has_active_projects_for_client(
+            EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID
+        )
 
         assert result is False
 
@@ -414,7 +422,7 @@ class TestHasActiveProjectsForClient:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.has_active_projects_for_client(EntityId.generate().value)
+            await repository.has_active_projects_for_client(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
 
 class TestDeleteArchivedByClient:
@@ -427,7 +435,7 @@ class TestDeleteArchivedByClient:
         mock_result.scalars.return_value.all.return_value = [sample_project_model, sample_project_model]
         mock_session.execute.return_value = mock_result
 
-        count = await repository.delete_archived_by_client(EntityId.generate().value)
+        count = await repository.delete_archived_by_client(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         assert count == 2
         assert mock_session.delete.call_count == 2
@@ -440,7 +448,7 @@ class TestDeleteArchivedByClient:
         mock_result.scalars.return_value.all.return_value = []
         mock_session.execute.return_value = mock_result
 
-        count = await repository.delete_archived_by_client(EntityId.generate().value)
+        count = await repository.delete_archived_by_client(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         assert count == 0
         mock_session.commit.assert_not_called()
@@ -453,6 +461,6 @@ class TestDeleteArchivedByClient:
         mock_session.execute.side_effect = SQLAlchemyError("Database error")
 
         with pytest.raises(SQLAlchemyError, match="Database error"):
-            await repository.delete_archived_by_client(EntityId.generate().value)
+            await repository.delete_archived_by_client(EntityId.generate().value, workspace_id=TEST_WORKSPACE_UUID)
 
         mock_session.rollback.assert_called_once()

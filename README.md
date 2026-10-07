@@ -39,6 +39,41 @@ make run
 
 The API will be available at `http://localhost:8000`
 
+**Troubleshooting — verification/reset emails never arrive (macOS):** if the API log shows
+`email.send_failed` with `SSL: CERTIFICATE_VERIFY_FAILED ... unable to get local issuer certificate`,
+the python.org Python has no CA bundle installed. Run it once, then restart the API:
+
+```bash
+/Applications/Python\ 3.12/Install\ Certificates.command
+```
+
+### Alternative: Run Everything in Docker
+
+Runs the API and PostgreSQL together with Docker Compose — no local Python install needed.
+
+```bash
+cp .env.example .env
+# Required in .env: POSTGRES_PASSWORD, SECRET_KEY, API_KEY_ENCRYPTION_KEY
+#   (generate the last one with the command shown in .env.example)
+# Optional: GEMINI_API_KEY — without it, refinement falls back to the mock AI service.
+
+docker compose up --build          # add -d to run in the background
+```
+
+- API: `http://localhost:8080` — Swagger UI at `/docs`, health check at `/health`.
+- Migrations run automatically on container startup (`scripts/start-api.sh`).
+- The app always runs with `APP_ENV=container` (`src/app/config/config_container.yml`); `compose.yml` overrides any `APP_ENV` in `.env`.
+- Re-run with `--build` after code or dependency changes, otherwise the previous image is reused.
+
+Create the first admin user (one-shot container against the same database):
+
+```bash
+docker compose --profile seed run --rm seed-admin
+```
+
+Stop the stack with `docker compose down` (add `-v` to also delete the database volume).
+
+📖 **Docker deployment guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 📖 **Full setup guide:** [docs/setup/ADMIN_SETUP.md](docs/setup/ADMIN_SETUP.md)
 📖 **Database migrations & rollback runbook:** [docs/DATABASE_MIGRATIONS.md](docs/DATABASE_MIGRATIONS.md)
 📖 **Comprehensive project documentation:** [docs/README.md](docs/README.md)

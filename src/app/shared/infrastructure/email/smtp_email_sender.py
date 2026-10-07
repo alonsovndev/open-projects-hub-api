@@ -1,13 +1,14 @@
 """
 Minimal SMTP email sender.
 
-Scoped to password-reset-code delivery for EPIC-2. EPIC-9-BE-001 (Email
-Notification Service) will generalize this with retry/backoff and
-per-account rate limiting for verification and invitation emails; this
-adapter intentionally stays small until that lands.
+Delivers password-reset codes (EPIC-2) and sign-up verification codes
+(EPIC-8) as plain text. EPIC-9-BE-001 (Email Notification Service) will add
+retry/backoff and per-account rate limiting; this adapter intentionally stays
+small until that lands.
 """
 
 from email.message import EmailMessage
+from email.utils import formatdate
 
 import aiosmtplib
 
@@ -30,6 +31,7 @@ class SmtpEmailSender(EmailSender):
         message["From"] = self.from_address
         message["To"] = to
         message["Subject"] = subject
+        message["Date"] = formatdate(localtime=False)
         message.set_content(body)
 
         try:

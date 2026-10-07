@@ -1,5 +1,7 @@
 """Domain exceptions for projects feature."""
 
+from src.app.shared.domain.exceptions.domain_exceptions import ConflictError
+
 
 class ProjectNotFoundError(Exception):
     """Raised when a project cannot be found."""
@@ -15,3 +17,11 @@ class ActiveProjectLimitExceededError(Exception):
     def __init__(self, limit: int):
         self.limit = limit
         super().__init__(f"Active project limit reached ({limit}). Archive a project before creating or reactivating.")
+
+
+class ProjectCodeExistsError(ConflictError):
+    """Raised when the workspace already has a project with this code (409)."""
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(f"A project with code '{code}' already exists")

@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Column, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, String, Text, func
+from sqlalchemy import Column, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -28,9 +28,11 @@ class ProjectModel(Base):
 
     # 2. Data columns
     name = Column(String(255), nullable=False)
-    code = Column(String(50), nullable=False, unique=True)
+    code = Column(String(50), nullable=False)
+    access_code = Column(String(20), nullable=False)
     description = Column(Text, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    workspace_id = Column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="RESTRICT"), nullable=False)
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False)
     status = Column(
         SQLEnum(ProjectStatus, values_callable=lambda obj: [e.value for e in obj]),
@@ -54,7 +56,6 @@ class ProjectModel(Base):
     # Relationships
     client = relationship("ClientModel", backref="projects")
     stories = relationship("StoryModel", back_populates="project", lazy="selectin")
-    story_drafts = relationship("StoryDraftModel", back_populates="project", lazy="selectin")
 
     # 3. Audit columns
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
@@ -74,6 +75,11 @@ class ProjectModel(Base):
         Index("ix_projects_code", "code"),
         # Index for client lookup
         Index("ix_projects_client_id", "client_id"),
+        Index("ix_projects_workspace_id_status_created_at", "workspace_id", "status", "created_at"),
+        # Codes are unique per workspace, not globally: two freelancers can both use "WEB".
+        UniqueConstraint("workspace_id", "code", name="uq_projects_workspace_id_code"),
+        # Unlike `code`, the access code is looked up with no workspace in hand, so it is unique instance-wide.
+        UniqueConstraint("access_code", name="uq_projects_access_code"),
     )
 
     def __repr__(self) -> str:

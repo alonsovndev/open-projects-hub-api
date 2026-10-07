@@ -59,16 +59,16 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
-    async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
+    async def find_all(
+        self, workspace_id: EntityId, limit: int | None = None, offset: int | None = None
+    ) -> list[UserEntity]:
         """
-        Find all users with optional pagination.
+        Users of one workspace, newest first, with optional pagination.
 
         Args:
-            limit: Maximum number of results (default None = all).
-            offset: Number of results to skip (default None = 0).
-
-        Returns:
-            List[UserEntity]: A list of user entities.
+            workspace_id: Tenant whose users are listed
+            limit: Maximum number of results (default None = all)
+            offset: Number of results to skip (default None = 0)
         """
 
     @abstractmethod
@@ -81,19 +81,6 @@ class UserRepository(ABC):
 
         Returns:
             bool: True if the user exists, False otherwise.
-        """
-
-    @abstractmethod
-    async def exists_any(self) -> bool:
-        """
-        Check whether any user account exists at all.
-
-        Used to decide whether public registration is still open: the first account
-        bootstraps the instance's Admin, and every account after that is created by an
-        existing Admin.
-
-        Returns:
-            bool: True if at least one user exists, False if the instance has none.
         """
 
     @abstractmethod
@@ -118,4 +105,40 @@ class UserRepository(ABC):
 
         Returns:
             bool: True if the user was deleted, False if not found.
+        """
+
+    @abstractmethod
+    async def delete_handing_over(self, entity_id: EntityId, successor_id: EntityId) -> bool:
+        """
+        Delete a user after moving the projects and stories they created, and the stories
+        assigned to them, to the successor. All or nothing.
+
+        Returns:
+            bool: True if the user was deleted, False if not found.
+        """
+
+    @abstractmethod
+    async def count_by_workspace(self, workspace_id: EntityId) -> int:
+        """Number of accounts in the workspace, including deactivated and unverified ones."""
+
+    @abstractmethod
+    async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
+        """
+        Atomically spend one AI credit and return the new balance.
+
+        A read-modify-write through `find_by_id` + `update` cannot be used here. A
+        refinement holds its user snapshot across a 10-45 second provider call, so two
+        concurrent runs would both read the same balance and both write it minus one —
+        charging one credit for two refinements. A full-row `update` would also rewrite
+        `password_hash` and `token_version` from that stale snapshot, undoing a password
+        change or a forced logout that happened while the provider was working.
+
+        Implementations must therefore perform a single conditional UPDATE.
+
+        Args:
+            entity_id: The user to charge.
+
+        Returns:
+            The remaining balance after the charge, or None if the user does not exist or
+            had no credits left to spend.
         """

@@ -23,6 +23,7 @@ class ClientMapper:
             notes=model.notes,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            workspace_id=EntityId.from_string(str(model.workspace_id)) if model.workspace_id else None,
         )
 
     @staticmethod
@@ -36,6 +37,7 @@ class ClientMapper:
             company=entity.company,
             address=entity.address,
             notes=entity.notes,
+            workspace_id=entity.workspace_id.value if entity.workspace_id else None,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

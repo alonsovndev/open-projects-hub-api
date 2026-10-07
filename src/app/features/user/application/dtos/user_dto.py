@@ -5,6 +5,26 @@ from src.app.features.user.domain.validators.user_validators import UserValidato
 from src.app.features.user.domain.value_objects.user_role import UserRole
 
 
+def _validate_assignable_role(role: str | None) -> str:
+    """
+    Only teammates can be added to a workspace.
+
+    A workspace has exactly one Admin, so Admin is never assignable.
+
+    Raises:
+        ValueError: If role is not member
+    """
+    if role is None:
+        return UserRole.MEMBER.value
+
+    role_lower = role.lower().strip()
+    assignable_roles = [UserRole.MEMBER.value]
+    if role_lower not in assignable_roles:
+        raise ValueError(f"Role must be one of: {', '.join(assignable_roles)}")
+
+    return role_lower
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
@@ -12,6 +32,7 @@ class UserResponse(BaseModel):
     email: str
     display_name: str
     role: str
+    is_active: bool = True
 
 
 class UserCreateRequest(BaseModel):
@@ -19,8 +40,7 @@ class UserCreateRequest(BaseModel):
 
     display_name: str
     email: EmailStr
-    password: str
-    role: str | None = "viewer"  # Default to viewer for public registration
+    role: str | None = UserRole.MEMBER.value
 
     @field_validator("display_name")
     @classmethod
@@ -32,34 +52,15 @@ class UserCreateRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def validate_role(cls, role: str | None) -> str:
-        """
-        Validate role is valid user role enum.
+        return _validate_assignable_role(role)
 
-        Args:
-            role: Role string
 
-        Returns:
-            The validated role in lowercase
+class UpdateUserStatusRequest(BaseModel):
+    """Request model for an Admin activating or deactivating a teammate."""
 
-        Raises:
-            ValueError: If role is not valid
-        """
-        if role is None:
-            return UserRole.VIEWER.value
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
-        role_lower = role.lower().strip()
-        valid_roles = [r.value for r in UserRole]
-        if role_lower not in valid_roles:
-            raise ValueError(f"Role must be one of: {', '.join(valid_roles)}")
-
-        return role_lower
-
-    @field_validator("password")
-    @classmethod
-    def validate_password_complexity(cls, password: str) -> str:
-        """Validate password meets complexity requirements."""
-        UserValidators.validate_password(password)
-        return password
+    active: bool
 
 
 class UpdateProfileRequest(BaseModel):

@@ -1,9 +1,11 @@
 import time
 
 import sqlalchemy.exc
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.features.projects.infrastructure.models.project_model import ProjectModel
+from src.app.features.stories.infrastructure.models.story_model import StoryModel
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.repositories.user_repository import UserRepository
 from src.app.features.user.infrastructure.mappers.user_mapper import UserMapper
@@ -142,11 +144,14 @@ class UserRepositoryImpl(UserRepository):
             self._log.exception("Unexpected error while saving user", extra={"operation": "save", "table": "users"})
             raise
 
-    async def find_all(self, limit: int | None = None, offset: int | None = None) -> list[UserEntity]:
+    async def find_all(
+        self, workspace_id: EntityId, limit: int | None = None, offset: int | None = None
+    ) -> list[UserEntity]:
         """
-        Find all users with optional pagination.
+        Find a workspace's users with optional pagination.
 
         Args:
+            workspace_id: Tenant whose users are listed
             limit: Maximum number of results (default None = all)
             offset: Number of results to skip (default None = 0)
 
@@ -158,7 +163,11 @@ class UserRepositoryImpl(UserRepository):
             Exception: For other unexpected errors
         """
         try:
-            stmt = select(UserModel).order_by(UserModel.created_at.desc())
+            stmt = (
+                select(UserModel)
+                .where(UserModel.workspace_id == workspace_id.value)
+                .order_by(UserModel.created_at.desc())
+            )
 
             if offset is not None:
                 stmt = stmt.offset(offset)
@@ -205,32 +214,6 @@ class UserRepositoryImpl(UserRepository):
             self._log.exception("Error checking user existence", extra={"operation": "exists", "table": "users"})
             raise
 
-    async def exists_any(self) -> bool:
-        """
-        Check whether any user account exists.
-
-        Returns:
-            True if at least one user exists, False otherwise
-
-        Raises:
-            DatabaseConnectionError: If database connection fails
-            Exception: For other unexpected errors
-        """
-        try:
-            # LIMIT 1 rather than COUNT(*): the caller only asks "is this instance empty",
-            # and this stays constant-time as the table grows.
-            stmt = select(UserModel.id).limit(1)
-            result = await self.db_session.execute(stmt)
-            return result.scalar_one_or_none() is not None
-
-        except sqlalchemy.exc.OperationalError as db_error:
-            self._log.exception("Database connection error", extra={"operation": "exists_any", "table": "users"})
-            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
-
-        except Exception:
-            self._log.exception("Error checking for any user", extra={"operation": "exists_any", "table": "users"})
-            raise
-
     async def update(self, user: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
@@ -263,6 +246,10 @@ class UserRepositoryImpl(UserRepository):
             user_model.password_hash = user.password_hash
             user_model.role = user.role.value
             user_model.token_version = user.token_version
+            user_model.ai_credits_remaining = user.ai_credits_remaining
+            user_model.ai_credits_granted = user.ai_credits_granted
+            user_model.email_verified_at = user.email_verified_at
+            user_model.deactivated_at = user.deactivated_at
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)
@@ -345,4 +332,98 @@ class UserRepositoryImpl(UserRepository):
         except Exception:
             await self.db_session.rollback()
             self._log.exception("Error deleting user", extra={"operation": "delete", "table": "users"})
+            raise
+
+    async def delete_handing_over(self, entity_id: EntityId, successor_id: EntityId) -> bool:
+        """
+        Delete a user after moving everything they own to the successor, in one transaction.
+
+        Projects and stories reference their creator without a cascade, so the rows are
+        reassigned first; stories assigned to the user go to the successor too.
+        """
+        try:
+            user_model = await self.db_session.get(UserModel, entity_id.value)
+            if not user_model:
+                return False
+
+            await self.db_session.execute(
+                update(ProjectModel)
+                .where(ProjectModel.created_by == entity_id.value)
+                .values(created_by=successor_id.value)
+            )
+            await self.db_session.execute(
+                update(StoryModel).where(StoryModel.created_by == entity_id.value).values(created_by=successor_id.value)
+            )
+            await self.db_session.execute(
+                update(StoryModel)
+                .where(StoryModel.assigned_to == entity_id.value)
+                .values(assigned_to=successor_id.value)
+            )
+            await self.db_session.delete(user_model)
+            await self.db_session.commit()
+            return True
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            await self.db_session.rollback()
+            self._log.exception("Database connection error", extra={"operation": "delete_handing_over"})
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
+
+        except Exception:
+            await self.db_session.rollback()
+            self._log.exception("Error deleting user", extra={"operation": "delete_handing_over", "table": "users"})
+            raise
+
+    async def count_by_workspace(self, workspace_id: EntityId) -> int:
+        result = await self.db_session.execute(
+            select(func.count()).select_from(UserModel).where(UserModel.workspace_id == workspace_id.value)
+        )
+        return result.scalar_one()
+
+    async def consume_ai_credit(self, entity_id: EntityId) -> int | None:
+        """
+        Atomically spend one AI credit and return the new balance.
+
+        A single conditional UPDATE: the `ai_credits_remaining > 0` guard makes the check
+        and the decrement one operation, so concurrent refinements cannot both spend the
+        same credit, and touching only the credit column means a password change or forced
+        logout racing this write is not clobbered.
+        """
+        start = time.time()
+        try:
+            result = await self.db_session.execute(
+                update(UserModel)
+                .where(UserModel.id == entity_id.value, UserModel.ai_credits_remaining > 0)
+                .values(ai_credits_remaining=UserModel.ai_credits_remaining - 1)
+                .returning(UserModel.ai_credits_remaining)
+            )
+            remaining = result.scalar_one_or_none()
+            await self.db_session.commit()
+
+            self._log.info(
+                "Database operation completed",
+                extra={
+                    "event_type": "db.update",
+                    "success": remaining is not None,
+                    "duration_ms": (time.time() - start) * 1000,
+                    "table": "users",
+                    "operation": "consume_ai_credit",
+                    "entity_id": str(entity_id.value),
+                },
+            )
+            return remaining
+
+        except sqlalchemy.exc.OperationalError as db_error:
+            await self.db_session.rollback()
+            self._log.exception(
+                "Database connection error",
+                extra={"operation": "consume_ai_credit", "table": "users"},
+            )
+            raise DatabaseConnectionError("Failed to connect to the database.") from db_error
+
+        except Exception:
+            await self.db_session.rollback()
+            self._log.exception(
+                "Unexpected error while consuming an AI credit",
+                extra={"operation": "consume_ai_credit", "table": "users"},
+            )
             raise

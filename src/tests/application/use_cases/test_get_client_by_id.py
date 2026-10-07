@@ -11,6 +11,7 @@ from src.app.features.clients.application.use_cases.get_client_by_id import GetC
 from src.app.features.clients.domain.entities.client_entity import ClientEntity
 from src.app.features.clients.domain.exceptions.client_exceptions import ClientNotFoundError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 class TestGetClientByIdUseCase:
@@ -34,7 +35,7 @@ class TestGetClientByIdUseCase:
 
         use_case = GetClientByIdUseCase(mock_repo)
 
-        result = await use_case.execute(client_id=client_id.value, user_id="test-user")
+        result = await use_case.execute(client_id=client_id.value, ctx=make_request_context())
 
         assert isinstance(result, ClientResponse)
         assert result.name == "Test Client"
@@ -52,7 +53,7 @@ class TestGetClientByIdUseCase:
         client_id = uuid4()
 
         with pytest.raises(ClientNotFoundError, match=f"Client not found: {client_id}"):
-            await use_case.execute(client_id=client_id, user_id="test-user")
+            await use_case.execute(client_id=client_id, ctx=make_request_context())
 
     @pytest.mark.asyncio
     async def test_execute_returns_client_with_email(self):
@@ -72,6 +73,6 @@ class TestGetClientByIdUseCase:
 
         use_case = GetClientByIdUseCase(mock_repo)
 
-        result = await use_case.execute(client_id=client_id.value, user_id="test-user")
+        result = await use_case.execute(client_id=client_id.value, ctx=make_request_context())
 
         assert result.name == "Client With Email"

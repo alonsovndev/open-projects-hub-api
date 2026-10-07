@@ -46,17 +46,33 @@ class ResetCodeRateLimitedError(AuthenticationError):
         super().__init__(self.message)
 
 
-class RegistrationClosedError(AuthenticationError):
-    """Raised when public registration is attempted after the instance already has a user.
+class EmailNotVerifiedError(AuthenticationError):
+    """Raised on login when the password is correct but the account's email is unconfirmed.
 
-    Registration exists to bootstrap the first Admin. Leaving it open afterwards would let
-    any anonymous caller mint an Admin account and walk through every role boundary, so
-    later accounts are created by an existing Admin through POST /v1/users.
+    Only raised after the password check succeeds, so it reveals the account's state to
+    nobody who doesn't already hold its credentials.
     """
 
-    def __init__(
-        self,
-        message: str = "Registration is closed. Ask an administrator to create your account.",
-    ):
+    def __init__(self, message: str = "Please verify your email before signing in."):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidVerificationCodeError(AuthenticationError):
+    """Raised when a verification code is wrong, expired, superseded, or has no pending account.
+
+    One error for every case, so the verify endpoint can't be used to learn which emails
+    have accounts or which accounts are already verified.
+    """
+
+    def __init__(self, message: str = "Invalid or expired verification code"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class VerificationRateLimitedError(AuthenticationError):
+    """Raised when verification-code resends or validation attempts exceed their limit."""
+
+    def __init__(self, message: str = "Too many attempts. Please try again later."):
         self.message = message
         super().__init__(self.message)

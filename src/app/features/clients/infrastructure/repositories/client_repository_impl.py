@@ -27,9 +27,9 @@ class ClientRepositoryImpl(ClientRepository):
         await self.db.refresh(model)
         return ClientMapper.to_entity(model)
 
-    async def find_by_id(self, client_id: UUID) -> ClientEntity | None:
-        """Find a client by ID."""
-        stmt = select(ClientModel).where(ClientModel.id == client_id)
+    async def find_by_id(self, client_id: UUID, *, workspace_id: UUID) -> ClientEntity | None:
+        """Find a client of the workspace by ID."""
+        stmt = select(ClientModel).where(ClientModel.id == client_id, ClientModel.workspace_id == workspace_id)
         result = await self.db.execute(stmt)
         model = result.scalar_one_or_none()
 
@@ -38,23 +38,33 @@ class ClientRepositoryImpl(ClientRepository):
 
         return ClientMapper.to_entity(model)
 
-    async def find_all(self, skip: int = 0, limit: int = 100) -> list[ClientEntity]:
-        """Find all clients with pagination."""
-        stmt = select(ClientModel).order_by(ClientModel.name.asc()).offset(skip).limit(limit)
+    async def find_all(self, *, workspace_id: UUID, skip: int = 0, limit: int = 100) -> list[ClientEntity]:
+        """Find the workspace's clients with pagination."""
+        stmt = (
+            select(ClientModel)
+            .where(ClientModel.workspace_id == workspace_id)
+            .order_by(ClientModel.name.asc())
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.db.execute(stmt)
         models = result.scalars().all()
 
         return [ClientMapper.to_entity(model) for model in models]
 
-    async def count(self) -> int:
-        """Count total number of clients."""
-        stmt = select(func.count()).select_from(ClientModel)
+    async def count(self, *, workspace_id: UUID) -> int:
+        """Count the workspace's clients."""
+        stmt = select(func.count()).select_from(ClientModel).where(ClientModel.workspace_id == workspace_id)
         result = await self.db.execute(stmt)
         return result.scalar() or 0
 
     async def update(self, client: ClientEntity) -> ClientEntity:
         """Update an existing client entity."""
-        stmt = select(ClientModel).where(ClientModel.id == client.id.value)
+        if client.workspace_id is None:
+            raise ValueError(f"Client has no workspace: {client.id.value}")
+        stmt = select(ClientModel).where(
+            ClientModel.id == client.id.value, ClientModel.workspace_id == client.workspace_id.value
+        )
         result = await self.db.execute(stmt)
         model = result.scalar_one_or_none()
 
@@ -75,9 +85,9 @@ class ClientRepositoryImpl(ClientRepository):
 
         return ClientMapper.to_entity(model)
 
-    async def delete(self, client_id: UUID) -> bool:
-        """Delete a client by ID."""
-        stmt = select(ClientModel).where(ClientModel.id == client_id)
+    async def delete(self, client_id: UUID, *, workspace_id: UUID) -> bool:
+        """Delete a client of the workspace."""
+        stmt = select(ClientModel).where(ClientModel.id == client_id, ClientModel.workspace_id == workspace_id)
         result = await self.db.execute(stmt)
         model = result.scalar_one_or_none()
 
@@ -88,9 +98,9 @@ class ClientRepositoryImpl(ClientRepository):
         await self.db.commit()
         return True
 
-    async def find_by_email(self, email: str) -> ClientEntity | None:
-        """Find a client by email address."""
-        stmt = select(ClientModel).where(ClientModel.email == email)
+    async def find_by_email(self, email: str, *, workspace_id: UUID) -> ClientEntity | None:
+        """Find a client of the workspace by email address."""
+        stmt = select(ClientModel).where(ClientModel.email == email, ClientModel.workspace_id == workspace_id)
         result = await self.db.execute(stmt)
         model = result.scalar_one_or_none()
 

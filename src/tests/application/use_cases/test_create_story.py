@@ -15,8 +15,16 @@ from src.app.features.stories.application.use_cases.create_story import CreateSt
 from src.app.features.stories.domain.entities.story_entity import StoryEntity
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
-from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import TEST_WORKSPACE_UUID, make_request_context
+
+
+def visible_projects(exists: bool = True) -> AsyncMock:
+    """A project repository that reports the target project as in (or out of) the caller's workspace."""
+    project_repository = AsyncMock()
+    project_repository.exists.return_value = exists
+    return project_repository
 
 
 class TestCreateStoryUseCase:
@@ -44,7 +52,7 @@ class TestCreateStoryUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateStoryUseCase(mock_repo)
+        use_case = CreateStoryUseCase(mock_repo, visible_projects())
 
         request = CreateStoryRequest(
             title="New Story",
@@ -52,7 +60,7 @@ class TestCreateStoryUseCase:
         )
         result = await use_case.execute(
             request=request,
-            created_by=str(created_by.value),
+            ctx=make_request_context(user_id=str(created_by.value)),
         )
 
         assert isinstance(result, StoryResponse)
@@ -83,7 +91,7 @@ class TestCreateStoryUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateStoryUseCase(mock_repo)
+        use_case = CreateStoryUseCase(mock_repo, visible_projects())
 
         request = CreateStoryRequest(
             title="Full Story",
@@ -94,7 +102,7 @@ class TestCreateStoryUseCase:
         )
         result = await use_case.execute(
             request=request,
-            created_by=str(created_by.value),
+            ctx=make_request_context(user_id=str(created_by.value)),
         )
 
         assert isinstance(result, StoryResponse)
@@ -155,7 +163,7 @@ class TestCreateStoryUseCase:
             )
             mock_repo.save.return_value = created_entity
 
-            use_case = CreateStoryUseCase(mock_repo)
+            use_case = CreateStoryUseCase(mock_repo, visible_projects())
 
             request = CreateStoryRequest(
                 title="Story",
@@ -164,7 +172,7 @@ class TestCreateStoryUseCase:
             )
             result = await use_case.execute(
                 request=request,
-                created_by=str(uuid4()),
+                ctx=make_request_context(user_id=str(uuid4())),
             )
 
             assert result.priority == priority_str
@@ -189,7 +197,7 @@ class TestCreateStoryUseCase:
         )
         mock_repo.save.return_value = created_entity
 
-        use_case = CreateStoryUseCase(mock_repo)
+        use_case = CreateStoryUseCase(mock_repo, visible_projects())
 
         request = CreateStoryRequest(
             title="Story",
@@ -197,7 +205,7 @@ class TestCreateStoryUseCase:
         )
         result = await use_case.execute(
             request=request,
-            created_by=str(uuid4()),
+            ctx=make_request_context(user_id=str(uuid4())),
         )
 
         assert isinstance(result, StoryResponse)
@@ -219,3 +227,20 @@ class TestCreateStoryUseCase:
                 project_id=str(uuid4()),
                 points=101,
             )
+
+
+class TestCreateStoryWorkspaceBoundary:
+    @pytest.mark.asyncio
+    async def test_a_project_of_another_workspace_is_not_found(self):
+        story_repository = AsyncMock()
+        projects = visible_projects(exists=False)
+        use_case = CreateStoryUseCase(story_repository, projects)
+        project_id = uuid4()
+
+        with pytest.raises(NotFoundError):
+            await use_case.execute(
+                CreateStoryRequest(title="Story", project_id=str(project_id)), ctx=make_request_context()
+            )
+
+        projects.exists.assert_awaited_once_with(project_id, workspace_id=TEST_WORKSPACE_UUID)
+        story_repository.save.assert_not_called()

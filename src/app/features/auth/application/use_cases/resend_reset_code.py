@@ -1,6 +1,7 @@
 """ResendResetCodeUseCase - Reissue a password reset code within rate limits."""
 
 from src.app.features.auth.application.dtos.auth_dto import ForgotPasswordResponse, ResendResetCodeRequest
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_reset_code import (
     GENERIC_RESET_MESSAGE,
     is_request_rate_limited,
@@ -32,10 +33,12 @@ class ResendResetCodeUseCase:
         user_repository: UserRepository,
         reset_code_repository: PasswordResetCodeRepository,
         email_sender: EmailSender,
+        email_links: EmailLinks,
     ):
         self.user_repository = user_repository
         self.reset_code_repository = reset_code_repository
         self.email_sender = email_sender
+        self.email_links = email_links
 
     async def execute(self, payload: ResendResetCodeRequest) -> ForgotPasswordResponse:
         log = get_logger(__name__)
@@ -52,7 +55,7 @@ class ResendResetCodeUseCase:
             )
             raise ResetCodeRateLimitedError("Too many reset code requests. Please try again later.")
 
-        await issue_reset_code(user_entity, self.reset_code_repository, self.email_sender)
+        await issue_reset_code(user_entity, self.reset_code_repository, self.email_sender, self.email_links)
 
         log.info(
             "Password reset code resent",

@@ -1,51 +1,53 @@
 """Generate multiple stories from raw discovery notes use case."""
 
-from src.app.features.refinement.application.dtos.refinement_dto import (
-    GeneratedStoryResponse,
-    GenerateStoriesRequest,
-    GenerateStoriesResponse,
-)
-from src.app.features.refinement.application.mappers.story_draft_mapper import to_generated_story_response
-from src.app.features.refinement.domain.entities.story_draft_entity import StoryDraftEntity
+from src.app.features.ai_config.application.services.refinement_provider_resolver import RefinementProviderResolver
+from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
+from src.app.features.refinement.application.dtos.refinement_dto import GenerateStoriesRequest, GenerateStoriesResponse
+from src.app.features.refinement.application.mappers.generated_story_mapper import to_generated_story_response
 from src.app.features.refinement.domain.exceptions.refinement_exceptions import RefinementFailedError
-from src.app.features.refinement.domain.repositories.story_draft_repository import StoryDraftRepository
 from src.app.features.refinement.domain.services.note_sanitizer import NoteSanitizer
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
-from src.app.features.refinement.infrastructure.ai.ai_service import AIService, AIServiceError
-from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
+from src.app.features.refinement.infrastructure.ai.ai_service import AIServiceError
+from src.app.features.user.domain.exceptions.user_exceptions import UserNotFoundError
+from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.shared.application.request_context import RequestContext
+from src.app.shared.domain.exceptions.domain_exceptions import NotFoundError, ValidationError
 from src.app.shared.domain.value_objects.entity_id import EntityId
 from src.app.shared.logging import get_logger, set_user_id
 
 
 class GenerateStoriesFromNotesUseCase:
-    """Use case for generating multiple story drafts from raw notes using AI."""
+    """Use case for generating multiple refined stories from raw notes using AI."""
 
     def __init__(
         self,
-        repository: StoryDraftRepository,
-        ai_service: AIService,
+        provider_resolver: RefinementProviderResolver,
+        user_repository: UserRepository,
+        project_repository: ProjectRepository,
     ):
         """
         Initialize use case.
 
         Args:
-            repository: Story draft repository
-            ai_service: AI service for story generation
+            provider_resolver: Chooses the AI client for this run and whether it costs a credit
+            user_repository: Holds the credit balance that a platform run is charged against
+            project_repository: Confirms the target project is in the caller's workspace
         """
-        self._repository = repository
-        self._ai_service = ai_service
+        self._provider_resolver = provider_resolver
+        self._user_repository = user_repository
+        self._project_repository = project_repository
 
     async def execute(
         self,
         request: GenerateStoriesRequest,
-        created_by: str,
+        ctx: RequestContext,
     ) -> GenerateStoriesResponse:
         """
         Execute bulk story generation from raw notes.
 
         Args:
             request: GenerateStoriesRequest with project_id and raw_notes
-            created_by: User UUID string who created the drafts
+            ctx: Caller identity and workspace
 
         Returns:
             GenerateStoriesResponse with generated stories
@@ -53,9 +55,13 @@ class GenerateStoriesFromNotesUseCase:
         Raises:
             RefinementFailedError: If the AI provider fails; carries the raw notes so the
                 Admin can retry without re-entering them
+            AICreditsExhaustedError: If a platform run is requested with no credits left
+            ApiKeyNotFoundError: If a user provider is requested without a stored key
+            NotFoundError: If the project is not in the caller's workspace
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
+        created_by = str(ctx.user_id)
 
         notes = NoteSanitizer.sanitize(request.raw_notes)
 
@@ -77,19 +83,35 @@ class GenerateStoriesFromNotesUseCase:
                 "Rewrite the notes as plain prose or a bullet list."
             )
 
+        # Checked before the provider is resolved or called: a foreign project must cost
+        # neither a credit nor a provider request.
+        project_uuid = EntityId.from_string(request.project_id)
+        if not await self._project_repository.exists(project_uuid.value, workspace_id=ctx.workspace_id.value):
+            raise NotFoundError("Project", request.project_id)
+
+        user = await self._user_repository.find_by_id(ctx.user_id)
+        if user is None:
+            raise UserNotFoundError(created_by)
+
+        # Resolves before any provider call, so an exhausted balance or a missing key fails
+        # fast without spending a request. Credits are charged only after a successful run.
+        resolved = await self._provider_resolver.resolve(user, request.provider)
+        ai_service = resolved.service
+
         try:
             log.info(
                 "Starting AI story generation from notes",
                 extra={
                     "event_type": "refinement.generate.started",
                     "project_id": request.project_id,
-                    "provider": self._ai_service.provider_name,
+                    "provider": ai_service.provider_name,
+                    "consumes_credit": resolved.consumes_credit,
                     "notes_length": len(notes.sanitized),
                     "redaction_count": notes.redaction_count,
                 },
             )
 
-            result = await self._ai_service.generate_stories_from_notes(notes.sanitized)
+            result = await ai_service.generate_stories_from_notes(notes.sanitized)
 
             log.info(
                 "AI service generated stories successfully",
@@ -100,28 +122,7 @@ class GenerateStoriesFromNotesUseCase:
                 },
             )
 
-            project_uuid = EntityId.from_string(request.project_id)
-            creator_uuid = EntityId.from_string(created_by)
-
-            story_responses: list[GeneratedStoryResponse] = []
-
-            for generated_story in result.stories:
-                draft = StoryDraftEntity.create(
-                    title=generated_story.title,
-                    description=generated_story.description,
-                    acceptance_criteria=generated_story.acceptance_criteria,
-                    project_id=project_uuid,
-                    created_by=creator_uuid,
-                )
-
-                saved_draft = await self._repository.save(draft)
-
-                story_responses.append(
-                    to_generated_story_response(
-                        draft_id=str(saved_draft.id.value),
-                        generated_story=generated_story,
-                    )
-                )
+            story_responses = [to_generated_story_response(story) for story in result.stories]
 
             log.info(
                 "Stories generated from notes",
@@ -133,10 +134,37 @@ class GenerateStoriesFromNotesUseCase:
                 },
             )
 
+            credits_remaining: int | None = None
+            if resolved.consumes_credit:
+                # Only now: FR-010-02 requires a failed refinement to leave the balance
+                # untouched, so nothing above this point may charge the account.
+                #
+                # Charged through the repository's conditional UPDATE rather than by
+                # mutating `user` and saving it: the snapshot above is tens of seconds old
+                # by this point, so a read-modify-write would let two concurrent runs share
+                # one credit and would also roll back any password change or forced logout
+                # that landed while the provider was working.
+                credits_remaining = await self._user_repository.consume_ai_credit(user.id)
+
+                if credits_remaining is None:
+                    # The balance was spent by a concurrent run between resolve and here.
+                    # The stories are already generated, so the refinement is not failed over
+                    # it — the response simply reports an unknown balance and the client
+                    # refetches.
+                    log.warning(
+                        "Credit balance was exhausted before this run could be charged",
+                        extra={
+                            "event_type": "refinement.credit.charge_missed",
+                            "project_id": request.project_id,
+                        },
+                    )
+
             return GenerateStoriesResponse(
                 stories=story_responses,
                 raw_notes=request.raw_notes,
                 redaction_count=notes.redaction_count,
+                provider=request.provider,
+                credits_remaining=credits_remaining,
             )
 
         except AIServiceError as e:
@@ -146,14 +174,14 @@ class GenerateStoriesFromNotesUseCase:
                 extra={
                     "event_type": "refinement.generate.provider_failed",
                     "project_id": request.project_id,
-                    "provider": self._ai_service.provider_name,
+                    "provider": ai_service.provider_name,
                     "failure_class": e.failure_class.value,
                 },
             )
             raise RefinementFailedError(
                 failure_class=e.failure_class,
                 raw_notes=request.raw_notes,
-                provider=self._ai_service.provider_name,
+                provider=ai_service.provider_name,
             ) from e
 
         except Exception:

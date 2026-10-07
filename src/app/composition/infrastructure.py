@@ -27,12 +27,16 @@ from functools import lru_cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.config.app_config import AppConfig
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.refinement.infrastructure.ai.ai_factory import create_ai_service
 from src.app.features.refinement.infrastructure.ai.ai_service import AIService
 from src.app.shared.infrastructure.email.email_sender import EmailSender
 from src.app.shared.infrastructure.email.smtp_email_sender import SmtpEmailSender
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.persistence.engine_factory import get_engine
+
+
+_UNSET_ENV_VALUE = "N/A"
 
 
 @lru_cache(maxsize=1)
@@ -67,14 +71,34 @@ def get_email_sender() -> EmailSender:
     docstring for why it stays minimal until EPIC-9-BE-001 lands.
     """
     config = AppConfig.instance()
+
+    # pyaml_env resolves an unset `!ENV ${VAR}` to "N/A"; an empty default
+    # (`${VAR:}`) isn't an option because pyaml_env never substitutes it.
+    def credential(key: str) -> str:
+        value = config.get_config(key, "")
+        return "" if value == _UNSET_ENV_VALUE else value
+
+    host = credential("smtp.host") or "localhost"
+    from_address = credential("smtp.from_address") or "no-reply@open-projects-hub.local"
+    # Send failures are swallowed by the use cases, so a malformed sender would
+    # otherwise only surface as a log line while users never get their code.
+    if "@" not in from_address:
+        raise ValueError(f"smtp.from_address must be an email address, got {from_address!r}")
+
     return SmtpEmailSender(
-        host=config.get_config("smtp.host", "localhost"),
+        host=host,
         port=int(config.get_config("smtp.port", 587)),
-        username=config.get_config("smtp.username", ""),
-        password=config.get_config("smtp.password", ""),
-        from_address=config.get_config("smtp.from_address", "no-reply@open-projects-hub.local"),
+        username=credential("smtp.username"),
+        password=credential("smtp.password"),
+        from_address=from_address,
         use_tls=bool(config.get_config("smtp.use_tls", True)),
     )
+
+
+@lru_cache(maxsize=1)
+def get_email_links() -> EmailLinks:
+    """Cached factory for the web-app links embedded in verification and reset emails."""
+    return EmailLinks(AppConfig.instance().get_config("app.frontend_base_url", "http://localhost:5173"))
 
 
 async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
@@ -130,7 +154,7 @@ async def get_ai_service() -> AIService:
             return GenerateStoriesUseCase(ai_service)
 
     Returns:
-        AIService: Gemini AI service or MockAIService based on configuration
+        AIService: The provider named by `ai.provider`, or MockAIService based on configuration
     """
     global _ai_service_instance
     if _ai_service_instance is None:

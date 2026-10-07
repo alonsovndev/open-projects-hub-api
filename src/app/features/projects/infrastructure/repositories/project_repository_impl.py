@@ -5,11 +5,12 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.clients.infrastructure.models.client_model import ClientModel
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+from src.app.features.projects.domain.exceptions.project_exceptions import ProjectCodeExistsError
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.projects.infrastructure.mappers.project_mapper import ProjectMapper
 from src.app.features.projects.infrastructure.models.project_model import ProjectModel
@@ -62,7 +63,7 @@ class ProjectRepositoryImpl(ProjectRepository):
         self._session = session
         self._log = get_logger(__name__)
 
-    async def find_by_id(self, project_id: UUID) -> tuple[ProjectEntity, str] | None:
+    async def find_by_id(self, project_id: UUID, *, workspace_id: UUID) -> tuple[ProjectEntity, str] | None:
         """
         Find project by ID with client name.
 
@@ -79,7 +80,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             stmt = (
                 select(ProjectModel, ClientModel.name)
                 .join(ClientModel, ProjectModel.client_id == ClientModel.id)
-                .where(ProjectModel.id == project_id)
+                .where(ProjectModel.id == project_id, ProjectModel.workspace_id == workspace_id)
             )
             result = await self._session.execute(stmt)
             row = result.one_or_none()
@@ -99,8 +100,40 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
+    async def find_by_access_code(self, access_code: str) -> ProjectEntity | None:
+        """
+        Find the project a client stakeholder opens with its access code, in any workspace.
+
+        Args:
+            access_code: The normalized access code
+
+        Returns:
+            The ProjectEntity if the code belongs to a project, None otherwise
+
+        Raises:
+            SQLAlchemyError: If database error occurs
+        """
+        try:
+            result = await self._session.execute(select(ProjectModel).where(ProjectModel.access_code == access_code))
+            model = result.scalar_one_or_none()
+            return ProjectMapper.to_entity(model) if model else None
+
+        except OperationalError:
+            self._log.exception(
+                "Database connection error", extra={"operation": "find_by_access_code", "table": "projects"}
+            )
+            raise
+        except SQLAlchemyError:
+            self._log.exception(
+                "Database error while fetching project by access code",
+                extra={"operation": "find_by_access_code", "table": "projects"},
+            )
+            raise
+
     async def find_all(
         self,
+        *,
+        workspace_id: UUID,
         limit: int = 20,
         offset: int = 0,
         status: str | None = None,
@@ -132,7 +165,11 @@ class ProjectRepositoryImpl(ProjectRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(ProjectModel, ClientModel.name).join(ClientModel, ProjectModel.client_id == ClientModel.id)
+            stmt = (
+                select(ProjectModel, ClientModel.name)
+                .join(ClientModel, ProjectModel.client_id == ClientModel.id)
+                .where(ProjectModel.workspace_id == workspace_id)
+            )
 
             stmt = _apply_project_filters(
                 stmt,
@@ -177,7 +214,11 @@ class ProjectRepositoryImpl(ProjectRepository):
         """
         start = time.time()
         try:
-            stmt = select(ProjectModel).where(ProjectModel.id == project.id.value)
+            if project.workspace_id is None:
+                raise ValueError(f"Project has no workspace: {project.id.value}")
+            stmt = select(ProjectModel).where(
+                ProjectModel.id == project.id.value, ProjectModel.workspace_id == project.workspace_id.value
+            )
             result = await self._session.execute(stmt)
             existing_model = result.scalar_one_or_none()
 
@@ -203,6 +244,14 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             return ProjectMapper.to_entity(model)
 
+        except IntegrityError as error:
+            await self._session.rollback()
+            if "uq_projects_workspace_id_code" in str(error.orig):
+                raise ProjectCodeExistsError(project.code) from error
+            self._log.exception(
+                "Integrity error while saving project", extra={"operation": "save", "table": "projects"}
+            )
+            raise
         except OperationalError:
             await self._session.rollback()
             self._log.exception("Database connection error", extra={"operation": "save", "table": "projects"})
@@ -212,7 +261,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             self._log.exception("Database error while saving project", extra={"operation": "save", "table": "projects"})
             raise
 
-    async def delete(self, project_id: UUID) -> bool:
+    async def delete(self, project_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Delete a project by ID.
 
@@ -227,7 +276,7 @@ class ProjectRepositoryImpl(ProjectRepository):
         """
         start = time.time()
         try:
-            stmt = select(ProjectModel).where(ProjectModel.id == project_id)
+            stmt = select(ProjectModel).where(ProjectModel.id == project_id, ProjectModel.workspace_id == workspace_id)
             result = await self._session.execute(stmt)
             model = result.scalar_one_or_none()
 
@@ -263,6 +312,8 @@ class ProjectRepositoryImpl(ProjectRepository):
 
     async def count(
         self,
+        *,
+        workspace_id: UUID,
         status: str | None = None,
         client_id: str | None = None,
         created_from: datetime | None = None,
@@ -290,7 +341,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(func.count(ProjectModel.id))
+            stmt = select(func.count(ProjectModel.id)).where(ProjectModel.workspace_id == workspace_id)
 
             stmt = _apply_project_filters(
                 stmt,
@@ -315,7 +366,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def exists(self, project_id: UUID) -> bool:
+    async def exists(self, project_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Check if a project exists by ID.
 
@@ -329,7 +380,11 @@ class ProjectRepositoryImpl(ProjectRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(ProjectModel.id).where(ProjectModel.id == project_id).limit(1)
+            stmt = (
+                select(ProjectModel.id)
+                .where(ProjectModel.id == project_id, ProjectModel.workspace_id == workspace_id)
+                .limit(1)
+            )
             result = await self._session.execute(stmt)
             return result.scalar_one_or_none() is not None
 
@@ -343,7 +398,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def get_story_counts(self, project_id: UUID) -> tuple[int, int]:
+    async def get_story_counts(self, project_id: UUID, *, workspace_id: UUID) -> tuple[int, int]:
         """
         Get total and completed story counts for a project.
 
@@ -362,10 +417,14 @@ class ProjectRepositoryImpl(ProjectRepository):
             SQLAlchemyError: If database error occurs
         """
         try:
-            stmt = select(
-                func.count(StoryModel.id).label("total"),
-                func.sum(case((StoryModel.status == StoryStatus.DONE.value, 1), else_=0)).label("completed"),
-            ).where(StoryModel.project_id == project_id)
+            stmt = (
+                select(
+                    func.count(StoryModel.id).label("total"),
+                    func.sum(case((StoryModel.status == StoryStatus.DONE.value, 1), else_=0)).label("completed"),
+                )
+                .join(ProjectModel, StoryModel.project_id == ProjectModel.id)
+                .where(StoryModel.project_id == project_id, ProjectModel.workspace_id == workspace_id)
+            )
 
             result = await self._session.execute(stmt)
             row = result.one()
@@ -387,7 +446,9 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def get_story_counts_batch(self, project_ids: list[UUID]) -> dict[UUID, tuple[int, int]]:
+    async def get_story_counts_batch(
+        self, project_ids: list[UUID], *, workspace_id: UUID
+    ) -> dict[UUID, tuple[int, int]]:
         """
         Get story counts for multiple projects in a single query.
 
@@ -412,7 +473,8 @@ class ProjectRepositoryImpl(ProjectRepository):
                     func.count(StoryModel.id).label("total"),
                     func.sum(case((StoryModel.status == StoryStatus.DONE.value, 1), else_=0)).label("completed"),
                 )
-                .where(StoryModel.project_id.in_(project_ids))
+                .join(ProjectModel, StoryModel.project_id == ProjectModel.id)
+                .where(StoryModel.project_id.in_(project_ids), ProjectModel.workspace_id == workspace_id)
                 .group_by(StoryModel.project_id)
             )
 
@@ -441,20 +503,20 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def count_active_by_user(self, user_id: UUID) -> int:
+    async def count_active_by_workspace(self, workspace_id: UUID) -> int:
         """
-        Count active projects owned by a specific user.
+        Count a workspace's active projects.
 
         Args:
-            user_id: User UUID
+            workspace_id: Workspace UUID
 
         Returns:
-            Number of active projects for the user
+            Number of active projects in the workspace
         """
         try:
             stmt = (
                 select(func.count(ProjectModel.id))
-                .where(ProjectModel.created_by == user_id)
+                .where(ProjectModel.workspace_id == workspace_id)
                 .where(ProjectModel.status == "active")
             )
             result = await self._session.execute(stmt)
@@ -462,17 +524,17 @@ class ProjectRepositoryImpl(ProjectRepository):
 
         except OperationalError:
             self._log.exception(
-                "Database connection error", extra={"operation": "count_active_by_user", "table": "projects"}
+                "Database connection error", extra={"operation": "count_active_by_workspace", "table": "projects"}
             )
             raise
         except SQLAlchemyError:
             self._log.exception(
-                "Database error counting active projects by user",
-                extra={"operation": "count_active_by_user", "table": "projects"},
+                "Database error counting active projects by workspace",
+                extra={"operation": "count_active_by_workspace", "table": "projects"},
             )
             raise
 
-    async def has_active_projects_for_client(self, client_id: UUID) -> bool:
+    async def has_active_projects_for_client(self, client_id: UUID, *, workspace_id: UUID) -> bool:
         """
         Check whether a client has any active projects.
 
@@ -485,7 +547,7 @@ class ProjectRepositoryImpl(ProjectRepository):
         try:
             stmt = (
                 select(ProjectModel.id)
-                .where(ProjectModel.client_id == client_id)
+                .where(ProjectModel.client_id == client_id, ProjectModel.workspace_id == workspace_id)
                 .where(ProjectModel.status == "active")
                 .limit(1)
             )
@@ -505,7 +567,7 @@ class ProjectRepositoryImpl(ProjectRepository):
             )
             raise
 
-    async def delete_archived_by_client(self, client_id: UUID) -> int:
+    async def delete_archived_by_client(self, client_id: UUID, *, workspace_id: UUID) -> int:
         """
         Delete all archived projects for a client (cascade removes stories).
 
@@ -519,6 +581,7 @@ class ProjectRepositoryImpl(ProjectRepository):
         try:
             stmt = select(ProjectModel).where(
                 ProjectModel.client_id == client_id,
+                ProjectModel.workspace_id == workspace_id,
                 ProjectModel.status == "archived",
             )
             result = await self._session.execute(stmt)

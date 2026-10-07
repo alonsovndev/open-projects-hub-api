@@ -22,6 +22,7 @@ from src.app.features.projects.domain.exceptions.project_exceptions import Activ
 from src.app.features.projects.domain.value_objects.project_priority import ProjectPriority
 from src.app.features.projects.domain.value_objects.project_status import ProjectStatus
 from src.app.shared.domain.value_objects.entity_id import EntityId
+from src.tests.support.request_context import make_request_context
 
 
 def _build_entity(status: ProjectStatus) -> ProjectEntity:
@@ -50,7 +51,7 @@ class TestActiveProjectLimitCreate:
         """Admin with 3 active projects cannot create a 4th."""
         mock_project_repo = AsyncMock()
         mock_client_repo = AsyncMock()
-        mock_project_repo.count_active_by_user.return_value = 3
+        mock_project_repo.count_active_by_workspace.return_value = 3
 
         client_id = EntityId.generate()
         mock_client = AsyncMock()
@@ -66,7 +67,7 @@ class TestActiveProjectLimitCreate:
         )
 
         with pytest.raises(ActiveProjectLimitExceededError):
-            await use_case.execute(request=request, created_by=str(EntityId.generate().value))
+            await use_case.execute(request=request, ctx=make_request_context(user_id=str(EntityId.generate().value)))
 
         mock_project_repo.save.assert_not_called()
         mock_client_repo.find_by_id.assert_not_called()
@@ -76,7 +77,7 @@ class TestActiveProjectLimitCreate:
         """Admin with 2 active projects can create a 3rd."""
         mock_project_repo = AsyncMock()
         mock_client_repo = AsyncMock()
-        mock_project_repo.count_active_by_user.return_value = 2
+        mock_project_repo.count_active_by_workspace.return_value = 2
         mock_project_repo.save.return_value = _build_entity(ProjectStatus.ACTIVE)
 
         client_id = EntityId.generate()
@@ -92,7 +93,9 @@ class TestActiveProjectLimitCreate:
             phase="discovery",
         )
 
-        result = await use_case.execute(request=request, created_by=str(EntityId.generate().value))
+        result = await use_case.execute(
+            request=request, ctx=make_request_context(user_id=str(EntityId.generate().value))
+        )
 
         assert isinstance(result, ProjectResponse)
         mock_project_repo.save.assert_called_once()
@@ -102,8 +105,8 @@ class TestActiveProjectLimitCreate:
         """Archived projects do not count: admin archiving frees a slot."""
         mock_project_repo = AsyncMock()
         mock_client_repo = AsyncMock()
-        # count_active_by_user only counts ACTIVE projects (archived excluded)
-        mock_project_repo.count_active_by_user.return_value = 2
+        # count_active_by_workspace only counts ACTIVE projects (archived excluded)
+        mock_project_repo.count_active_by_workspace.return_value = 2
         mock_project_repo.save.return_value = _build_entity(ProjectStatus.ACTIVE)
 
         client_id = EntityId.generate()
@@ -119,7 +122,9 @@ class TestActiveProjectLimitCreate:
             phase="discovery",
         )
 
-        result = await use_case.execute(request=request, created_by=str(EntityId.generate().value))
+        result = await use_case.execute(
+            request=request, ctx=make_request_context(user_id=str(EntityId.generate().value))
+        )
 
         assert isinstance(result, ProjectResponse)
         mock_project_repo.save.assert_called_once()
@@ -134,14 +139,14 @@ class TestActiveProjectLimitReactivate:
         mock_repo = AsyncMock()
         archived = _build_entity(ProjectStatus.ARCHIVED)
         mock_repo.find_by_id.return_value = (archived, "Test Client")
-        mock_repo.count_active_by_user.return_value = 3
+        mock_repo.count_active_by_workspace.return_value = 3
 
         use_case = ReactivateProjectUseCase(mock_repo, max_active_projects=3)
 
         with pytest.raises(ActiveProjectLimitExceededError):
             await use_case.execute(
                 project_id=str(EntityId.generate().value),
-                created_by=str(EntityId.generate().value),
+                ctx=make_request_context(user_id=str(EntityId.generate().value)),
             )
 
         mock_repo.save.assert_not_called()
@@ -152,7 +157,7 @@ class TestActiveProjectLimitReactivate:
         mock_repo = AsyncMock()
         archived = _build_entity(ProjectStatus.ARCHIVED)
         mock_repo.find_by_id.return_value = (archived, "Test Client")
-        mock_repo.count_active_by_user.return_value = 2
+        mock_repo.count_active_by_workspace.return_value = 2
         mock_repo.save.return_value = archived
         mock_repo.get_story_counts.return_value = (0, 0)
 
@@ -160,7 +165,7 @@ class TestActiveProjectLimitReactivate:
 
         result = await use_case.execute(
             project_id=str(archived.id.value),
-            created_by=str(archived.created_by.value),
+            ctx=make_request_context(user_id=str(archived.created_by.value)),
         )
 
         assert isinstance(result, ProjectResponse)
@@ -180,9 +185,9 @@ class TestActiveProjectLimitReactivate:
 
         result = await use_case.execute(
             project_id=str(active.id.value),
-            created_by=str(active.created_by.value),
+            ctx=make_request_context(user_id=str(active.created_by.value)),
         )
 
         assert isinstance(result, ProjectResponse)
-        mock_repo.count_active_by_user.assert_not_called()
+        mock_repo.count_active_by_workspace.assert_not_called()
         mock_repo.save.assert_called_once()

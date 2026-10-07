@@ -6,6 +6,7 @@ from src.app.features.projects.application.dtos.project_dto import ProjectRespon
 from src.app.features.projects.application.mappers.project_mapper import to_project_response
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.shared.application.dtos.pagination_dto import PaginatedResponse
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, set_user_id
 
 
@@ -23,7 +24,7 @@ class ListProjectsUseCase:
 
     async def execute(
         self,
-        user_id: str,
+        ctx: RequestContext,
         limit: int = 20,
         offset: int = 0,
         status: str | None = None,
@@ -38,7 +39,7 @@ class ListProjectsUseCase:
         Execute list projects use case.
 
         Args:
-            user_id: Current user ID
+            ctx: Caller identity and workspace
             limit: Maximum number of results (default 20)
             offset: Number of results to skip (default 0)
             status: Optional status filter (active, completed, archived)
@@ -53,7 +54,8 @@ class ListProjectsUseCase:
             PaginatedResponse containing pagination metadata and ProjectResponse items
         """
         log = get_logger(__name__)
-        set_user_id(user_id)
+        set_user_id(str(ctx.user_id))
+        workspace_id = ctx.workspace_id.value
         log.info(
             "Listing projects",
             extra={
@@ -67,6 +69,7 @@ class ListProjectsUseCase:
         )
 
         total = await self._repository.count(
+            workspace_id=workspace_id,
             status=status,
             client_id=client_id,
             created_from=created_from,
@@ -76,6 +79,7 @@ class ListProjectsUseCase:
             search=search,
         )
         entities_with_clients = await self._repository.find_all(
+            workspace_id=workspace_id,
             limit=limit,
             offset=offset,
             status=status,
@@ -89,7 +93,9 @@ class ListProjectsUseCase:
 
         # Batch query optimization: fetch all story counts in one database roundtrip
         project_ids = [entity.id.value for entity, _ in entities_with_clients]
-        story_counts = await self._repository.get_story_counts_batch(project_ids) if project_ids else {}
+        story_counts = (
+            await self._repository.get_story_counts_batch(project_ids, workspace_id=workspace_id) if project_ids else {}
+        )
 
         items = []
         for entity, client_name in entities_with_clients:

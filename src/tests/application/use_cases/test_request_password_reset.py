@@ -2,11 +2,13 @@
 Tests for RequestPasswordResetUseCase.
 """
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import ForgotPasswordRequest
+from src.app.features.auth.application.services.email_links import EmailLinks
 from src.app.features.auth.application.use_cases.issue_reset_code import GENERIC_RESET_MESSAGE
 from src.app.features.auth.application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -51,7 +53,9 @@ class TestRequestPasswordResetUseCase:
         self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
     ):
         mock_user_repository.find_by_email.return_value = user_entity
-        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         response = await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
 
@@ -62,12 +66,32 @@ class TestRequestPasswordResetUseCase:
         assert mock_email_sender.send.call_args.kwargs["to"] == "admin@example.com"
 
     @pytest.mark.asyncio
+    async def test_reset_email_links_to_the_reset_page_and_lasts_thirty_minutes(
+        self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
+    ):
+        mock_user_repository.find_by_email.return_value = user_entity
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
+
+        await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
+
+        stored_code = mock_reset_code_repository.create.call_args[0][0]
+        remaining = stored_code.expires_at - datetime.now(UTC)
+        assert timedelta(minutes=29) < remaining <= timedelta(minutes=30)
+        body = mock_email_sender.send.call_args.kwargs["body"]
+        assert "http://localhost:5173/reset-password?email=admin%40example.com&code=" in body
+        assert "30 minutes" in body
+
+    @pytest.mark.asyncio
     async def test_unknown_email_returns_same_generic_message_without_side_effects(
         self, mock_user_repository, mock_reset_code_repository, mock_email_sender
     ):
         """Non-enumeration: unknown emails get the identical response with no code issued (FR-009-01)."""
         mock_user_repository.find_by_email.return_value = None
-        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         response = await use_case.execute(ForgotPasswordRequest(email="ghost@example.com"))
 
@@ -82,7 +106,9 @@ class TestRequestPasswordResetUseCase:
         """NFR-009-02 caps code requests per email, not per endpoint — this path counts too."""
         mock_user_repository.find_by_email.return_value = user_entity
         mock_reset_code_repository.count_created_since.return_value = 3
-        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         response = await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
 
@@ -96,7 +122,9 @@ class TestRequestPasswordResetUseCase:
     ):
         mock_user_repository.find_by_email.return_value = user_entity
         mock_reset_code_repository.count_created_since.return_value = 2
-        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
 
@@ -110,7 +138,9 @@ class TestRequestPasswordResetUseCase:
         """A delivery failure must not surface as a different response (would leak account existence)."""
         mock_user_repository.find_by_email.return_value = user_entity
         mock_email_sender.send.side_effect = Exception("smtp down")
-        use_case = RequestPasswordResetUseCase(mock_user_repository, mock_reset_code_repository, mock_email_sender)
+        use_case = RequestPasswordResetUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
 
         response = await use_case.execute(ForgotPasswordRequest(email="admin@example.com"))
 

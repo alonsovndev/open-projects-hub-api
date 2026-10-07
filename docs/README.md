@@ -36,6 +36,7 @@ docs/
 ├── security/                     # Security documentation
 │   └── README.md                 # Security overview and practices
 └── configuration/                # Configuration guides
+    ├── email-deliverability.md   # Resend email setup and spam avoidance
     └── rate-limiting-strategy.md # Rate limiting strategy
 ```
 

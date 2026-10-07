@@ -8,6 +8,7 @@ from src.app.features.stories.domain.exceptions.story_exceptions import StoryNot
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
 from src.app.features.stories.domain.value_objects.story_priority import StoryPriority
 from src.app.features.stories.domain.value_objects.story_status import StoryStatus
+from src.app.shared.application.request_context import RequestContext
 from src.app.shared.logging import get_logger, set_user_id
 
 
@@ -23,14 +24,14 @@ class UpdateStoryUseCase:
         """
         self._repository = story_repository
 
-    async def execute(self, story_id: str, request: UpdateStoryRequest, created_by: str) -> StoryResponse:
+    async def execute(self, story_id: str, request: UpdateStoryRequest, ctx: RequestContext) -> StoryResponse:
         """
         Execute update story use case.
 
         Args:
             story_id: Story UUID
             request: UpdateStoryRequest DTO with fields to update
-            created_by: User ID performing the update
+            ctx: Caller identity and workspace
 
         Returns:
             StoryResponse with updated story data
@@ -39,9 +40,9 @@ class UpdateStoryUseCase:
             StoryNotFoundError: If story not found
         """
         log = get_logger(__name__)
-        set_user_id(created_by)
+        set_user_id(str(ctx.user_id))
 
-        entity = await self._repository.find_by_id(UUID(story_id))
+        entity = await self._repository.find_by_id(UUID(story_id), workspace_id=ctx.workspace_id.value)
 
         if not entity:
             log.error(
@@ -71,6 +72,7 @@ class UpdateStoryUseCase:
             status=story_status,
             priority=story_priority,
             points=request.points,
+            acceptance_criteria=request.acceptance_criteria,
         )
 
         saved_entity = await self._repository.save(entity)

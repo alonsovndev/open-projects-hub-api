@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,6 +27,7 @@ def mock_admin_user():
         display_name="Admin User",
         password_hash=password_hash,
         role=UserRole.ADMIN,
+        email_verified_at=datetime.now(UTC),
     )
 
 
@@ -39,7 +41,8 @@ def mock_regular_user():
         email=Email("user@example.com"),
         display_name="Regular User",
         password_hash=password_hash,
-        role=UserRole.VIEWER,
+        role=UserRole.MEMBER,
+        email_verified_at=datetime.now(UTC),
     )
 
 
@@ -91,7 +94,7 @@ class TestLoginEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["role"] == "viewer"
+        assert data["role"] == "member"
         assert data["displayName"] == "Regular User"
 
     def test_login_with_nonexistent_email_returns_401(self, client):

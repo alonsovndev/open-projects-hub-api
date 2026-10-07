@@ -1,12 +1,13 @@
 """Data transfer objects for refinement operations."""
 
 from collections.abc import Callable
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
+from src.app.features.ai_config.domain.value_objects.ai_provider import RefinementProvider
 from src.app.features.refinement.domain.validators.refinement_validators import RefinementValidators
+from src.app.features.stories.domain.validators.story_validators import StoryValidators
 from src.app.shared.domain.exceptions.domain_exceptions import ValidationError
 
 
@@ -23,28 +24,6 @@ def _reject(validate: Callable[[], None]) -> None:
         raise ValueError(str(e)) from e
 
 
-class UpdateStoryDraftRequest(BaseModel):
-    """Request model for updating a story draft."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    title: str | None = None
-    description: str | None = None
-    acceptance_criteria: list[str] | None = None
-
-    @field_validator("title")
-    @classmethod
-    def validate_title(cls, title: str | None) -> str | None:
-        """Validate story title using domain validators."""
-        if title is not None:
-            _reject(lambda: RefinementValidators.validate_title(title))
-            return title.strip()
-        return title
-
-
 class GenerateStoriesRequest(BaseModel):
     """Request model for generating multiple stories from raw notes."""
 
@@ -55,6 +34,9 @@ class GenerateStoriesRequest(BaseModel):
 
     project_id: str
     raw_notes: str
+    # Which provider to charge this run to. Defaults to the platform's free credits so
+    # existing callers keep working unchanged (EPIC-3 predates provider selection).
+    provider: RefinementProvider = RefinementProvider.PLATFORM
 
     @field_validator("project_id")
     @classmethod
@@ -79,7 +61,6 @@ class GeneratedStoryResponse(BaseModel):
         populate_by_name=True,
     )
 
-    id: str  # Draft ID
     title: str
     description: str
     acceptance_criteria: list[str]
@@ -98,59 +79,69 @@ class GenerateStoriesResponse(BaseModel):
     # Non-zero when sanitization altered the notes before refining them, so the UI can say
     # so rather than leaving the Admin to wonder why output ignores part of their input.
     redaction_count: int = 0
+    # Which provider actually served the run, echoed so the UI can label the result.
+    provider: RefinementProvider = RefinementProvider.PLATFORM
+    # Credits left after this run. None when a user's own key served it and no credit was
+    # spent, which is how the UI knows to keep the balance display unchanged (FR-010-08).
+    credits_remaining: int | None = None
 
 
-class StoryDraftResponse(BaseModel):
-    """Response model for a persisted story draft."""
+class ApproveStoryRequest(BaseModel):
+    """A refined story the Admin approved; it is saved to the backlog only now."""
 
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
     )
 
-    id: str
     project_id: str
     title: str
-    description: str | None
-    acceptance_criteria: list[str]
-    status: str
-    created_at: datetime
-    updated_at: datetime
+    description: str | None = None
+    acceptance_criteria: list[str] = []
 
-
-class ListStoryDraftsResponse(BaseModel):
-    """Response model for listing a project's story drafts."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    drafts: list[StoryDraftResponse]
-    total: int
-
-
-class ApproveDraftsBulkRequest(BaseModel):
-    """Request model for bulk approving drafts."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    draft_ids: list[str]
-
-    @field_validator("draft_ids")
+    @field_validator("project_id")
     @classmethod
-    def validate_draft_ids(cls, draft_ids: list[str]) -> list[str]:
-        """Validate draft IDs."""
-        if not draft_ids or len(draft_ids) == 0:
-            raise ValueError("At least one draft ID is required")
-        return draft_ids
+    def validate_project_id(cls, project_id: str) -> str:
+        """Validate project ID using domain validators."""
+        _reject(lambda: RefinementValidators.validate_project_id(project_id))
+        return project_id.strip()
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, title: str) -> str:
+        """Validate against the stories table's own limits, which are tighter than the AI draft's."""
+        _reject(lambda: StoryValidators.validate_title(title))
+        return title.strip()
+
+    @field_validator("acceptance_criteria")
+    @classmethod
+    def validate_acceptance_criteria(cls, acceptance_criteria: list[str]) -> list[str]:
+        """Validate acceptance criteria the same way manual story creation does."""
+        _reject(lambda: StoryValidators.validate_acceptance_criteria(acceptance_criteria))
+        return acceptance_criteria
+
+
+class ApproveStoriesBulkRequest(BaseModel):
+    """Request model for approving several refined stories at once."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    stories: list[ApproveStoryRequest]
+
+    @field_validator("stories")
+    @classmethod
+    def validate_stories(cls, stories: list[ApproveStoryRequest]) -> list[ApproveStoryRequest]:
+        """Require at least one story."""
+        if not stories:
+            raise ValueError("At least one story is required")
+        return stories
 
 
 class BulkApprovedStory(BaseModel):
-    """Lightweight reference to a story created from bulk draft approval."""
+    """Lightweight reference to a story created from bulk approval."""
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -161,7 +152,7 @@ class BulkApprovedStory(BaseModel):
     title: str
 
 
-class ApproveDraftsBulkResponse(BaseModel):
+class ApproveStoriesBulkResponse(BaseModel):
     """Response model for bulk approve operation."""
 
     model_config = ConfigDict(

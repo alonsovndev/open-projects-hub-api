@@ -10,7 +10,7 @@ class UserRole(StrEnum):
     """
 
     ADMIN = "admin"
-    VIEWER = "viewer"
+    MEMBER = "member"
 
     def __str__(self) -> str:
         return self.value
@@ -18,4 +18,4 @@ class UserRole(StrEnum):
     @classmethod
     def default(cls) -> "UserRole":
         """Return the default role for new users."""
-        return cls.VIEWER
+        return cls.MEMBER

@@ -23,12 +23,13 @@ def app_jwt_handler():
 
 
 @pytest.fixture
-def viewer_token(app_jwt_handler):
-    """Generate valid viewer JWT token."""
+def member_token(app_jwt_handler):
+    """Generate valid member JWT token."""
     return app_jwt_handler.create_access_token(
         user_id="12345678-90ab-cdef-1234-567890abcdef",
         email="user@example.com",
-        role="viewer",
+        role="member",
+        workspace_id="550e8400-e29b-41d4-a716-4466554400ff",
     )
 
 
@@ -36,24 +37,24 @@ def viewer_token(app_jwt_handler):
 def mock_user_response():
     """Fixture for a user profile response."""
     return UserResponse(
-        id="12345678-90ab-cdef-1234-567890abcdef", email="user@example.com", display_name="Test User", role="viewer"
+        id="12345678-90ab-cdef-1234-567890abcdef", email="user@example.com", display_name="Test User", role="member"
     )
 
 
 class TestGetUserProfileEndpoint:
     """Tests for GET /v1/users/me/profile endpoint."""
 
-    def test_get_profile_success(self, client, viewer_token):
+    def test_get_profile_success(self, client, member_token):
         """Test successful profile retrieval for authenticated user."""
         mock_user_response = UserResponse(
-            id="12345678-90ab-cdef-1234-567890abcdef", email="user@example.com", display_name="Test User", role="viewer"
+            id="12345678-90ab-cdef-1234-567890abcdef", email="user@example.com", display_name="Test User", role="member"
         )
 
         with patch(
             "src.app.features.user.application.use_cases.get_user_profile.GetUserProfileUseCase.execute",
             new=AsyncMock(return_value=mock_user_response),
         ):
-            response = client.get("/v1/users/me/profile", headers={"Authorization": f"Bearer {viewer_token}"})
+            response = client.get("/v1/users/me/profile", headers={"Authorization": f"Bearer {member_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -61,7 +62,7 @@ class TestGetUserProfileEndpoint:
         assert data["id"] == "12345678-90ab-cdef-1234-567890abcdef"
         assert data["email"] == "user@example.com"
         assert data["displayName"] == "Test User"
-        assert data["role"] == "viewer"
+        assert data["role"] == "member"
 
     def test_get_profile_unauthorized_without_token(self, client):
         """Test that GET /profile requires authentication."""
@@ -69,13 +70,13 @@ class TestGetUserProfileEndpoint:
 
         assert response.status_code == 401
 
-    def test_get_profile_not_found(self, client, viewer_token):
+    def test_get_profile_not_found(self, client, member_token):
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.get_user_profile.GetUserProfileUseCase.execute",
             new=AsyncMock(side_effect=UserNotFoundError("12345678-90ab-cdef-1234-567890abcdef")),
         ):
-            response = client.get("/v1/users/me/profile", headers={"Authorization": f"Bearer {viewer_token}"})
+            response = client.get("/v1/users/me/profile", headers={"Authorization": f"Bearer {member_token}"})
 
         assert response.status_code == 404
 
@@ -83,13 +84,13 @@ class TestGetUserProfileEndpoint:
 class TestUpdateUserProfileEndpoint:
     """Tests for PATCH /v1/users/me/profile endpoint."""
 
-    def test_update_profile_success(self, client, viewer_token):
+    def test_update_profile_success(self, client, member_token):
         """Test successful profile update."""
         updated_response = UserResponse(
             id="12345678-90ab-cdef-1234-567890abcdef",
             email="user@example.com",
             display_name="Updated Name",
-            role="viewer",
+            role="member",
         )
 
         with patch(
@@ -98,7 +99,7 @@ class TestUpdateUserProfileEndpoint:
         ):
             response = client.patch(
                 "/v1/users/me/profile",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"displayName": "Updated Name"},
             )
 
@@ -107,7 +108,7 @@ class TestUpdateUserProfileEndpoint:
 
         assert data["displayName"] == "Updated Name"
         assert data["email"] == "user@example.com"
-        assert data["role"] == "viewer"
+        assert data["role"] == "member"
 
     def test_update_profile_unauthorized_without_token(self, client):
         """Test that PATCH /profile requires authentication."""
@@ -115,20 +116,20 @@ class TestUpdateUserProfileEndpoint:
 
         assert response.status_code == 401
 
-    def test_update_profile_empty_display_name_returns_400(self, client, viewer_token):
+    def test_update_profile_empty_display_name_returns_400(self, client, member_token):
         """Test that empty display name returns 400."""
         with patch(
             "src.app.features.user.application.use_cases.update_user_profile.UpdateUserProfileUseCase.execute",
             new=AsyncMock(side_effect=ValueError("Display name cannot be empty")),
         ):
             response = client.patch(
-                "/v1/users/me/profile", headers={"Authorization": f"Bearer {viewer_token}"}, json={"displayName": ""}
+                "/v1/users/me/profile", headers={"Authorization": f"Bearer {member_token}"}, json={"displayName": ""}
             )
 
         assert response.status_code == 400
         assert "Display name cannot be empty" in response.json()["detail"]
 
-    def test_update_profile_too_long_display_name_returns_400(self, client, viewer_token):
+    def test_update_profile_too_long_display_name_returns_400(self, client, member_token):
         """Test that display name exceeding max length returns 400."""
         long_name = "a" * 256
 
@@ -138,14 +139,14 @@ class TestUpdateUserProfileEndpoint:
         ):
             response = client.patch(
                 "/v1/users/me/profile",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"displayName": long_name},
             )
 
         assert response.status_code == 400
         assert "255 characters" in response.json()["detail"]
 
-    def test_update_profile_not_found(self, client, viewer_token):
+    def test_update_profile_not_found(self, client, member_token):
         """Test that 404 is returned when user doesn't exist."""
         with patch(
             "src.app.features.user.application.use_cases.update_user_profile.UpdateUserProfileUseCase.execute",
@@ -153,19 +154,19 @@ class TestUpdateUserProfileEndpoint:
         ):
             response = client.patch(
                 "/v1/users/me/profile",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"displayName": "New Name"},
             )
 
         assert response.status_code == 404
 
-    def test_update_profile_uses_camel_case(self, client, viewer_token):
+    def test_update_profile_uses_camel_case(self, client, member_token):
         """Test that API accepts camelCase field names."""
         updated_response = UserResponse(
             id="12345678-90ab-cdef-1234-567890abcdef",
             email="user@example.com",
             display_name="Camel Case Test",
-            role="viewer",
+            role="member",
         )
 
         with patch(
@@ -174,7 +175,7 @@ class TestUpdateUserProfileEndpoint:
         ):
             response = client.patch(
                 "/v1/users/me/profile",
-                headers={"Authorization": f"Bearer {viewer_token}"},
+                headers={"Authorization": f"Bearer {member_token}"},
                 json={"displayName": "Camel Case Test"},  # camelCase
             )
 

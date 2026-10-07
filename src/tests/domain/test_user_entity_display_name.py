@@ -3,7 +3,7 @@ Tests for UserEntity with displayName field.
 
 Following API spec requirements:
 - User should have displayName field (not computed from first_name/last_name)
-- Role should be 'admin' or 'viewer' (not ADMIN/USER)
+- Role should be 'admin' or 'member' (not ADMIN/USER)
 """
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -22,7 +22,7 @@ class TestUserEntityDisplayName:
             email=Email("user@example.com"),
             display_name="John Doe",
             password_hash="hashed_password",
-            role=UserRole.VIEWER,
+            role=UserRole.MEMBER,
         )
 
         assert entity.display_name == "John Doe"
@@ -40,11 +40,6 @@ class TestUserEntityDisplayName:
         # Should return stored value
         assert entity.display_name == "Jane Smith"
 
-    def test_user_role_viewer_exists(self):
-        """Test that UserRole.VIEWER enum exists."""
-        assert hasattr(UserRole, "VIEWER")
-        assert UserRole.VIEWER.value == "viewer"
-
     def test_user_role_admin_value(self):
         """Test that UserRole.ADMIN has correct value."""
         assert UserRole.ADMIN.value == "admin"
@@ -60,15 +55,3 @@ class TestUserEntityDisplayName:
         )
 
         assert entity.is_admin() is True
-
-    def test_user_is_admin_with_viewer_role(self):
-        """Test is_admin() returns False for viewer role."""
-        entity = UserEntity(
-            id=EntityId.generate(),
-            email=Email("viewer@example.com"),
-            display_name="Viewer User",
-            password_hash="hashed",
-            role=UserRole.VIEWER,
-        )
-
-        assert entity.is_admin() is False

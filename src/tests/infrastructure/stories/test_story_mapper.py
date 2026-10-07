@@ -157,3 +157,77 @@ class TestStoryMapperToModel:
         assert existing_model.status == "done"
         assert existing_model.priority == "high"
         assert existing_model.points == 8
+
+
+class TestStoryMapperAcceptanceCriteria:
+    """Test that acceptance criteria survive the entity/model boundary."""
+
+    def test_to_entity_reads_the_criteria_column(self):
+        """Test that stored criteria arrive on the entity as a list."""
+        now = datetime.now()
+        model = MagicMock(spec=StoryModel)
+        model.id = "550e8400-e29b-41d4-a716-446655440100"
+        model.title = "Test Story"
+        model.description = "Description"
+        model.acceptance_criteria = ["Criterion 1", "Criterion 2"]
+        model.project_id = "550e8400-e29b-41d4-a716-446655440101"
+        model.created_by = "550e8400-e29b-41d4-a716-446655440102"
+        model.assigned_to = None
+        model.status = "todo"
+        model.priority = "medium"
+        model.points = None
+        model.created_at = now
+        model.updated_at = now
+
+        entity = StoryMapper.to_entity(model)
+
+        assert entity.acceptance_criteria == ["Criterion 1", "Criterion 2"]
+
+    def test_to_entity_treats_a_null_column_as_empty(self):
+        """Rows written before the column existed read back as NULL, not as a list."""
+        now = datetime.now()
+        model = MagicMock(spec=StoryModel)
+        model.id = "550e8400-e29b-41d4-a716-446655440100"
+        model.title = "Test Story"
+        model.description = None
+        model.acceptance_criteria = None
+        model.project_id = "550e8400-e29b-41d4-a716-446655440101"
+        model.created_by = "550e8400-e29b-41d4-a716-446655440102"
+        model.assigned_to = None
+        model.status = "todo"
+        model.priority = "medium"
+        model.points = None
+        model.created_at = now
+        model.updated_at = now
+
+        entity = StoryMapper.to_entity(model)
+
+        assert entity.acceptance_criteria == []
+
+    def test_to_model_writes_the_criteria_column(self):
+        """Test that a new model carries the entity's criteria."""
+        entity = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["Criterion 1"],
+        )
+
+        model = StoryMapper.to_model(entity)
+
+        assert model.acceptance_criteria == ["Criterion 1"]
+
+    def test_to_model_updates_the_criteria_of_an_existing_model(self):
+        """Test that an update overwrites the stored criteria."""
+        entity = StoryEntity.create(
+            title="Test Story",
+            project_id=EntityId.generate(),
+            created_by=EntityId.generate(),
+            acceptance_criteria=["New criterion"],
+        )
+        existing_model = MagicMock(spec=StoryModel)
+        existing_model.acceptance_criteria = ["Stale criterion"]
+
+        updated = StoryMapper.to_model(entity, existing_model=existing_model)
+
+        assert updated.acceptance_criteria == ["New criterion"]

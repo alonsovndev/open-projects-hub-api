@@ -22,6 +22,7 @@ def to_story_response(entity: StoryEntity) -> StoryResponse:
         id=str(entity.id.value),
         title=entity.title,
         description=entity.description,
+        acceptance_criteria=entity.acceptance_criteria,
         project_id=str(entity.project_id.value),
         created_by=str(entity.created_by.value),
         assigned_to=str(entity.assigned_to.value) if entity.assigned_to else None,
