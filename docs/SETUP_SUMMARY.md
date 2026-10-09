@@ -214,7 +214,7 @@ Run before pushing:
 make lint-fix format test
 ```
 
-CI/CD workflow configuration is not yet added to this repository.
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, format, unit tests, coverage, OpenAPI export, and a Docker build on pushes and pull requests to `main` and `dev`.
 
 ---
 

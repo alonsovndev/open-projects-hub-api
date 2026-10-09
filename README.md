@@ -1,12 +1,19 @@
 # Open Projects Hub API
 
-A FastAPI-based project management API with Clean Architecture, JWT authentication, and role-based access control.
+> FastAPI backend for [Open Projects Hub](https://github.com/alonsovndev/open-projects-hub): Clean Architecture/DDD, JWT authentication, role-based access control, and LLM-assisted requirements refinement.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Part of [alonsovndev](https://github.com/alonsovndev), the open-source engineering lab by [Alonso Villanueva](https://alonsovndev.com).
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+Requires Python 3.12 and Docker (for PostgreSQL).
+
+### 1. Configure and Install
 ```bash
-make install
+cp .env.example .env   # then set SECRET_KEY, POSTGRES_PASSWORD, API_KEY_ENCRYPTION_KEY
+make install-dev        # runtime + test + quality tooling
 ```
 
 ### 2. Run Database
@@ -65,10 +72,11 @@ docker compose up --build          # add -d to run in the background
 - The app always runs with `APP_ENV=container` (`src/app/config/config_container.yml`); `compose.yml` overrides any `APP_ENV` in `.env`.
 - Re-run with `--build` after code or dependency changes, otherwise the previous image is reused.
 
-Create the first admin user (one-shot container against the same database):
+Create the first admin user (one-shot container against the same database). `ADMIN_PASSWORD` is required and must contain a letter and a digit:
 
 ```bash
-docker compose --profile seed run --rm seed-admin
+ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="<strong-password>" \
+  docker compose --profile seed run --rm -e ADMIN_EMAIL -e ADMIN_PASSWORD seed-admin
 ```
 
 Stop the stack with `docker compose down` (add `-v` to also delete the database volume).
@@ -103,8 +111,9 @@ Full endpoint reference, auth flows, pagination, filtering, and cURL/Python/JS e
 ```
 src/
 ├── app/
-│   ├── features/          # One package per bounded context (auth, clients, dashboard,
-│   │                       # projects, refinement, stories, user)
+│   ├── features/          # One package per bounded context (ai_config, auth, backlog,
+│   │                       # client_review, clients, dashboard, projects, refinement,
+│   │                       # stories, user, workspaces)
 │   │   └── <feature>/
 │   │       ├── domain/           # Entities, value objects, repository interfaces, domain exceptions
 │   │       ├── application/      # Use cases, DTOs, mappers
@@ -132,7 +141,7 @@ This project uses modern Python code quality tools to ensure clean, consistent, 
 
 - **[Ruff](https://docs.astral.sh/ruff/)** - Fast Python linter and formatter (replaces Black, isort, flake8)
 - **[Pytest](https://docs.pytest.org/)** - Testing framework with async support
-- **[MyPy](https://mypypy.readthedocs.io/)** - Static type checking
+- **[MyPy](https://mypy.readthedocs.io/)** - Static type checking
 - **[Bandit](https://bandit.readthedocs.io/)** - Security vulnerability scanning
 - **[Pre-commit](https://pre-commit.com/)** - Git hooks for automated quality checks
 
@@ -169,13 +178,12 @@ make security          # Run security scan
 make test              # Run unit tests (excludes integration tests)
 make test-unit         # Run unit tests only
 make test-integration  # Run integration tests (requires PostgreSQL)
-make test-e2e          # Run E2E tests
 make coverage          # Run tests with coverage
 ```
 
 ### CI/CD
 
-Pre-commit hooks run automatically on `git commit` to enforce code quality standards locally. CI/CD workflow configuration has not yet been added to this repository.
+Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and pull requests to `main` and `dev`: lint, format check, unit tests, coverage, OpenAPI export, and a Docker build. Type checking and the database integration suite run in CI but are informational for now (see Known Limitations).
 
 ### Commit Convention
 
@@ -191,3 +199,14 @@ Types: feat, fix, docs, style, refactor, test, chore
 - `feat(auth): add JWT token refresh`
 - `fix(users): resolve email validation`
 - `test(projects): add integration tests`
+
+---
+
+## ⚠️ Known Limitations
+
+- **Type checking:** `mypy` reports about 190 errors, mostly from SQLAlchemy 1.x-style `Column` declarations and the `= Depends(...)` default pattern. Migrating models to `Mapped[...]` and routes to `Annotated[..., Depends()]` would clear most of them.
+- **Integration tests** (`make test-integration`) are out of date with the current domain model and run as informational in CI. They also reset the database they connect to, so never point them at a database you care about.
+- **Rate limiting** keeps counters in process memory per worker and keys on the socket IP. Behind a proxy or with several workers, limits are looser than configured; a shared store (Redis) and proxy headers are needed for production.
+- **Platform AI:** without `GEMINI_API_KEY`, platform-credit refinement uses the mock AI service. Set the key in any real deployment.
+- **Client Review access codes** are 8 characters, stored in plain text, and don't expire. Regenerating a code revokes the old one.
+- **No production deployment pipeline** yet: the Terraform/App Runner path in the docs is the target design.

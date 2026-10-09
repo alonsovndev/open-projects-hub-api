@@ -527,7 +527,6 @@ class LoginUserUseCase: ...
 
 **See Also:**
 - [Clean Architecture](./clean-architecture.md)
-- [Repository Pattern](./repository-pattern.md)
 - [Design Principles](./design-principles.md)
 
 ---

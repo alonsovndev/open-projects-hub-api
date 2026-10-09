@@ -468,7 +468,6 @@ When reviewing code, check:
 **See Also:**
 - [Clean Architecture](./clean-architecture.md)
 - [DDD Patterns](./ddd-patterns.md)
-- [Repository Pattern](./repository-pattern.md)
 
 ---
 
