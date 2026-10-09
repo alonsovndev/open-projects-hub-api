@@ -69,7 +69,7 @@ curl -X POST http://localhost:8000/v1/users \
 
 ## 📚 Full Documentation
 
-See [docs/setup/ADMIN_SETUP.md](../ADMIN_SETUP.md) for:
+See [docs/setup/ADMIN_SETUP.md](./ADMIN_SETUP.md) for:
 - Detailed examples
 - Security best practices
 - Troubleshooting

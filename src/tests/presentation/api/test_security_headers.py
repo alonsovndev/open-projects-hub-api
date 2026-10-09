@@ -52,8 +52,13 @@ class TestSecurityHeaders:
         # In test/local/dev, it should not be set
         assert "Strict-Transport-Security" not in response.headers
 
-    def test_csp_allows_swagger_ui_on_docs_endpoint(self, client):
-        """Verify Content-Security-Policy allows Swagger UI resources on /docs."""
+    def test_csp_allows_swagger_ui_on_docs_endpoint(self, client, monkeypatch):
+        """Verify the middleware sends the relaxed Swagger CSP for /docs paths.
+
+        Tests run with APP_ENV=test, where /docs itself is disabled (404); this checks the
+        header the middleware would send in the environments that serve the docs.
+        """
+        monkeypatch.setattr("src.app.shared.presentation.middleware.ENV", "local")
         response = client.get("/docs")
 
         csp = response.headers["Content-Security-Policy"]

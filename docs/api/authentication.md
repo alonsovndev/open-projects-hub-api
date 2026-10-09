@@ -136,10 +136,9 @@ to send the user to email verification.
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 900
 
 {
-  "detail": "Rate limit exceeded: 10 per 1 minute"
+  "error": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
 
@@ -427,7 +426,7 @@ When creating or updating passwords, the following rules apply:
 - ❌ `Pass123` - Too short
 - ❌ `Password` - No digit
 
-See [Password Security](../security/authentication.md#password-requirements) for more details.
+See [Security](../security/README.md) for more details.
 
 ---
 
@@ -445,7 +444,7 @@ Login endpoint is rate limited to prevent brute force attacks.
 1. Client makes login request
 2. API checks request count for that IP in last 1 minute
 3. If count < 10: Process request, increment counter
-4. If count >= 10: Return 429 error with `Retry-After` header
+4. If count >= 10: Return 429 (no `Retry-After` header)
 5. Counter resets after 1 minute
 
 **Testing rate limiting:**
@@ -461,7 +460,7 @@ for i in {1..11}; do
 done
 ```
 
-See [Rate Limiting](../security/rate-limiting.md) for more details.
+See [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md) for more details.
 
 ---
 
@@ -506,7 +505,7 @@ For users:
 
 **See Also:**
 - [Security Overview](../security/README.md)
-- [Rate Limiting](../security/rate-limiting.md)
+- [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md)
 - [Error Reference](./errors.md)
 
 ---

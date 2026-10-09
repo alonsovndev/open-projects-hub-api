@@ -12,7 +12,8 @@ jwt:
 cors:
   origins:
   - !ENV ${CORS_ORIGINS}
-  allow_credentials: !ENV ${CORS_ALLOW_CREDENTIALS:false}
+  # The bool tag matters: without it pyaml_env yields the truthy string "false".
+  allow_credentials: !ENV tag:yaml.org,2002:bool ${CORS_ALLOW_CREDENTIALS:false}
   allow_methods:
   - GET
   - POST

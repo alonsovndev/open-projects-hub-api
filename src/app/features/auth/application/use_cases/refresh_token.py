@@ -72,8 +72,11 @@ class RefreshTokenUseCase:
                 log.warning("Attempt to reuse revoked refresh token", extra={"event_type": "auth.refresh.token_reused"})
                 raise jwt.InvalidTokenError("Refresh token has already been used")
 
-            # Revoke the old refresh token immediately (single-use token)
-            await self.token_revocation.revoke_token(payload.refresh_token)
+            # Revoke the old refresh token immediately (single-use token). A concurrent request
+            # with the same token can pass the check above; only the one that revokes it wins.
+            if not await self.token_revocation.revoke_token(payload.refresh_token):
+                log.warning("Concurrent reuse of refresh token", extra={"event_type": "auth.refresh.token_reused"})
+                raise jwt.InvalidTokenError("Refresh token has already been used")
             log.info("Refresh token revoked", extra={"event_type": "auth.refresh.token_revoked"})
 
             # Verify user still exists

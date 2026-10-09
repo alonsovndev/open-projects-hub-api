@@ -12,7 +12,7 @@ Usage:
 Environment variables:
     APP_ENV: Application environment (local, dev, container, prod, test) - default: dev
     ADMIN_EMAIL: Email for the admin user (default: admin@example.com)
-    ADMIN_PASSWORD: Password for the admin user (default: Admin123!@#)
+    ADMIN_PASSWORD: Password for the admin user (required; no default)
     ADMIN_DISPLAY_NAME: Display name for the admin (default: System Administrator)
 
 Example:
@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.app.config.app_config import AppConfig
 from src.app.features.user.domain.entities.user_entity import INITIAL_AI_CREDITS, UserEntity
+from src.app.features.user.domain.validators.user_validators import UserValidators
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.features.user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
@@ -47,11 +48,17 @@ async def seed_admin():
     """Create the first admin user if it doesn't exist."""
 
     admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
-    admin_password = os.getenv("ADMIN_PASSWORD", "Admin123!@#")
+    admin_password = os.getenv("ADMIN_PASSWORD", "")
     admin_display_name = os.getenv("ADMIN_DISPLAY_NAME", "System Administrator")
 
-    if len(admin_password) < 8:
-        print("❌ ERROR: Admin password must be at least 8 characters long")
+    if not admin_password:
+        print("❌ ERROR: ADMIN_PASSWORD must be set")
+        sys.exit(1)
+
+    try:
+        UserValidators.validate_password(admin_password)
+    except ValueError as e:
+        print(f"❌ ERROR: {e}")
         sys.exit(1)
 
     app_env = AppConfig.instance().env
@@ -112,9 +119,7 @@ async def seed_admin():
             print(f"   Workspace: {workspace.name}")
             print(f"   Created At: {saved_user.created_at}")
             print("=" * 60)
-            print("🎉 You can now login with these credentials:")
-            print(f"   Email: {admin_email}")
-            print(f"   Password: {admin_password}")
+            print(f"🎉 You can now log in as {admin_email} with the ADMIN_PASSWORD you provided.")
             print("=" * 60)
 
     except Exception as e:

@@ -4,7 +4,6 @@ HTTP middleware components for FastAPI application.
 Provides security headers, API versioning, and CORS configuration.
 """
 
-import os
 from collections.abc import Callable
 
 from fastapi import Request, Response
@@ -13,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.app.config.app_config import AppConfig
 
 
-ENV = os.getenv("APP_ENV", "local")
+# Read through AppConfig so an APP_ENV set only in .env is honoured.
+ENV = AppConfig.instance().env
 
 
 async def add_security_headers(request: Request, call_next: Callable) -> Response:
@@ -53,7 +53,8 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     # Content Security Policy - More permissive in local/dev, strict in production
     # In local/dev: Allow Swagger UI resources on /docs endpoint
     # In production: Strict CSP on all endpoints (no documentation endpoints exposed)
-    if ENV in ("local", "dev", "development"):
+    # Must match the environments that serve /docs (see app.py).
+    if ENV in ("local", "container"):
         # Allow Swagger UI resources for local development
         if request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
             # Swagger UI requires: CDN resources, inline scripts, and unsafe-eval
@@ -114,7 +115,13 @@ def get_allowed_cors_origins() -> list[str]:
         List of allowed origin strings
     """
     config = AppConfig.instance()
-    origins = config.get_config("cors.origins", [])
+    # CORS_ORIGINS is documented as a comma-separated list but arrives as a single list entry.
+    origins = [
+        origin.strip()
+        for entry in config.get_config("cors.origins", [])
+        for origin in str(entry).split(",")
+        if origin.strip()
+    ]
     allow_credentials = config.get_config("cors.allow_credentials", False)
 
     # Validate: cannot use wildcard with credentials

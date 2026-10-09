@@ -1,7 +1,7 @@
 # Makefile for Open Projects Hub API
 # Common commands for testing, coverage, linting, and running the application
 
-.PHONY: help install install-dev test test-unit test-integration test-e2e coverage coverage-report lint lint-fix format format-check type-check security pre-commit-install run seed-admin clean
+.PHONY: help install install-dev test test-unit test-integration coverage coverage-report lint lint-fix format format-check type-check security pre-commit-install run seed-admin clean
 
 # Load environment variables from .env file (if it exists)
 -include .env
@@ -19,7 +19,6 @@ help:
 	@echo "  make test               Run all tests (unit + integration)"
 	@echo "  make test-unit          Run unit tests only"
 	@echo "  make test-integration   Run integration tests only (requires DB)"
-	@echo "  make test-e2e           Run end-to-end tests only (requires DB)"
 	@echo "  make coverage           Run tests with coverage report"
 	@echo "  make coverage-report    Open HTML coverage report"
 	@echo ""
@@ -51,7 +50,7 @@ install:
 install-dev:
 	@echo "📦 Installing development dependencies..."
 	pip install --upgrade pip
-	pip install -r requirements.txt
+	pip install -r requirements.txt -r requirements-test.txt
 	pip install ruff mypy bandit[toml] pre-commit pytest-cov
 	@echo ""
 	@echo "🪝 Installing pre-commit hooks..."
@@ -63,25 +62,24 @@ install-dev:
 	@echo "   Run 'make format' to format code"
 	@echo "   Run 'make test' to run tests"
 
+# Unit test targets pin APP_ENV=test: `export` above would otherwise pass the developer's
+# .env APP_ENV (e.g. local) through and point unit tests at the real database.
+
 # Run all tests (excluding integration tests by default)
 test:
-	pytest --ignore=src/tests/integration/ -m "not integration" -v
+	APP_ENV=test pytest --ignore=src/tests/integration/ -m "not integration" -v
 
 # Run unit tests only (exclude integration)
 test-unit:
-	pytest --ignore=src/tests/integration/ -m "not integration" -v
+	APP_ENV=test pytest --ignore=src/tests/integration/ -m "not integration" -v
 
 # Run integration tests (require database)
 test-integration:
 	pytest src/tests/integration/ -v
 
-# Run end-to-end tests (require database)
-test-e2e:
-	pytest -m e2e -v
-
 # Run tests with coverage (unit tests only, fast)
 coverage:
-	pytest \
+	APP_ENV=test pytest \
 		--ignore=src/tests/integration/ \
 		--cov=src/app \
 		--cov-report=term-missing:skip-covered \

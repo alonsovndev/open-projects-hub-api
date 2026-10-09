@@ -519,7 +519,7 @@ test(projects): add integration tests for project creation
 
 ## CI/CD - Quality Checks
 
-Quality checks are enforced locally via pre-commit hooks (see above). CI/CD workflow files have not yet been added to this repository. To run all quality checks manually:
+Quality checks are enforced locally via pre-commit hooks (see above). GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on pushes and pull requests to `main` and `dev`. To run all quality checks manually:
 
 ```bash
 make lint && make format-check && make type-check && make security && make test && make coverage

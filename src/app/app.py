@@ -2,7 +2,6 @@
 FastAPI application bootstrap and configuration.
 """
 
-import os
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -19,7 +18,8 @@ from src.app.shared.presentation.middleware import register_middleware
 from src.app.shared.presentation.router_registry import register_routers
 
 
-ENV = os.getenv("APP_ENV", "local")
+# Read through AppConfig so an APP_ENV set only in .env is honoured.
+ENV = AppConfig.instance().env
 
 # Load application configuration
 config = AppConfig.instance()
@@ -71,20 +71,27 @@ async def lifespan(app: FastAPI):
     await close_engine()
 
 
+# API documentation is only served in local environments. FastAPI registers these routes in its
+# constructor, so they must be disabled here; clearing the attributes afterwards leaves
+# /openapi.json reachable and makes /docs fail with a 500.
+_docs_enabled = ENV in ("local", "container")
+
 # Initialize FastAPI application
-fastapi_app = FastAPI(title=app_name, version=app_version, description=app_description, lifespan=lifespan)
+fastapi_app = FastAPI(
+    title=app_name,
+    version=app_version,
+    description=app_description,
+    lifespan=lifespan,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
+)
 
 # Register correlation ID middleware (must be before app starts)
 fastapi_app.add_middleware(RequestContextMiddleware)
 
 # Register rate limiter with FastAPI
 fastapi_app.state.limiter = limiter
-
-# Disable API documentation in non-local environments
-if ENV not in ("local", "container"):
-    fastapi_app.docs_url = None
-    fastapi_app.redoc_url = None
-    fastapi_app.openapi_url = None
 
 
 @fastapi_app.get("/")

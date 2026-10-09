@@ -5,7 +5,6 @@ Provides consistent error response formats across all endpoints
 for validation errors, domain errors, authentication errors, and unexpected exceptions.
 """
 
-import os
 import traceback
 from typing import Any
 
@@ -14,6 +13,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from src.app.config.app_config import AppConfig
 from src.app.features.ai_config.domain.exceptions.ai_config_exceptions import (
     ApiKeyNotFoundError,
     ApiKeyRejectedError,
@@ -39,7 +39,8 @@ from src.app.shared.logging import get_logger
 log = get_logger(__name__)
 
 
-ENV = os.getenv("APP_ENV", "local")
+# Read through AppConfig so an APP_ENV set only in .env is honoured.
+ENV = AppConfig.instance().env
 
 
 def _redact_errors(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:

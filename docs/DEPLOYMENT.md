@@ -54,9 +54,8 @@ Edit `.env` with production values:
 # change `environment.APP_ENV` in compose.yml.
 APP_ENV=prod
 
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT_JSON=true
+# Logging (gunicorn server log level; app logging is set in config_prod.yml)
+LOG_LEVEL=info
 
 # Database (use strong passwords!)
 POSTGRES_USER=open-projects-hub-admin
@@ -227,8 +226,8 @@ docker compose exec -T postgres psql -U open-projects-hub-admin open-projects-hu
 - [ ] **Disable HTTP** in production (redirect to HTTPS)
 - [ ] **Set `APP_ENV=prod`** to disable API docs (`/docs`, `/redoc`)
 - [ ] **Review rate limits** in `src/app/shared/infrastructure/rate_limit/rate_limiter.py`
-- [ ] **Enable structured JSON logging** (`LOG_FORMAT_JSON=true`)
-- [ ] **Set `LOG_LEVEL=INFO`** (not DEBUG in production)
+- [ ] **Keep structured JSON logging** (`logging.format: json` in `config_prod.yml`)
+- [ ] **Keep `logging.level: INFO`** in `config_prod.yml` (not DEBUG in production)
 - [ ] **Use secrets management** (not `.env` files in production)
 - [ ] **Restrict database access** (firewall rules, VPC)
 - [ ] **Run security scan** (`make security`)
@@ -270,7 +269,7 @@ curl http://localhost:8080/health
 
 ### Structured Logging
 
-The API uses structured JSON logging when `LOG_FORMAT_JSON=true`.
+The API writes structured JSON logs when `logging.format` is `json` in the active `config_<APP_ENV>.yml` (the default in `config_prod.yml`).
 
 **Log fields:**
 - `timestamp` - ISO 8601 timestamp

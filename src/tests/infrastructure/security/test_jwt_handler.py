@@ -52,6 +52,13 @@ class TestJWTHandler:
         assert payload["sub"] == "123"
         assert payload["email"] == "test@example.com"
 
+    def test_decode_access_token_rejects_refresh_token(self, jwt_handler):
+        """A refresh token must not be accepted as a bearer token."""
+        refresh_token = jwt_handler.create_refresh_token(user_id="123", email="test@example.com", role="ADMIN")
+
+        with pytest.raises(jwt.InvalidTokenError):
+            jwt_handler.decode_access_token(refresh_token)
+
     def test_decode_expired_token_raises_error(self, jwt_handler):
         """Test that expired token raises error."""
         past_time = datetime.now(tz=UTC) - timedelta(hours=2)

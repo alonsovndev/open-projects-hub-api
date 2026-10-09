@@ -246,16 +246,15 @@ POST /v1/auth/login
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 900
 Content-Type: application/json
 
 {
-  "detail": "Rate limit exceeded: 10 per 1 minute"
+  "error": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
 
 **Cause:** Too many requests from the same IP address  
-**Solution:** Wait for the time specified in `Retry-After` header (seconds)
+**Solution:** Wait for the window in the message to pass (the API does not send a `Retry-After` header)
 
 **Rate Limits:**
 - Login: 10 requests per 1 minute
@@ -338,14 +337,7 @@ HTTP/1.1 503 Service Unavailable
 
 ### Retry-After
 
-Indicates how long to wait before making another request (rate limiting).
-
-```http
-HTTP/1.1 429 Too Many Requests
-Retry-After: 900
-```
-
-**Value:** Seconds until rate limit resets
+Not sent by this API: rate-limited responses (`429`) state the limit in the body instead, for example `{"error": "Rate limit exceeded: 10 per 1 minute"}`.
 
 ### WWW-Authenticate
 
@@ -383,8 +375,8 @@ if (!response.ok) {
       break;
     case 429:
       // Handle rate limit
-      const retryAfter = response.headers.get('Retry-After');
-      showRateLimitError(retryAfter);
+      // 429 bodies use `error`, not `detail`, and carry no Retry-After header
+      showRateLimitError(error.error);
       break;
     case 500:
       // Handle server error
@@ -528,7 +520,7 @@ A: Check for extra whitespace in email/password, ensure password meets complexit
 A: Decode the JWT (don't verify signature) and check the `exp` claim. Token expiry is configurable.
 
 **Q: Can I retry after a 429 error?**  
-A: Yes, wait for the seconds specified in the `Retry-After` header, then retry.
+A: Yes. The message states the limit window (for example `10 per 1 minute`); wait for it to pass, then retry.
 
 **Q: What should I do for 500 errors?**  
 A: These are server-side errors. Implement retry logic with exponential backoff. If persists, contact support.
@@ -541,7 +533,7 @@ A: Parse the `detail` array, extract field-specific errors, and display them to 
 **See Also:**
 - [API Overview](./README.md)
 - [Authentication](./authentication.md)
-- [Security Best Practices](../security/best-practices.md)
+- [Security](../security/README.md)
 
 ---
 

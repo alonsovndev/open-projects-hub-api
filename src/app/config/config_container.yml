@@ -33,14 +33,14 @@ persistence:
     host: postgres
     port: 5432
     dbname: open-projects-hub-db
-    echo: true
+    echo: false
     pool_size: 10
     max_overflow: 10
     pool_timeout: 30
     pool_pre_ping: true
 
 logging:
-  level: DEBUG
+  level: INFO
   format: text
   outputs:
   - type: console
