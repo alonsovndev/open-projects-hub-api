@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.features.auth.infrastructure.models.revoked_refresh_token_model import RevokedRefreshTokenModel
@@ -13,13 +14,21 @@ class SqlTokenRevocationRepository(TokenRevocationRepository):
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
 
-    async def add(self, token_hash: str, expires_at: datetime) -> None:
+    async def add(self, token_hash: str, expires_at: datetime) -> bool:
         model = await self.db_session.get(RevokedRefreshTokenModel, token_hash)
-        if model is None:
-            self.db_session.add(RevokedRefreshTokenModel(token_hash=token_hash, expires_at=expires_at))
-        else:
+        if model is not None:
             model.expires_at = expires_at
-        await self.db_session.commit()
+            await self.db_session.commit()
+            return False
+
+        self.db_session.add(RevokedRefreshTokenModel(token_hash=token_hash, expires_at=expires_at))
+        try:
+            await self.db_session.commit()
+        except IntegrityError:
+            # Another request revoked the same token between the lookup and the insert.
+            await self.db_session.rollback()
+            return False
+        return True
 
     async def contains(self, token_hash: str) -> bool:
         model = await self.db_session.get(RevokedRefreshTokenModel, token_hash)

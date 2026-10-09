@@ -29,6 +29,8 @@ class JWTHandler:
         "password",
         "12345",
         "supersecret",
+        # The .env.example placeholder: long enough to pass the length check, so list it here.
+        "your-super-secret-jwt-key-change-this-in-production-min-32-chars",
     }
 
     # PyJWT decode options shared by access and refresh token decoders
@@ -221,7 +223,7 @@ class JWTHandler:
             jwt.InvalidTokenError: If token is invalid
         """
         try:
-            return jwt.decode(  # type: ignore[no-any-return]
+            payload = jwt.decode(
                 token,
                 self.secret_key,
                 algorithms=[self.algorithm],
@@ -229,6 +231,13 @@ class JWTHandler:
                 issuer=self.issuer,
                 options=self._DECODE_OPTIONS,
             )
+
+            # Refresh tokens share the signing key and claims; without this check a long-lived
+            # refresh token would also work as a bearer token.
+            if payload.get("type") == "refresh":
+                raise jwt.InvalidTokenError("Refresh token cannot be used as an access token")
+
+            return payload  # type: ignore[no-any-return]
         except jwt.ExpiredSignatureError:
             log.warning("Attempted to decode expired JWT token")
             raise
