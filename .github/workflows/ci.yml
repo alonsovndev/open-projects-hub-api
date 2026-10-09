@@ -1,18 +1,11 @@
 name: CI Pipeline
 
-# Temporarily disabled: do not trigger on push/pull_request yet. test-unit has
-# intermittent flaky failures (non-deterministic async-cleanup warnings,
-# unrelated to any given PR's changes — see US-EP0-BE-003 follow-up notes)
-# that would redden every PR's required check. Re-enable by restoring the
-# push/pull_request triggers below once that's root-caused and fixed.
-# In the meantime this can still be run manually from the Actions tab (or
-# `gh workflow run ci.yml`) via workflow_dispatch.
 on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
   workflow_dispatch: {}
-  # push:
-  #   branches: [main, develop]
-  # pull_request:
-  #   branches: [main, develop]
 
 env:
   PYTHON_VERSION: "3.12"
@@ -53,7 +46,7 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
-    # Informational only for now: 121 pre-existing mypy errors across 21 files
+    # Informational only for now: ~190 pre-existing mypy errors across 30 files
     # (mostly the FastAPI `= Depends(...)` default-value pattern, a known mypy
     # false-positive shape, plus real assignment/arg-type mismatches) predate
     # this workflow — `make type-check` already tolerates this locally via
@@ -84,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt -r requirements-test.txt
       - name: Run unit tests
         env:
           APP_ENV: test
@@ -122,7 +115,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt -r requirements-test.txt
       - name: Run integration tests
         env:
           APP_ENV: test
@@ -145,7 +138,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt -r requirements-test.txt
           pip install pytest-cov
       - name: Run tests with coverage
         env:

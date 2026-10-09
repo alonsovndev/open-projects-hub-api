@@ -1,0 +1,5 @@
+# Pinned test runner dependencies, kept out of requirements.txt so they don't ship in the image.
+# Install with: pip install -r requirements.txt -r requirements-test.txt
+pytest==8.3.4
+pytest-asyncio==0.25.3
+freezegun==1.5.1
