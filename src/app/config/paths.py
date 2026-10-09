@@ -15,19 +15,3 @@ class Paths:
 
     # Environment file path
     ENV_FILE_PATH = BASE_DIR / ".env"
-
-    # Logs directory (if applicable)
-    LOGS_DIR = BASE_DIR / "logs"
-
-    # Local storage directory for files (if applicable)
-    LOCAL_STORAGE_DIR = BASE_DIR / "../tmp/"
-
-    @staticmethod
-    def ensure_directories_exist():
-        """
-        Ensures that required directories (like logs or local storage) exist.
-        Creates them if they are missing.
-        """
-        required_dirs = [Paths.LOGS_DIR, Paths.LOCAL_STORAGE_DIR]
-        for directory in required_dirs:
-            directory.mkdir(parents=True, exist_ok=True)

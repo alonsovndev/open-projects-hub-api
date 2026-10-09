@@ -104,18 +104,6 @@ class StoryRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_assigned_user(self, user_id: UUID, *, workspace_id: UUID) -> list["StoryEntity"]:
-        """
-        Find all stories assigned to a specific user.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            List of StoryEntity objects
-        """
-
-    @abstractmethod
     async def save(self, story: "StoryEntity") -> "StoryEntity":
         """
         Callers must have confirmed the story's project is in their workspace (create) or
