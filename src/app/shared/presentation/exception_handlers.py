@@ -290,16 +290,16 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     # No-op if sentry_sdk.init() was never called (no SENTRY_DSN configured).
     sentry_sdk.capture_exception(exc)
 
-    # In production, don't expose internal error details
-    if ENV in ("prod", "production"):
+    # Fail closed: only developer-machine environments get raw exception text, which for
+    # database errors includes SQL statements and bound parameters.
+    if ENV in ("local", "test"):
         return JSONResponse(
             status_code=500,
-            content={"detail": "An unexpected error occurred. Please try again later."},
+            content={"detail": str(exc)},
         )
-    # In dev/local, provide more details for debugging
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
+        content={"detail": "An unexpected error occurred. Please try again later."},
     )
 
 
