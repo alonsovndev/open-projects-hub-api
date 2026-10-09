@@ -44,13 +44,13 @@ Before merging a new migration:
 - [ ] **`downgrade()` is complete**: see the ENUM gotcha below — a downgrade that doesn't fully
       undo the upgrade will break the next `upgrade head` attempt.
 
-Only one migration exists today (`001_initial_schema`, no prior schema to break), so
-backward-compatibility review has not yet applied in practice — this checklist is the process
-to follow starting with the next schema change.
+Only one migration exists today (`0001_initial`, a squash of the pre-release history made
+before the first deployment, so there is no deployed schema to break). This checklist is the
+process to follow starting with the next schema change.
 
 ## ⚠️ PostgreSQL ENUM Types in `downgrade()`
 
-**Gotcha found and fixed while verifying this runbook** (see `001_initial_schema`): a
+**Gotcha found and fixed while verifying this runbook** (see `0001_initial`): a
 `postgresql.ENUM` column type is a separate named object in PostgreSQL from the table that
 uses it. `op.drop_table(...)` drops the table but **not** the enum type it referenced — the
 type is left orphaned. The next `alembic upgrade head` then fails with
@@ -79,7 +79,7 @@ alembic upgrade head        # re-apply — must succeed cleanly
 
 If the re-apply fails, the `downgrade()` didn't fully undo the `upgrade()` (most commonly:
 an orphaned ENUM type, per above, or a leftover index/constraint). This exact cycle was run
-against `001_initial_schema` and confirmed idempotent after the ENUM fix.
+against `0001_initial` and confirmed idempotent after the ENUM fix.
 
 ## Seed Data
 
