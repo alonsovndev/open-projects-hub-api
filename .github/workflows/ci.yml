@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      # Unit tests load config_test.yml, which requires a SECRET_KEY (>= 32 chars, not the .env.example placeholder).
+      SECRET_KEY: ci-only-jwt-secret-key-not-used-anywhere-else
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-test.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-test.txt ruff==0.15.14 "bandit[toml]==1.9.4" mypy==2.3.1
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format
+        run: ruff format --check .
+
+      - name: Security scan
+        run: bandit -c pyproject.toml -r src/app
+
+      # Informational: the codebase has known mypy errors and `make type-check` also never fails.
+      - name: Type check
+        continue-on-error: true
+        run: mypy src/app --config-file=pyproject.toml
+
+      - name: Unit tests
+        run: APP_ENV=test pytest --ignore=src/tests/integration/ -m "not integration" -v
