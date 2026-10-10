@@ -1,5 +1,6 @@
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials
 
 from src.app.composition import (
     get_confirm_password_reset_use_case,
@@ -12,8 +13,10 @@ from src.app.composition import (
     get_resend_verification_use_case,
     get_verify_email_use_case,
 )
+from src.app.composition.infrastructure import get_jwt_handler
 from src.app.features.auth.application.dtos.auth_dto import (
     AdminLoginResponse,
+    BrowserSessionResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -30,6 +33,7 @@ from src.app.features.auth.application.dtos.auth_dto import (
     VerifyEmailRequest,
     VerifyEmailResponse,
 )
+from src.app.features.auth.application.mappers.auth_mapper import to_browser_session_response
 from src.app.features.auth.application.use_cases.confirm_password_reset import ConfirmPasswordResetUseCase
 from src.app.features.auth.application.use_cases.login_user import LoginUserUseCase
 from src.app.features.auth.application.use_cases.logout_user import LogoutUseCase
@@ -46,20 +50,33 @@ from src.app.features.auth.domain.exceptions.auth_exceptions import (
     ResetCodeRateLimitedError,
     VerificationRateLimitedError,
 )
+from src.app.features.auth.presentation.browser_session import (
+    BROWSER_SESSION_OPENAPI,
+    REFRESH_COOKIE,
+    clear_refresh_cookie,
+    is_browser_session,
+    refresh_request,
+    set_refresh_cookie,
+)
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
-from src.app.shared.presentation.auth_dependencies import get_current_user
+from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
+from src.app.shared.presentation.auth_dependencies import get_current_user, security
 
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=AdminLoginResponse)
+@router.post(
+    "/login", response_model=AdminLoginResponse | BrowserSessionResponse, openapi_extra=BROWSER_SESSION_OPENAPI
+)
 @limiter.limit("10/minute")
 async def login(
     request: Request,
     payload: LoginRequest,
+    response: Response,
+    jwt_handler: JWTHandler = Depends(get_jwt_handler),
     login_use_case: LoginUserUseCase = Depends(get_login_use_case),
-) -> AdminLoginResponse:
+) -> AdminLoginResponse | BrowserSessionResponse:
     """
     Authenticate user and return JWT token with user details.
 
@@ -79,8 +96,13 @@ async def login(
         429: Too many requests (rate limit exceeded)
         500: Internal server error
     """
+    browser_mode = is_browser_session(request)
     try:
-        return await login_use_case.execute(payload=payload)
+        session = await login_use_case.execute(payload=payload)
+        if browser_mode:
+            set_refresh_cookie(response, session.refresh_token, jwt_handler)
+            return to_browser_session_response(session)
+        return session
     except InvalidCredentialsError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
 
@@ -181,73 +203,71 @@ async def resend_verification(
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e)) from e
 
 
-@router.post("/refresh", response_model=RefreshTokenResponse)
+@router.post(
+    "/refresh",
+    response_model=RefreshTokenResponse | BrowserSessionResponse,
+    response_model_exclude_none=True,
+    openapi_extra=BROWSER_SESSION_OPENAPI,
+)
 @limiter.limit("10/15minutes")
 async def refresh_token(
     request: Request,
-    payload: RefreshTokenRequest,
+    response: Response,
+    payload: RefreshTokenRequest | None = None,
     refresh_use_case: RefreshTokenUseCase = Depends(get_refresh_token_use_case),
-) -> RefreshTokenResponse:
-    """
-    Refresh access token using refresh token.
-
-    Implements single-use refresh token rotation:
-    - Returns new access token (15min TTL) AND new refresh token (7 days)
-    - Old refresh token is immediately revoked and cannot be reused
-    - Prevents token replay attacks
-
-    Rate limited to 10 attempts per 15 minutes per IP address.
-
-    Args:
-        request: FastAPI request object (required for rate limiting)
-        payload: RefreshTokenRequest with refresh token
-        refresh_use_case: Injected RefreshTokenUseCase
-
-    Returns:
-        RefreshTokenResponse with new access and refresh tokens
-
-    Raises:
-        401: Refresh token expired or invalid
-        429: Too many requests (rate limit exceeded)
-        500: Internal server error
-    """
+    jwt_handler: JWTHandler = Depends(get_jwt_handler),
+) -> RefreshTokenResponse | BrowserSessionResponse:
+    browser_mode = is_browser_session(request)
+    token_request = refresh_request(request, payload)
     try:
-        return await refresh_use_case.execute(payload=payload)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token has expired",
-        ) from None
-    except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
-        ) from None
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
+        session = await refresh_use_case.execute(payload=token_request)
+        if browser_mode:
+            if session.user is None:
+                raise HTTPException(status_code=500, detail="Session identity is unavailable")
+            set_refresh_cookie(response, session.refresh_token, jwt_handler)
+            return to_browser_session_response(session)
+        return session
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, ValueError) as error:
+        headers = None
+        if browser_mode:
+            clear_refresh_cookie(response)
+            headers = {"Set-Cookie": response.headers["set-cookie"]}
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token", headers=headers) from error
 
 
-@router.post("/logout", response_model=LogoutResponse)
+async def logout_principal(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    jwt_handler: JWTHandler = Depends(get_jwt_handler),
+) -> dict | None:
+    if is_browser_session(request):
+        return None
+    return await get_current_user(request, credentials, jwt_handler)
+
+
+@router.post(
+    "/logout",
+    response_model=LogoutResponse,
+    openapi_extra={**BROWSER_SESSION_OPENAPI, "security": [{"HTTPBearer": []}, {}]},
+)
 async def logout(
-    payload: RefreshTokenRequest,
-    _current_user: dict = Depends(get_current_user),
+    request: Request,
+    response: Response,
+    payload: RefreshTokenRequest | None = None,
+    _current_user: dict | None = Depends(logout_principal),
     logout_use_case: LogoutUseCase = Depends(get_logout_use_case),
 ) -> LogoutResponse:
-    """
-    Log out the current session by revoking its refresh token server-side.
-
-    Requires a valid access token (Authorization header) plus the session's
-    refresh token in the body. Idempotent: an already-expired/invalid
-    refresh token still returns success rather than an error.
-
-    Args:
-        payload: RefreshTokenRequest with the session's refresh token
-        logout_use_case: Injected LogoutUseCase
-
-    Returns:
-        LogoutResponse confirming the session was invalidated
-    """
-    return await logout_use_case.execute(payload=payload)
+    browser_mode = is_browser_session(request)
+    if browser_mode and not request.cookies.get(REFRESH_COOKIE):
+        if payload is not None:
+            raise HTTPException(status_code=422, detail="Cookie sessions do not accept body credentials")
+        clear_refresh_cookie(response)
+        return LogoutResponse(message="Logged out successfully.")
+    token_request = refresh_request(request, payload)
+    result = await logout_use_case.execute(payload=token_request)
+    if browser_mode:
+        clear_refresh_cookie(response)
+    return result
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

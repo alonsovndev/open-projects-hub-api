@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import jwt
 
@@ -197,6 +198,7 @@ class JWTHandler:
             "aud": self.audience,
             "iss": self.issuer,
             "type": "refresh",  # Mark as refresh token
+            "jti": str(uuid4()),
             "remember_me": remember_me,
             "tv": token_version,
         }

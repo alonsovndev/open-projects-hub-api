@@ -2,9 +2,23 @@
 
 from datetime import UTC, datetime
 
-from src.app.features.auth.application.dtos.auth_dto import AdminLoginResponse, UserDetail, WorkspaceDetail
+from src.app.features.auth.application.dtos.auth_dto import (
+    AdminLoginResponse,
+    BrowserSessionResponse,
+    RefreshTokenResponse,
+    UserDetail,
+    WorkspaceDetail,
+)
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.workspaces.domain.entities.workspace_entity import WorkspaceEntity
+
+
+def to_browser_session_response(session: AdminLoginResponse | RefreshTokenResponse) -> BrowserSessionResponse:
+    if session.user is None:
+        raise ValueError("Session identity is unavailable")
+    return BrowserSessionResponse(
+        access_token=session.access_token, session_expires_at=session.session_expires_at, user=session.user
+    )
 
 
 def to_admin_login_response(
