@@ -16,6 +16,8 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     env:
+      # Same as the Dockerfile: tests import the `src` package from the repo root.
+      PYTHONPATH: .
       # Unit tests load config_test.yml, which requires a SECRET_KEY (>= 32 chars, not the .env.example placeholder).
       SECRET_KEY: ci-only-jwt-secret-key-not-used-anywhere-else
     steps:
