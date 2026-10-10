@@ -81,8 +81,7 @@ class TestRefreshTokenUseCase:
         # Verify new tokens are returned
         assert response.access_token is not None
         assert response.refresh_token is not None
-        # Note: tokens might be identical if generated in same second (same iat)
-        # But the logic for rotation is correct
+        assert response.refresh_token != refresh_token
 
         # Verify new access token is valid
         access_payload = jwt_handler.decode_access_token(response.access_token)

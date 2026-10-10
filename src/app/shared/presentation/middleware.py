@@ -40,6 +40,9 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     """
     response = await call_next(request)
 
+    if request.url.path.startswith("/v1/auth/"):
+        response.headers["Cache-Control"] = "no-store"
+
     # HSTS: Force HTTPS for 1 year (only in production)
     if ENV in ("prod", "production"):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

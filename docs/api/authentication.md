@@ -10,6 +10,55 @@ The authentication system uses:
 - **Rate limiting** to prevent brute force attacks
 - **Role-based access control** (USER, ADMIN)
 
+## Browser cookie sessions
+
+The existing JSON token flow below remains available to non-browser clients. Browser
+clients add `X-Session-Mode: cookie` to login, refresh, and logout and use Fetch
+`credentials: include`. A trusted `Origin` header is required for all three operations;
+missing, `null`, or untrusted origins get `403`. Trust is configured through exact CORS
+origins and `app.frontend_base_url` (`FRONTEND_BASE_URL`). Only local mode also accepts
+localhost/127.0.0.1 on development fallback ports.
+
+Login accepts the same email/password body, with optional `rememberMe`. Browser refresh
+and logout send no body and no bearer header; body refresh credentials get `422` in cookie
+mode. A cookie alone cannot opt into browser mode. Without the custom header, refresh still
+requires a JSON refresh token and logout requires its existing bearer authentication.
+
+Successful browser login/refresh return only:
+
+```json
+{
+  "accessToken": "<memory-only-access-token>",
+  "sessionExpiresAt": "<ISO-8601-session-expiry>",
+  "user": {
+    "email": "user@example.com",
+    "displayName": "Current name",
+    "name": "Current name",
+    "role": "member",
+    "workspace": { "id": "<workspace-id>", "name": "Current workspace" }
+  }
+}
+```
+
+Identity and workspace metadata on refresh come from current repository records. Access
+JWTs remain bearer credentials for protected data endpoints; these endpoints do not
+accept the refresh cookie as authentication. The refresh cookie is host-only
+`oph_refresh_token`, HttpOnly, SameSite=Lax, Path=/v1/auth. It is Secure outside local/test
+and has no Domain attribute. Ordinary sessions use a session cookie backed by the existing
+24-hour expiry; remembered sessions have Max-Age for the remaining seven-day expiry.
+Rotation mints a unique `jti`, revokes the previous token, and replaces the cookie.
+Logout revokes the current cookie and deletes it; missing/invalid cookies are idempotent.
+Invalid refresh cookies get `401` and a deletion cookie. Auth responses, including errors,
+carry `Cache-Control: no-store`.
+
+Deploy the API before the coordinated web migration. Existing browser-storage sessions
+are discarded and users sign in again. Production should route web and API through the
+same HTTPS origin. For cross-origin development, use matching loopback hostnames,
+credentialed CORS and an allowed `X-Session-Mode` header. Container/dev/prod cookie mode
+requires HTTPS. CloudFront must forward cookies, `Origin`, and `X-Session-Mode` for
+`/v1/auth/*` and disable caching there. Deployment changes are outside this patch; actual
+CloudFront origin configuration is TBD.
+
 ## Endpoints
 
 ### POST /v1/auth/login

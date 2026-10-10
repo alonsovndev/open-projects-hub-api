@@ -4,8 +4,14 @@ RefreshTokenUseCase - Refresh access token using refresh token.
 
 import jwt
 
-from src.app.features.auth.application.dtos.auth_dto import RefreshTokenRequest, RefreshTokenResponse
+from src.app.features.auth.application.dtos.auth_dto import (
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    UserDetail,
+    WorkspaceDetail,
+)
 from src.app.features.user.domain.repositories.user_repository import UserRepository
+from src.app.features.workspaces.domain.repositories.workspace_repository import WorkspaceRepository
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.infrastructure.security.jwt_handler import JWTHandler
 from src.app.shared.infrastructure.security.token_revocation_service import (
@@ -32,7 +38,10 @@ class RefreshTokenUseCase:
         user_repository: UserRepository,
         jwt_handler: JWTHandler,
         token_revocation: TokenRevocationService | None = None,
+        *,
+        workspace_repository: WorkspaceRepository | None = None,
     ):
+        self.workspace_repository = workspace_repository
         self.user_repository = user_repository
         self.jwt_handler = jwt_handler
         self.token_revocation = token_revocation or get_token_revocation_service()
@@ -129,10 +138,22 @@ class RefreshTokenUseCase:
                 extra={"event_type": "auth.refresh.success", "user_id": str(user_entity.id)},
             )
 
+            workspace = (
+                await self.workspace_repository.find_by_id(user_entity.workspace_id)
+                if self.workspace_repository and user_entity.workspace_id
+                else None
+            )
             return RefreshTokenResponse(
                 access_token=new_access_token,
                 refresh_token=new_refresh_token,
                 session_expires_at=session_expires_at.isoformat().replace("+00:00", "Z"),
+                user=UserDetail(
+                    email=str(user_entity.email),
+                    display_name=user_entity.display_name,
+                    name=user_entity.display_name,
+                    role=user_entity.role.value,
+                    workspace=WorkspaceDetail(id=str(workspace.id), name=workspace.name) if workspace else None,
+                ),
             )
 
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
