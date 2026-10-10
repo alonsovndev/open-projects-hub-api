@@ -183,7 +183,9 @@ make coverage          # Run tests with coverage
 
 ### CI/CD
 
-Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and pull requests to `main` and `dev`: lint, format check, unit tests, coverage, OpenAPI export, and a Docker build. Type checking and the database integration suite run in CI but are informational for now (see Known Limitations).
+Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main` and `dev`: ruff lint and format check, bandit, and the unit tests. `mypy` runs as an informational step (see Known Limitations). The coverage gate, OpenAPI export, Docker build and the database integration suite are not part of CI; an earlier, larger workflow was removed in commit `0344e54` and can be restored from git history if wanted.
+
+Tagging `vX.Y.Z` runs `.github/workflows/deploy.yml`, which builds the image and deploys it to AWS (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#aws-production-deployment)).
 
 ### Commit Convention
 
@@ -206,7 +208,7 @@ Types: feat, fix, docs, style, refactor, test, chore
 
 - **Type checking:** `mypy` reports about 190 errors, mostly from SQLAlchemy 1.x-style `Column` declarations and the `= Depends(...)` default pattern. Migrating models to `Mapped[...]` and routes to `Annotated[..., Depends()]` would clear most of them.
 - **Integration tests** (`make test-integration`) are out of date with the current domain model and run as informational in CI. They also reset the database they connect to, so never point them at a database you care about.
-- **Rate limiting** keeps counters in process memory per worker and keys on the socket IP. Behind a proxy or with several workers, limits are looser than configured; a shared store (Redis) and proxy headers are needed for production.
+- **Rate limiting** keeps counters in process memory per worker and keys on the socket IP. Behind a proxy or with several workers, limits are looser than configured. The AWS deployment runs one worker and Caddy forwards the real viewer address as `X-Forwarded-For`; any other proxy setup needs the same, and a shared store (Redis) would be needed for several workers.
 - **Platform AI:** without `GEMINI_API_KEY`, platform-credit refinement uses the mock AI service. Set the key in any real deployment.
 - **Client Review access codes** are 8 characters, stored in plain text, and don't expire. Regenerating a code revokes the old one.
-- **No production deployment pipeline** yet: the Terraform/App Runner path in the docs is the target design.
+- **Production deployment** is defined (tag-driven workflow, `deploy/`, and the `open-projects-hub-infra` Terraform) but not live until the infrastructure is applied and the first release tag is pushed. See [ADR-021](https://github.com/alonsovndev/open-projects-hub-docs/blob/dev/docs/04-decisions/adr-021-low-cost-single-host-deployment.md) for the design (App Runner and RDS were dropped for cost).

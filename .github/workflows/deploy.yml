@@ -1,0 +1,98 @@
+name: deploy
+
+# Deploys the tagged release to the EC2 host managed by open-projects-hub-infra.
+# Trigger: push a tag vX.Y.Z, or run manually from a tag ref to redeploy it.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.ref_name }}
+  # Matches aws_ssm_document in open-projects-hub-infra/modules/github-oidc.
+  SSM_DOCUMENT: ophub-prod-deploy
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Require a vX.Y.Z tag
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != tag || ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Run this workflow from a vX.Y.Z tag (got $GITHUB_REF_TYPE $RELEASE_TAG)." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # First release only: set the package to Public in GitHub (Packages > settings), or the host cannot pull it.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ env.RELEASE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Run deploy on the host
+        env:
+          INSTANCE_ID: ${{ vars.API_INSTANCE_ID }}
+        run: |
+          command_id=$(aws ssm send-command \
+            --document-name "$SSM_DOCUMENT" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --parameters "tag=$RELEASE_TAG" \
+            --query Command.CommandId --output text)
+
+          status=Pending
+          for attempt in $(seq 1 120); do
+            if ! status=$(aws ssm get-command-invocation --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>&1); then
+              # The invocation record appears a moment after send-command; anything else is a real error.
+              case "$status" in
+                *InvocationDoesNotExist*) status=Pending ;;
+                *) echo "$status" >&2; exit 1 ;;
+              esac
+            fi
+            case "$status" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 5
+          done
+
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query StandardErrorContent --output text >&2
+
+          echo "SSM command status: $status"
+          [ "$status" = Success ]
