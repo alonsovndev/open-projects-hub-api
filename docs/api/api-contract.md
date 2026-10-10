@@ -176,7 +176,7 @@ the first 1000 and `X-Export-Warning` names the full match count and how to narr
 **Mixed acceptance-criteria formatting in older projects.** Stories approved before the
 `acceptance_criteria` column existed keep their criteria inside `description`, as the
 `**Acceptance Criteria:**` block the refinement approval mapper used to write, and their
-`acceptanceCriteria` array is empty. The migration deliberately does not backfill them, since
+`acceptanceCriteria` array is empty. They are deliberately not backfilled, since
 that would mean parsing free text an Admin may since have edited. An export spanning both eras
 therefore renders older stories' criteria as body text and newer ones under a proper
 `### Acceptance Criteria` heading. Re-approving, or editing the story to populate

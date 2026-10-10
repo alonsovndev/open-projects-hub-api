@@ -18,4 +18,4 @@ class RevokedRefreshTokenModel(Base):
     token_hash = Column(String(64), primary_key=True)
 
     # 2. Data columns
-    expires_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
