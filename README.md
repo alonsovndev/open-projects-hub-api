@@ -183,7 +183,7 @@ make coverage          # Run tests with coverage
 
 ### CI/CD
 
-Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main` and `dev`: ruff lint and format check, bandit, and the unit tests. `mypy` runs as an informational step (see Known Limitations). The coverage gate, OpenAPI export, Docker build and the database integration suite are not part of CI; an earlier, larger workflow was removed in commit `0344e54` and can be restored from git history if wanted.
+Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main` and `dev`: ruff lint and format check, bandit, the unit tests, and a check that every Alembic migration applies to an empty PostgreSQL and rolls back. `mypy` runs as an informational step (see Known Limitations). The coverage gate, OpenAPI export, Docker build and the database integration suite are not part of CI; an earlier, larger workflow was removed in commit `0344e54` and can be restored from git history if wanted.
 
 Tagging `vX.Y.Z` runs `.github/workflows/deploy.yml`, which builds the image and deploys it to AWS (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#aws-production-deployment)).
 
