@@ -14,16 +14,32 @@ concurrency:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     env:
       # Same as the Dockerfile: tests import the `src` package from the repo root.
       PYTHONPATH: .
       # Unit tests load config_test.yml, which requires a SECRET_KEY (>= 32 chars, not the .env.example placeholder).
       SECRET_KEY: ci-only-jwt-secret-key-not-used-anywhere-else
+    # Throwaway database for the migration check below; credentials match src/app/config/config_test.yml.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: open-projects-hub-admin
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: open-projects-hub-db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U open-projects-hub-admin -d open-projects-hub-db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -50,3 +66,12 @@ jobs:
 
       - name: Unit tests
         run: APP_ENV=test pytest --ignore=src/tests/integration/ -m "not integration" -v
+
+      # Production runs `alembic upgrade head` at container start, so prove every migration applies
+      # to an empty Postgres and rolls back. The repository integration tests are not run: 44 of
+      # them fail on stale code, unrelated to the database, and need repair first.
+      - name: Migrations apply and roll back
+        run: |
+          export APP_ENV=test
+          alembic upgrade head
+          alembic downgrade base

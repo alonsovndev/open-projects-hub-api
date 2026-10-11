@@ -501,12 +501,12 @@ The release shown at the master's review runs on a single EC2 host behind CloudF
 
 - `deploy/compose.prod.yml` runs Caddy, the API and PostgreSQL. Caddy rejects requests without the `X-Origin-Verify` header that CloudFront adds, and forwards the viewer address as `X-Forwarded-For`.
 - `deploy/deploy.sh <tag>` runs on the host through an SSM document. It reads `/ophub/prod/*` from SSM Parameter Store into `/opt/ophub/.env`, pulls the image, restarts the stack and waits for `/health/ready`. Parameters left at the placeholder `N/A` are not written, so the variable stays unset.
-- `.github/workflows/deploy.yml` runs on a `vX.Y.Z` tag (or manually from a tag): it pushes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>` and starts the SSM deploy through a GitHub OIDC role.
+- `.github/workflows/deploy.yml` runs on a `vX.Y.Z` tag whose commit is on `main` (or manually from such a tag): it pushes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>` and starts the SSM deploy through a GitHub OIDC role.
 - Migrations run when the API container starts. There are no database backups, by decision.
 
 **Before the first release**
 
-Follow the "First release checklist" in the infrastructure repository README: apply Terraform, set the repository variables (`AWS_ROLE_ARN`, `AWS_REGION`, `API_INSTANCE_ID`), add tag protection for `v*`, and set the GHCR package to Public after the first image push (the host pulls without credentials).
+Follow the "First release checklist" in the infrastructure repository README: apply Terraform, set the repository variables (`AWS_ROLE_ARN`, `AWS_REGION`, `API_INSTANCE_ID`, `SITE_URL`), add tag protection for `v*`, and set the GHCR package to Public after the first image push (the host pulls without credentials).
 
 **Seed the admin user** (one-off, on the host, from `/opt/ophub`; the password needs a letter and a digit):
 
