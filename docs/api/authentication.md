@@ -52,12 +52,15 @@ Invalid refresh cookies get `401` and a deletion cookie. Auth responses, includi
 carry `Cache-Control: no-store`.
 
 Deploy the API before the coordinated web migration. Existing browser-storage sessions
-are discarded and users sign in again. Production should route web and API through the
-same HTTPS origin. For cross-origin development, use matching loopback hostnames,
-credentialed CORS and an allowed `X-Session-Mode` header. Container/dev/prod cookie mode
-requires HTTPS. CloudFront must forward cookies, `Origin`, and `X-Session-Mode` for
-`/v1/auth/*` and disable caching there. Deployment changes are outside this patch; actual
-CloudFront origin configuration is TBD.
+are discarded and users sign in again. Cross-origin use (local development and the AWS
+production deployment, where the web app is on `oph.alonsovndev.com` and the API on
+`api-oph.alonsovndev.com`) needs credentialed CORS (`CORS_ALLOW_CREDENTIALS=true`), the
+exact web origin in `CORS_ORIGINS`/`FRONTEND_BASE_URL`, and `X-Session-Mode` among the allowed
+headers. The `SameSite=Lax` refresh cookie is sent because both hostnames are on the same
+registrable domain. For local development use matching loopback hostnames. Container/dev/prod
+cookie mode requires HTTPS. In production the Cloudflare proxy forwards cookies, `Origin` and
+`X-Session-Mode` unchanged and does not cache `/v1/*` responses (JSON is not cached by
+default and auth responses carry `Cache-Control: no-store`).
 
 ## Endpoints
 
