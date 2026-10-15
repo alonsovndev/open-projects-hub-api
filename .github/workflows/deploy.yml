@@ -31,13 +31,13 @@ jobs:
             exit 1
           fi
 
-      - name: Require the SITE_URL repository variable
+      - name: Require the API_URL repository variable
         env:
-          SITE_URL: ${{ vars.SITE_URL }}
+          API_URL: ${{ vars.API_URL }}
         run: |
           # Checked up front: the smoke test at the end would otherwise fail after prod changed.
-          if [ -z "$SITE_URL" ]; then
-            echo "Set the SITE_URL repository variable (https://<cloudfront domain>)." >&2
+          if [ -z "$API_URL" ]; then
+            echo "Set the API_URL repository variable (https://<api hostname>)." >&2
             exit 1
           fi
 
@@ -137,17 +137,17 @@ jobs:
           echo "SSM command status: $status"
           [ "$status" = Success ]
 
-      # The host check only proves the API answers locally. This proves CloudFront routes /v1/*
-      # to Caddy with the right origin header: an API error is JSON, while Caddy's 403 gate, the
-      # SPA fallback and CloudFront error pages are not.
-      - name: Smoke test through CloudFront
+      # The host check only proves the API answers locally. This proves Cloudflare reaches Caddy
+      # and /v1/* is routed to the API: an API error is JSON, while Caddy's 404 and Cloudflare
+      # error pages (52x) are not.
+      - name: Smoke test through Cloudflare
         env:
-          SITE_URL: ${{ vars.SITE_URL }}
+          API_URL: ${{ vars.API_URL }}
         run: |
           # Retried because Caddy and the API may still be settling right after the deploy.
           for attempt in $(seq 1 12); do
             result=$(curl -sS -o /dev/null -w '%{http_code} %{content_type}' \
-              "$SITE_URL/v1/users/me/profile" || true)
+              "$API_URL/v1/users/me/profile" || true)
             echo "GET /v1/users/me/profile -> $result"
             case "$result" in
               4??" application/json"*) exit 0 ;;

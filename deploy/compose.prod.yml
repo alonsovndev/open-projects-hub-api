@@ -7,11 +7,12 @@ services:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "443:443"
     environment:
-      ORIGIN_VERIFY: ${ORIGIN_VERIFY:?ORIGIN_VERIFY is required}
+      API_HOST: ${API_HOST:?API_HOST is required}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
     depends_on:
       api:
         condition: service_healthy
@@ -24,7 +25,7 @@ services:
       APP_ENV: prod
       POSTGRES_HOST: postgres
       GUNICORN_WORKERS: "1"
-      # Only Caddy can reach this container; Caddy overwrites X-Forwarded-For with its own peer.
+      # Only Caddy can reach this container; Caddy sets X-Forwarded-For from CF-Connecting-IP.
       FORWARDED_ALLOW_IPS: "*"
     ports:
       - "127.0.0.1:8080:8080"
@@ -75,3 +76,4 @@ services:
 
 volumes:
   postgres_data:
+  caddy_data:
