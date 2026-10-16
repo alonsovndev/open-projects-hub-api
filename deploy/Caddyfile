@@ -1,0 +1,25 @@
+{
+	admin off
+}
+
+# Cloudflare terminates the public TLS and is the only client the security group admits, so the
+# origin certificate is Caddy's own local CA (Cloudflare "Full" mode does not validate it).
+# CORS, cookies and the security headers (HSTS, nosniff, CSP) are set by the API itself.
+{$API_HOST} {
+	tls internal
+
+	encode zstd gzip
+
+	# Cloudflare sets CF-Connecting-IP to the viewer address. Without it every user would share
+	# the rate-limit key of a Cloudflare edge address; this also discards any client-supplied
+	# X-Forwarded-For.
+	handle /v1/* {
+		reverse_proxy api:8080 {
+			header_up X-Forwarded-For {header.CF-Connecting-IP}
+		}
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}

@@ -76,9 +76,6 @@ class UserRepositoryImpl(UserRepository):
             self._log.exception("Error finding user by email", extra={"operation": "find_by_email", "table": "users"})
             raise
 
-    async def find_by_name(self, record: str) -> UserEntity | None:
-        pass
-
     async def save(self, user: UserEntity) -> UserEntity | None:
         """
         Saves a user entity to the database.

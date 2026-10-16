@@ -59,7 +59,7 @@ python3 scripts/seed_admin.py
 |----------|----------|---------|-------------|
 | `APP_ENV` | No | `dev` | Selects `config_<APP_ENV>.yml`, same as the running app (`local`, `dev`, `container`, `prod`, `test`) |
 | `ADMIN_EMAIL` | No | `admin@example.com` | Email for the admin user |
-| `ADMIN_PASSWORD` | No | `Admin123!@#` | Password (min 8 chars) |
+| `ADMIN_PASSWORD` | Yes | — | Password (min 8 chars, at least one letter and one digit) |
 | `ADMIN_DISPLAY_NAME` | No | `System Administrator` | Display name |
 
 ### Example Output

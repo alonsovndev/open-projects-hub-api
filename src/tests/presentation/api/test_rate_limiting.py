@@ -4,10 +4,10 @@ Integration tests for rate limiting on login endpoint.
 Tests the rate limiting functionality added in Phase 1.
 """
 
-import asyncio
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import bcrypt
 import pytest
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -33,11 +33,8 @@ def reset_rate_limiter():
 @pytest.fixture
 def mock_admin_user():
     """Fixture for an admin user entity."""
-    password_hash = asyncio.run(
-        __import__(
-            "src.app.shared.infrastructure.security.password_handler", fromlist=["PasswordHandler"]
-        ).PasswordHandler.hash_password("Admin123!")
-    )
+    # bcrypt directly: asyncio.run() here would replace (and leak) pytest-asyncio's loop.
+    password_hash = bcrypt.hashpw(b"Admin123!", bcrypt.gensalt()).decode("utf-8")
 
     return UserEntity(
         id=EntityId.generate(),

@@ -1,104 +1,27 @@
-name: CI Pipeline
+name: ci
 
-# Temporarily disabled: do not trigger on push/pull_request yet. test-unit has
-# intermittent flaky failures (non-deterministic async-cleanup warnings,
-# unrelated to any given PR's changes — see US-EP0-BE-003 follow-up notes)
-# that would redden every PR's required check. Re-enable by restoring the
-# push/pull_request triggers below once that's root-caused and fixed.
-# In the meantime this can still be run manually from the Actions tab (or
-# `gh workflow run ci.yml`) via workflow_dispatch.
 on:
-  workflow_dispatch: {}
-  # push:
-  #   branches: [main, develop]
-  # pull_request:
-  #   branches: [main, develop]
+  pull_request:
+  push:
+    branches: [dev, main]
 
-env:
-  PYTHON_VERSION: "3.12"
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install ruff
-      - run: make lint
-
-  format-check:
-    name: Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install ruff
-      - run: make format-check
-
-  type-check:
-    name: Type Check
-    runs-on: ubuntu-latest
-    # Informational only for now: 121 pre-existing mypy errors across 21 files
-    # (mostly the FastAPI `= Depends(...)` default-value pattern, a known mypy
-    # false-positive shape, plus real assignment/arg-type mismatches) predate
-    # this workflow — `make type-check` already tolerates this locally via
-    # `|| true`. Flip to blocking once that backlog is triaged and cleared.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install mypy types-PyYAML types-python-dateutil types-pytz
-      - run: make type-check
-
-  test-unit:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Run unit tests
-        env:
-          APP_ENV: test
-          SECRET_KEY: ci-test-secret-key-not-for-production
-        run: make test-unit
-
-  test-integration:
-    name: Integration Tests (DB)
-    runs-on: ubuntu-latest
-    # Informational only for now: the integration suite is stale against the
-    # current domain model (entity constructor drift, a renamed repository
-    # method, and a db_session/clean_db fixture composition bug) — tracked as
-    # follow-up work. Flip to blocking once that suite is fixed.
-    continue-on-error: true
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Same as the Dockerfile: tests import the `src` package from the repo root.
+      PYTHONPATH: .
+      # Unit tests load config_test.yml, which requires a SECRET_KEY (>= 32 chars, not the .env.example placeholder).
+      SECRET_KEY: ci-only-jwt-secret-key-not-used-anywhere-else
+    # Throwaway database for the migration check below; credentials match src/app/config/config_test.yml.
     services:
       postgres:
         image: postgres:15
@@ -109,87 +32,46 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
+          --health-cmd "pg_isready -U open-projects-hub-admin -d open-projects-hub-db"
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Run integration tests
-        env:
-          APP_ENV: test
-          POSTGRES_PASSWORD: test_password
-          SECRET_KEY: ci-test-secret-key-not-for-production
-        run: make test-integration
+      - uses: actions/checkout@v7
 
-  coverage:
-    name: Coverage Report (PR comment, non-blocking)
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.12"
           cache: pip
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest-cov
-      - name: Run tests with coverage
-        env:
-          APP_ENV: test
-          SECRET_KEY: ci-test-secret-key-not-for-production
-        run: pytest --ignore=src/tests/integration/ -m "not integration" --cov=src/app --cov-report=
-      # Posts/updates a sticky PR comment with the coverage %, does not fail the
-      # build (no FAIL_BELOW_THRESHOLD) — per ADR-015 and AC2: flag, don't block.
-      - name: Coverage comment
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
-          GITHUB_TOKEN: ${{ github.token }}
-          MINIMUM_GREEN: 70
-          MINIMUM_ORANGE: 50
+          cache-dependency-path: |
+            requirements.txt
+            requirements-test.txt
 
-  api-docs:
-    name: API Docs (OpenAPI export)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Export OpenAPI schema
-        env:
-          APP_ENV: local
-          SECRET_KEY: ci-test-secret-key-not-for-production
-        run: make export-openapi
-      - name: Upload OpenAPI schema artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: openapi-schema
-          path: docs/api/openapi.json
-          retention-days: 30
+        run: pip install -r requirements.txt -r requirements-test.txt ruff==0.15.14 "bandit[toml]==1.9.4" mypy==2.3.1
 
-  docker-build:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build image (no push)
-        run: docker build -t open-projects-hub-api:ci .
+      - name: Lint
+        run: ruff check .
+
+      - name: Format
+        run: ruff format --check .
+
+      - name: Security scan
+        run: bandit -c pyproject.toml -r src/app
+
+      # Informational: the codebase has known mypy errors and `make type-check` also never fails.
+      - name: Type check
+        continue-on-error: true
+        run: mypy src/app --config-file=pyproject.toml
+
+      - name: Unit tests
+        run: APP_ENV=test pytest --ignore=src/tests/integration/ -m "not integration" -v
+
+      # Production runs `alembic upgrade head` at container start, so prove every migration applies
+      # to an empty Postgres and rolls back. The repository integration tests are not run: 44 of
+      # them fail on stale code, unrelated to the database, and need repair first.
+      - name: Migrations apply and roll back
+        run: |
+          export APP_ENV=test
+          alembic upgrade head
+          alembic downgrade base

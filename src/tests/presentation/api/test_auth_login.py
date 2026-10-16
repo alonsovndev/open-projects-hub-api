@@ -1,19 +1,18 @@
-import asyncio
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
+import bcrypt
 import pytest
 
 from src.app.features.user.domain.entities.user_entity import UserEntity
 from src.app.features.user.domain.value_objects.user_role import UserRole
 from src.app.shared.domain.value_objects.email import Email
 from src.app.shared.domain.value_objects.entity_id import EntityId
-from src.app.shared.infrastructure.security.password_handler import PasswordHandler
 
 
 def _hash_password_sync(password: str) -> str:
-    """Helper to hash password synchronously for test fixtures."""
-    return asyncio.run(PasswordHandler.hash_password(password))
+    """Hash with bcrypt directly: asyncio.run() here would replace (and leak) pytest-asyncio's loop."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 @pytest.fixture

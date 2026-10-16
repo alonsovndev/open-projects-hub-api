@@ -35,18 +35,6 @@ class UserRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_name(self, record: str) -> UserEntity | None:
-        """
-        Find a user by their name.
-
-        Args:
-            record: The name of the user to search for.
-
-        Returns:
-            Optional[UserEntity]: The user entity if found, None otherwise.
-        """
-
-    @abstractmethod
     async def save(self, user: UserEntity) -> UserEntity | None:
         """
         Save a user entity (create or update).

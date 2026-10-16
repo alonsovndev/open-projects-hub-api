@@ -2,6 +2,8 @@
 
 This guide covers deploying the Open Projects Hub API to production environments.
 
+> The AWS production deployment (one EC2 host behind Cloudflare) has its own section at the end: [AWS production deployment](#aws-production-deployment). The rest of this guide describes generic Docker Compose deployment.
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -10,6 +12,7 @@ This guide covers deploying the Open Projects Hub API to production environments
 - [Database Setup](#database-setup)
 - [Security Checklist](#security-checklist)
 - [Monitoring & Logging](#monitoring--logging)
+- [AWS Production Deployment](#aws-production-deployment)
 
 ---
 
@@ -54,9 +57,8 @@ Edit `.env` with production values:
 # change `environment.APP_ENV` in compose.yml.
 APP_ENV=prod
 
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT_JSON=true
+# Logging (gunicorn server log level; app logging is set in config_prod.yml)
+LOG_LEVEL=info
 
 # Database (use strong passwords!)
 POSTGRES_USER=open-projects-hub-admin
@@ -227,8 +229,8 @@ docker compose exec -T postgres psql -U open-projects-hub-admin open-projects-hu
 - [ ] **Disable HTTP** in production (redirect to HTTPS)
 - [ ] **Set `APP_ENV=prod`** to disable API docs (`/docs`, `/redoc`)
 - [ ] **Review rate limits** in `src/app/shared/infrastructure/rate_limit/rate_limiter.py`
-- [ ] **Enable structured JSON logging** (`LOG_FORMAT_JSON=true`)
-- [ ] **Set `LOG_LEVEL=INFO`** (not DEBUG in production)
+- [ ] **Keep structured JSON logging** (`logging.format: json` in `config_prod.yml`)
+- [ ] **Keep `logging.level: INFO`** in `config_prod.yml` (not DEBUG in production)
 - [ ] **Use secrets management** (not `.env` files in production)
 - [ ] **Restrict database access** (firewall rules, VPC)
 - [ ] **Run security scan** (`make security`)
@@ -270,7 +272,7 @@ curl http://localhost:8080/health
 
 ### Structured Logging
 
-The API uses structured JSON logging when `LOG_FORMAT_JSON=true`.
+The API writes structured JSON logs when `logging.format` is `json` in the active `config_<APP_ENV>.yml` (the default in `config_prod.yml`).
 
 **Log fields:**
 - `timestamp` - ISO 8601 timestamp
@@ -488,3 +490,59 @@ Set up alerts for:
 
 **Last Updated:** June 11, 2026  
 **Deployment Version:** 1.0.0
+
+---
+
+## AWS Production Deployment
+
+The release shown at the master's review runs on a single EC2 host behind Cloudflare (DNS and proxy for the project domain). The web app is a separate deployment (Cloudflare Workers at `https://oph.alonsovndev.com`); the API answers at `https://api-oph.alonsovndev.com`. The design is recorded in ADR-021 (docs repository) and the infrastructure is defined in the `open-projects-hub-infra` repository.
+
+**How it fits together**
+
+- `deploy/compose.prod.yml` runs Caddy, the API and PostgreSQL. Caddy listens on 443 only (the security group admits Cloudflare's ranges, nothing else), proxies `/v1/*` to the API (any other path is a 404), and forwards the viewer address (`CF-Connecting-IP`) as `X-Forwarded-For`. Its certificate is its own local CA (`tls internal`), which Cloudflare accepts in SSL mode Full.
+- PostgreSQL has no published port; only the API container reaches it.
+- The browser calls the API cross-origin from the web app. The API sends the CORS headers and the refresh cookie itself (`HttpOnly; Secure; SameSite=Lax`, which is sent because both hostnames share the registrable domain).
+- `deploy/deploy.sh <tag>` runs on the host through an SSM document. It reads `/ophub/prod/*` from SSM Parameter Store into `/opt/ophub/.env`, pulls the image, restarts the stack and waits for `/health/ready`. Parameters left at the placeholder `N/A` are not written, so the variable stays unset.
+- `.github/workflows/deploy.yml` runs on a `vX.Y.Z` tag whose commit is on `main` (or manually from such a tag): it pushes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>` and starts the SSM deploy through a GitHub OIDC role.
+- Migrations run when the API container starts. There are no database backups, by decision.
+
+**Before the first release**
+
+Follow the "Cloudflare setup" and "First release checklist" sections of the infrastructure repository README: set up the Cloudflare zone and token, apply Terraform, set the repository variables (`AWS_ROLE_ARN`, `AWS_REGION`, `API_INSTANCE_ID`, `API_URL`), add tag protection for `v*`, and set the GHCR package to Public after the first image push (the host pulls without credentials).
+
+**Production settings** (SSM parameters under `/ophub/prod/`, written by Terraform unless noted; read into `/opt/ophub/.env` on every deploy):
+
+| Variable | Value | Purpose |
+| --- | --- | --- |
+| `API_HOST` | `api-oph.alonsovndev.com` | Hostname Caddy serves |
+| `FRONTEND_BASE_URL` | `https://oph.alonsovndev.com` | Trusted web origin, link base in emails |
+| `CORS_ORIGINS` | `https://oph.alonsovndev.com` | Exact origins allowed by CORS (no wildcard with credentials) |
+| `CORS_ALLOW_CREDENTIALS` | `true` | Lets the browser send the refresh cookie |
+| `SECRET_KEY`, `POSTGRES_PASSWORD`, `API_KEY_ENCRYPTION_KEY` | generated | Secrets (SecureString) |
+| `SMTP_*`, `GEMINI_API_KEY`, `SENTRY_DSN` | set by hand, `N/A` until then | Optional integrations |
+
+The web build needs the matching `VITE_API_BASE_URL=https://api-oph.alonsovndev.com`. Web previews on other origins are rejected by CORS.
+
+**Cost:** about $12.85/month from the AWS Free Plan credits (EC2 t3.micro, public IPv4, EBS). Cloudflare is on the free plan.
+
+**Roll back:** re-run the deploy workflow from the previous `vX.Y.Z` tag (Actions > deploy > Run workflow on that tag). Migrations are not reversed automatically, so do not roll back across a migration that dropped data. To take the API offline without touching AWS, delete the `api-oph` DNS record in Cloudflare.
+
+**Verify the frontend-to-API link after a deploy:**
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://api-oph.alonsovndev.com/health/live     # 404: only /v1/* is routed
+curl -si -X OPTIONS https://api-oph.alonsovndev.com/v1/auth/login \
+  -H 'Origin: https://oph.alonsovndev.com' -H 'Access-Control-Request-Method: POST' \
+  -H 'Access-Control-Request-Headers: content-type,x-session-mode' | grep -i '^access-control'
+```
+
+The preflight must answer `access-control-allow-origin: https://oph.alonsovndev.com` and `access-control-allow-credentials: true`. Then sign in from the web app and check that the refresh cookie is set for the API host.
+
+**Seed the admin user** (one-off, on the host, from `/opt/ophub`; the password needs a letter and a digit):
+
+```bash
+docker compose -f compose.prod.yml --profile seed run --rm \
+  -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD='...' seed-admin
+```
+
+**Email:** without a verified sending domain, sign-up verification and reset emails cannot reach arbitrary users. Use the seeded admin for demos.

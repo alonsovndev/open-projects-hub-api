@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Keeps the pinned action versions current (Node runtime deprecations, security fixes).
+  # Minor and patch updates arrive as one pull request; a major bump is its own pull request,
+  # because the deploy workflows cannot be exercised by pull request CI.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        update-types: ["minor", "patch"]

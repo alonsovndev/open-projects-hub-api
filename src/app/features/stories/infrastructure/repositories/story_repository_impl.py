@@ -241,18 +241,6 @@ class StoryRepositoryImpl(StoryRepository):
             )
             raise
 
-    async def find_by_assigned_user(self, user_id: UUID, *, workspace_id: UUID) -> list[StoryEntity]:
-        """
-        Find all stories assigned to a specific user.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            List of StoryEntity objects
-        """
-        return await self.find_all(workspace_id=workspace_id, assigned_to=user_id)
-
     async def save(self, story: StoryEntity) -> StoryEntity:
         """
         Save or update a story.

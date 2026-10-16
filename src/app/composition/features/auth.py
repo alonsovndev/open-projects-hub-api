@@ -137,6 +137,7 @@ async def get_resend_verification_use_case(
 
 async def get_refresh_token_use_case(
     user_repository: UserRepository = Depends(get_user_repository),
+    workspace_repository: WorkspaceRepository = Depends(get_workspace_repository),
     session: AsyncSession = Depends(get_database_session),
 ) -> RefreshTokenUseCase:
     """RefreshTokenUseCase factory."""
@@ -146,7 +147,9 @@ async def get_refresh_token_use_case(
         if _persist_session_state()
         else get_token_revocation_service()  # shared in-memory singleton — state must survive across requests
     )
-    return RefreshTokenUseCase(user_repository, jwt_handler, token_revocation)
+    return RefreshTokenUseCase(
+        user_repository, jwt_handler, token_revocation, workspace_repository=workspace_repository
+    )
 
 
 async def get_logout_use_case(

@@ -68,8 +68,9 @@ class ChangePasswordUseCase:
             # Update password hash
             user_entity.update_details(password_hash=new_password_hash)
 
-            # Save updated entity
-            await self.user_repository.save(user_entity)
+            updated_user = await self.user_repository.update(user_entity)
+            if updated_user is None:
+                raise UserNotFoundError(user_id)
 
             log.info("Password changed", extra={"event_type": "user.password.changed"})
 

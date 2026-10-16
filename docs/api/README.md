@@ -97,7 +97,7 @@ does not exist.
 
 `POST /v1/users` accepts `role` `member` (the default and only value); `admin` and anything else are rejected (422).
 Clients have no account: see [Client Review](#client-review-public).
-Added accounts are verified on creation and receive no free platform AI credits.
+Added accounts are created unverified. The invitee is emailed a 24-hour code and link, chooses a password when submitting it to `POST /v1/auth/verify-email`, and is granted free AI credits on verification (subject to the workspace's 25-credit lifetime ceiling).
 
 User responses include `isActive`. `PATCH /v1/users/{id}/status` (Admin only) takes
 `{ "active": false }` or `{ "active": true }` and returns the updated user. An inactive account
@@ -136,6 +136,8 @@ invalidates the old one immediately.
 
 Rate limiting is applied per IP address.
 
+Limits are per client IP and per endpoint. Endpoints not listed here have no request-rate limit.
+
 | Endpoint | Limit | Window |
 |----------|-------|--------|
 | `/v1/auth/login` | 10 requests | 1 minute |
@@ -143,18 +145,24 @@ Rate limiting is applied per IP address.
 | `/v1/auth/verify-email` | 10 requests | 15 minutes |
 | `/v1/auth/resend-verification` | 5 requests | 15 minutes |
 | `/v1/auth/refresh` | 10 requests | 15 minutes |
-| All other endpoints | 100 requests | 1 minute |
+| `/v1/auth/forgot-password` | 5 requests | 15 minutes |
+| `/v1/auth/resend-reset-code` | 5 requests | 15 minutes |
+| `/v1/auth/reset-password` | 10 requests | 15 minutes |
+| `/v1/viewer/{accessCode}` | 30 requests | 1 minute |
+
+Separately, login has a per-account progressive lockout, and API key validation is limited to 5 attempts per user per hour.
 
 **Rate Limit Response:**
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 900
 Content-Type: application/json
 
 {
-  "detail": "Rate limit exceeded"
+  "error": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
+
+Counters are kept in memory per worker process (see Known Limitations in the repository README).
 
 ## Error Responses
 
@@ -382,11 +390,11 @@ For architectural decisions and design patterns, see:
 
 ## Support & Feedback
 
-- Report issues: [GitHub Issues](https://github.com/your-org/open-projects-hub-api/issues)
+- Report issues: [GitHub Issues](https://github.com/alonsovndev/open-projects-hub-api/issues)
 - API Questions: Contact the development team
 - Security Issues: See [Security Policy](../security/README.md)
 
 ---
 
-**Last Updated:** May 21, 2026  
-**API Version:** v1.1.0
+**Last Updated:** October 7, 2026  
+**API Version:** v1.0.0

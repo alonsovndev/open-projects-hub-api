@@ -1,10 +1,16 @@
 """Pytest configuration and shared fixtures."""
 
+import os
 import sys
 from pathlib import Path
 
 import pytest
 
+
+# Must run before any src.app import: AppConfig reads APP_ENV once, and a developer's .env
+# (APP_ENV=local) would otherwise point unit tests at the real database. An explicit shell
+# value still wins.
+os.environ.setdefault("APP_ENV", "test")
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"

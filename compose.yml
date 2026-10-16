@@ -42,10 +42,10 @@ services:
       POSTGRES_USER: open-projects-hub-admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: open-projects-hub-db
+    # Loopback only: the host-run API (make run) needs it, nothing else should reach it.
+    # POSTGRES_PASSWORD is interpolated from .env, so the app secrets in .env stay out of this container.
     ports:
-    - 5432:5432
-    env_file:
-    - .env
+    - 127.0.0.1:5432:5432
     volumes:
     - postgres_data:/var/lib/postgresql/data
     healthcheck:

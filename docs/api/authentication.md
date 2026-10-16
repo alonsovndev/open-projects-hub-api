@@ -10,6 +10,58 @@ The authentication system uses:
 - **Rate limiting** to prevent brute force attacks
 - **Role-based access control** (USER, ADMIN)
 
+## Browser cookie sessions
+
+The existing JSON token flow below remains available to non-browser clients. Browser
+clients add `X-Session-Mode: cookie` to login, refresh, and logout and use Fetch
+`credentials: include`. A trusted `Origin` header is required for all three operations;
+missing, `null`, or untrusted origins get `403`. Trust is configured through exact CORS
+origins and `app.frontend_base_url` (`FRONTEND_BASE_URL`). Only local mode also accepts
+localhost/127.0.0.1 on development fallback ports.
+
+Login accepts the same email/password body, with optional `rememberMe`. Browser refresh
+and logout send no body and no bearer header; body refresh credentials get `422` in cookie
+mode. A cookie alone cannot opt into browser mode. Without the custom header, refresh still
+requires a JSON refresh token and logout requires its existing bearer authentication.
+
+Successful browser login/refresh return only:
+
+```json
+{
+  "accessToken": "<memory-only-access-token>",
+  "sessionExpiresAt": "<ISO-8601-session-expiry>",
+  "user": {
+    "email": "user@example.com",
+    "displayName": "Current name",
+    "name": "Current name",
+    "role": "member",
+    "workspace": { "id": "<workspace-id>", "name": "Current workspace" }
+  }
+}
+```
+
+Identity and workspace metadata on refresh come from current repository records. Access
+JWTs remain bearer credentials for protected data endpoints; these endpoints do not
+accept the refresh cookie as authentication. The refresh cookie is host-only
+`oph_refresh_token`, HttpOnly, SameSite=Lax, Path=/v1/auth. It is Secure outside local/test
+and has no Domain attribute. Ordinary sessions use a session cookie backed by the existing
+24-hour expiry; remembered sessions have Max-Age for the remaining seven-day expiry.
+Rotation mints a unique `jti`, revokes the previous token, and replaces the cookie.
+Logout revokes the current cookie and deletes it; missing/invalid cookies are idempotent.
+Invalid refresh cookies get `401` and a deletion cookie. Auth responses, including errors,
+carry `Cache-Control: no-store`.
+
+Deploy the API before the coordinated web migration. Existing browser-storage sessions
+are discarded and users sign in again. Cross-origin use (local development and the AWS
+production deployment, where the web app is on `oph.alonsovndev.com` and the API on
+`api-oph.alonsovndev.com`) needs credentialed CORS (`CORS_ALLOW_CREDENTIALS=true`), the
+exact web origin in `CORS_ORIGINS`/`FRONTEND_BASE_URL`, and `X-Session-Mode` among the allowed
+headers. The `SameSite=Lax` refresh cookie is sent because both hostnames are on the same
+registrable domain. For local development use matching loopback hostnames. Container/dev/prod
+cookie mode requires HTTPS. In production the Cloudflare proxy forwards cookies, `Origin` and
+`X-Session-Mode` unchanged and does not cache `/v1/*` responses (JSON is not cached by
+default and auth responses carry `Cache-Control: no-store`).
+
 ## Endpoints
 
 ### POST /v1/auth/login
@@ -136,10 +188,9 @@ to send the user to email verification.
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 900
 
 {
-  "detail": "Rate limit exceeded: 10 per 1 minute"
+  "error": "Rate limit exceeded: 10 per 1 minute"
 }
 ```
 
@@ -427,7 +478,7 @@ When creating or updating passwords, the following rules apply:
 - ❌ `Pass123` - Too short
 - ❌ `Password` - No digit
 
-See [Password Security](../security/authentication.md#password-requirements) for more details.
+See [Security](../security/README.md) for more details.
 
 ---
 
@@ -445,7 +496,7 @@ Login endpoint is rate limited to prevent brute force attacks.
 1. Client makes login request
 2. API checks request count for that IP in last 1 minute
 3. If count < 10: Process request, increment counter
-4. If count >= 10: Return 429 error with `Retry-After` header
+4. If count >= 10: Return 429 (no `Retry-After` header)
 5. Counter resets after 1 minute
 
 **Testing rate limiting:**
@@ -461,7 +512,7 @@ for i in {1..11}; do
 done
 ```
 
-See [Rate Limiting](../security/rate-limiting.md) for more details.
+See [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md) for more details.
 
 ---
 
@@ -506,7 +557,7 @@ For users:
 
 **See Also:**
 - [Security Overview](../security/README.md)
-- [Rate Limiting](../security/rate-limiting.md)
+- [Rate Limiting Strategy](../configuration/rate-limiting-strategy.md)
 - [Error Reference](./errors.md)
 
 ---

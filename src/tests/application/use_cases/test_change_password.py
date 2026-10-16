@@ -33,7 +33,7 @@ class TestChangePasswordUseCase:
             role=UserRole.MEMBER,
         )
         mock_repo.find_by_id.return_value = user_entity
-        mock_repo.save.return_value = user_entity
+        mock_repo.update.return_value = user_entity
 
         use_case = ChangePasswordUseCase(mock_repo)
 
@@ -50,7 +50,36 @@ class TestChangePasswordUseCase:
 
             mock_verify.assert_called_once_with("OldPass123", "old_hashed_password")
             mock_hash.assert_called_once_with("NewPass456")
-            mock_repo.save.assert_awaited_once()
+            mock_repo.update.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_raises_not_found_when_update_persists_nothing(self):
+        """A repository that cannot persist the change must not be reported as success."""
+        mock_repo = AsyncMock()
+        user_id = EntityId.generate()
+        mock_repo.find_by_id.return_value = UserEntity(
+            id=user_id,
+            email=Email("user@example.com"),
+            display_name="Test User",
+            password_hash="old_hashed_password",
+            role=UserRole.MEMBER,
+        )
+        mock_repo.update.return_value = None
+
+        use_case = ChangePasswordUseCase(mock_repo)
+
+        with (
+            patch(
+                "src.app.shared.infrastructure.security.password_handler.PasswordHandler.verify_password",
+                return_value=True,
+            ),
+            patch(
+                "src.app.shared.infrastructure.security.password_handler.PasswordHandler.hash_password",
+                return_value="new_hashed_password",
+            ),
+            pytest.raises(UserNotFoundError),
+        ):
+            await use_case.execute(user_id=str(user_id.value), current_password="OldPass123", new_password="NewPass456")
 
     @pytest.mark.asyncio
     async def test_execute_raises_error_for_incorrect_current_password(self):
@@ -79,7 +108,7 @@ class TestChangePasswordUseCase:
                     user_id=str(user_id.value), current_password="WrongPass", new_password="NewPass456"
                 )
 
-            mock_repo.save.assert_not_awaited()
+            mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_raises_not_found_for_nonexistent_user(self):
@@ -94,7 +123,7 @@ class TestChangePasswordUseCase:
         with pytest.raises(UserNotFoundError):
             await use_case.execute(user_id=user_id, current_password="OldPass123", new_password="NewPass456")
 
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_validates_new_password_min_length(self):
@@ -122,7 +151,7 @@ class TestChangePasswordUseCase:
                     user_id=str(user_entity.id.value), current_password="OldPass123", new_password="Short1"
                 )
 
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_validates_new_password_contains_letter(self):
@@ -150,7 +179,7 @@ class TestChangePasswordUseCase:
                     user_id=str(user_entity.id.value), current_password="OldPass123", new_password="12345678"
                 )
 
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_execute_validates_new_password_contains_digit(self):
@@ -178,4 +207,4 @@ class TestChangePasswordUseCase:
                     user_id=str(user_entity.id.value), current_password="OldPass123", new_password="NoDigitsHere"
                 )
 
-        mock_repo.save.assert_not_awaited()
+        mock_repo.update.assert_not_awaited()

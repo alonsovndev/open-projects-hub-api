@@ -143,19 +143,6 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-class RefreshTokenResponse(BaseModel):
-    """Response model for token refresh."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
-    access_token: str
-    refresh_token: str
-    session_expires_at: str
-
-
 class WorkspaceDetail(BaseModel):
     """The workspace the signed-in user belongs to."""
 
@@ -199,6 +186,29 @@ class AdminLoginResponse(BaseModel):
     display_name: str
     logged_in_at: str
     role: str
+    user: UserDetail
+
+
+class RefreshTokenResponse(BaseModel):
+    """Response model for token refresh."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+    access_token: str
+    refresh_token: str
+    session_expires_at: str
+    user: UserDetail | None = None
+
+
+class BrowserSessionResponse(BaseModel):
+    """Browser auth never exposes the HttpOnly refresh credential in JSON."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    access_token: str
+    session_expires_at: str
     user: UserDetail
 
 

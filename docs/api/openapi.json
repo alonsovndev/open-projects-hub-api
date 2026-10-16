@@ -262,6 +262,29 @@
         "title": "BacklogStoryResponse",
         "type": "object"
       },
+      "BrowserSessionResponse": {
+        "description": "Browser auth never exposes the HttpOnly refresh credential in JSON.",
+        "properties": {
+          "accessToken": {
+            "title": "Accesstoken",
+            "type": "string"
+          },
+          "sessionExpiresAt": {
+            "title": "Sessionexpiresat",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDetail"
+          }
+        },
+        "required": [
+          "accessToken",
+          "sessionExpiresAt",
+          "user"
+        ],
+        "title": "BrowserSessionResponse",
+        "type": "object"
+      },
       "BulkApprovedStory": {
         "description": "Lightweight reference to a story created from bulk approval.",
         "properties": {
@@ -1273,6 +1296,16 @@
           "sessionExpiresAt": {
             "title": "Sessionexpiresat",
             "type": "string"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2240,6 +2273,27 @@
       "post": {
         "description": "Authenticate user and return JWT token with user details.\n\nRate limited to 10 attempts per minute per IP address to prevent brute force attacks.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: LoginRequest with email and password\n    login_use_case: Injected LoginUserUseCase\n\nReturns:\n    AdminLoginResponse with JWT token and user details\n\nRaises:\n    401: Invalid credentials\n    403: Email not verified yet (body carries code EMAIL_NOT_VERIFIED)\n    429: Too many requests (rate limit exceeded)\n    500: Internal server error",
         "operationId": "login_v1_auth_login_post",
+        "parameters": [
+          {
+            "description": "Opt into an HttpOnly refresh-cookie session; requires a trusted Origin.",
+            "in": "header",
+            "name": "X-Session-Mode",
+            "schema": {
+              "enum": [
+                "cookie"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required and checked against configured trusted origins in cookie mode.",
+            "in": "header",
+            "name": "Origin",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2255,7 +2309,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminLoginResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminLoginResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserSessionResponse"
+                    }
+                  ],
+                  "title": "Response Login V1 Auth Login Post"
                 }
               }
             },
@@ -2280,17 +2342,44 @@
     },
     "/v1/auth/logout": {
       "post": {
-        "description": "Log out the current session by revoking its refresh token server-side.\n\nRequires a valid access token (Authorization header) plus the session's\nrefresh token in the body. Idempotent: an already-expired/invalid\nrefresh token still returns success rather than an error.\n\nArgs:\n    payload: RefreshTokenRequest with the session's refresh token\n    logout_use_case: Injected LogoutUseCase\n\nReturns:\n    LogoutResponse confirming the session was invalidated",
         "operationId": "logout_v1_auth_logout_post",
+        "parameters": [
+          {
+            "description": "Opt into an HttpOnly refresh-cookie session; requires a trusted Origin.",
+            "in": "header",
+            "name": "X-Session-Mode",
+            "schema": {
+              "enum": [
+                "cookie"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required and checked against configured trusted origins in cookie mode.",
+            "in": "header",
+            "name": "Origin",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2317,7 +2406,11 @@
         "security": [
           {
             "HTTPBearer": []
-          }
+          },
+          {
+            "HTTPBearer": []
+          },
+          {}
         ],
         "summary": "Logout",
         "tags": [
@@ -2327,24 +2420,59 @@
     },
     "/v1/auth/refresh": {
       "post": {
-        "description": "Refresh access token using refresh token.\n\nImplements single-use refresh token rotation:\n- Returns new access token (15min TTL) AND new refresh token (7 days)\n- Old refresh token is immediately revoked and cannot be reused\n- Prevents token replay attacks\n\nRate limited to 10 attempts per 15 minutes per IP address.\n\nArgs:\n    request: FastAPI request object (required for rate limiting)\n    payload: RefreshTokenRequest with refresh token\n    refresh_use_case: Injected RefreshTokenUseCase\n\nReturns:\n    RefreshTokenResponse with new access and refresh tokens\n\nRaises:\n    401: Refresh token expired or invalid\n    429: Too many requests (rate limit exceeded)\n    500: Internal server error",
         "operationId": "refresh_token_v1_auth_refresh_post",
+        "parameters": [
+          {
+            "description": "Opt into an HttpOnly refresh-cookie session; requires a trusted Origin.",
+            "in": "header",
+            "name": "X-Session-Mode",
+            "schema": {
+              "enum": [
+                "cookie"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required and checked against configured trusted origins in cookie mode.",
+            "in": "header",
+            "name": "Origin",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RefreshTokenResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RefreshTokenResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserSessionResponse"
+                    }
+                  ],
+                  "title": "Response Refresh Token V1 Auth Refresh Post"
                 }
               }
             },
@@ -2908,6 +3036,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {

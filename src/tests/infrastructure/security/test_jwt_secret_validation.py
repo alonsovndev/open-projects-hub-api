@@ -58,6 +58,14 @@ class TestJWTSecretValidation:
 
                 assert "weak" in str(exc_info.value).lower() or "default" in str(exc_info.value).lower()
 
+    def test_env_example_placeholder_secret_raises_error(self):
+        """The .env.example placeholder passes the length check, so it must be rejected by name."""
+        with pytest.raises(JWTSecretError, match="weak"):
+            JWTHandler(
+                secret_key="your-super-secret-jwt-key-change-this-in-production-min-32-chars",
+                validate_secret=True,
+            )
+
     def test_empty_secret_raises_error(self):
         """Test that an empty secret is rejected."""
         with pytest.raises(JWTSecretError) as exc_info:

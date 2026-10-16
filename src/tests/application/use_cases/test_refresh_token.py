@@ -81,8 +81,7 @@ class TestRefreshTokenUseCase:
         # Verify new tokens are returned
         assert response.access_token is not None
         assert response.refresh_token is not None
-        # Note: tokens might be identical if generated in same second (same iat)
-        # But the logic for rotation is correct
+        assert response.refresh_token != refresh_token
 
         # Verify new access token is valid
         access_payload = jwt_handler.decode_access_token(response.access_token)
@@ -195,6 +194,23 @@ class TestRefreshTokenUseCase:
         # Second use of same token should fail (token revoked)
         with pytest.raises(pyjwt.InvalidTokenError, match="already been used"):
             await use_case.execute(request)
+
+    @pytest.mark.asyncio
+    async def test_concurrent_reuse_loses_the_revocation_race(self, jwt_handler, user_entity, mock_user_repository):
+        """A request that passes the reuse check but finds the token already revoked must not mint tokens."""
+        refresh_token = jwt_handler.create_refresh_token(
+            user_id=str(user_entity.id),
+            email=str(user_entity.email),
+            role=user_entity.role.value,
+        )
+        mock_user_repository.find_by_email = AsyncMock(return_value=user_entity)
+        token_revocation = AsyncMock()
+        token_revocation.is_revoked = AsyncMock(return_value=False)
+        token_revocation.revoke_token = AsyncMock(return_value=False)
+        use_case = RefreshTokenUseCase(mock_user_repository, jwt_handler, token_revocation)
+
+        with pytest.raises(pyjwt.InvalidTokenError, match="already been used"):
+            await use_case.execute(RefreshTokenRequest(refresh_token=refresh_token))
 
 
 class TestRefreshTokenSessionLifetime:

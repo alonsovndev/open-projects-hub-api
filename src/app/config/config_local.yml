@@ -27,6 +27,7 @@ cors:
   allow_headers:
   - Authorization
   - Content-Type
+  - X-Session-Mode
   - Accept
 
 persistence:

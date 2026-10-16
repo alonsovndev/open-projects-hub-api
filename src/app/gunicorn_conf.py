@@ -1,6 +1,7 @@
 import os
 
-host = os.getenv("HOST", "0.0.0.0")
+# The container must listen on all interfaces; exposure is controlled by compose/security groups.
+host = os.getenv("HOST", "0.0.0.0")  # nosec B104
 port = os.getenv("PORT", "8080")
 bind_env = os.getenv("BIND")
 loglevel = os.getenv("LOG_LEVEL", "info")

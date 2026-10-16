@@ -11,7 +11,3 @@ class RequestContext:
     user_id: EntityId
     workspace_id: EntityId
     role: UserRole
-
-    @property
-    def can_edit(self) -> bool:
-        return self.role in (UserRole.ADMIN, UserRole.MEMBER)

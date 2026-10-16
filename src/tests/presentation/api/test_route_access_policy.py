@@ -16,6 +16,7 @@ source of the workspace the use cases filter by.
 from fastapi.routing import APIRoute
 
 from src.app.app import fastapi_app
+from src.app.features.auth.presentation.auth_routes import logout_principal
 from src.app.shared.presentation.auth_dependencies import (
     get_current_user,
     get_request_context,
@@ -110,9 +111,16 @@ class TestRouteAccessPolicy:
             for method, path, route in _route_methods()
             if (method, path) not in _PUBLIC_ROUTES
             and not {get_current_user, get_request_context} & _dependency_calls(route)
+            and not ((method, path) == ("POST", "/v1/auth/logout") and logout_principal in _dependency_calls(route))
         )
 
         assert unguarded == [], f"Routes reachable without authentication: {unguarded}"
+
+    def test_conditional_cookie_guard_is_limited_to_logout(self):
+        guarded = {
+            (method, path) for method, path, route in _route_methods() if logout_principal in _dependency_calls(route)
+        }
+        assert guarded == {("POST", "/v1/auth/logout")}
 
     def test_every_mutating_route_requires_a_role_guard(self):
         unguarded_writes = sorted(
