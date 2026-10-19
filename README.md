@@ -1,10 +1,12 @@
 # Open Projects Hub API
 
-> FastAPI backend for [Open Projects Hub](https://github.com/alonsovndev/open-projects-hub): Clean Architecture/DDD, JWT authentication, role-based access control, and LLM-assisted requirements refinement.
+> FastAPI backend for [Open Projects Hub](https://oph-docs.alonsovndev.com): Clean Architecture/DDD, JWT authentication, role-based access control, and LLM-assisted requirements refinement.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Part of [alonsovndev](https://github.com/alonsovndev), the open-source engineering lab by [Alonso Villanueva](https://alonsovndev.com).
+
+**Links:** [web app](https://oph.alonsovndev.com) · [API](https://api-oph.alonsovndev.com) (all routes under `/v1/*`) · [documentation](https://oph-docs.alonsovndev.com) · [open-projects-hub-web](https://github.com/alonsovndev/open-projects-hub-web) · [open-projects-hub-infra](https://github.com/alonsovndev/open-projects-hub-infra) · [open-projects-hub-docs](https://github.com/alonsovndev/open-projects-hub-docs). Interactive docs are disabled in production; the committed schema is [`docs/api/openapi.json`](docs/api/openapi.json).
 
 ## 🚀 Quick Start
 
@@ -181,11 +183,21 @@ make test-integration  # Run integration tests (requires PostgreSQL)
 make coverage          # Run tests with coverage
 ```
 
+### Testing
+
+| Command | What it runs |
+| --- | --- |
+| `make test` / `make test-unit` | Unit tests (integration tests excluded), `APP_ENV=test`; no database needed |
+| `make coverage` | The same tests with a coverage report (`htmlcov/`); the 80% gate is advisory, the recipe ends with `|| true` |
+| `make test-integration` | Database integration tests; out of date and destructive, see Known Limitations |
+
+On 2026-10-19 the unit suite reported 1026 passed (17 integration-marked tests deselected). A coverage percentage is not recorded here (TBD): the coverage run of that day measured no statements, so the figure needs investigating before it is quoted.
+
 ### CI/CD
 
 Pre-commit hooks run automatically on `git commit`. GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main` and `dev`: ruff lint and format check, bandit, the unit tests, and a check that every Alembic migration applies to an empty PostgreSQL and rolls back. `mypy` runs as an informational step (see Known Limitations). The coverage gate, OpenAPI export, Docker build and the database integration suite are not part of CI; an earlier, larger workflow was removed in commit `0344e54` and can be restored from git history if wanted.
 
-Tagging `vX.Y.Z` runs `.github/workflows/deploy.yml`, which builds the image and deploys it to AWS (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#aws-production-deployment)).
+Tagging `vX.Y.Z` runs `.github/workflows/deploy.yml`, which checks that the tag is on `main` and publishes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>`. The AWS account's organization policies do not allow GitHub OIDC, so the deploy itself is a manual step: `AWS_PROFILE=<profile> API_URL=https://api-oph.alonsovndev.com scripts/deploy-release.sh vX.Y.Z` (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#aws-production-deployment)).
 
 ### Commit Convention
 
@@ -211,4 +223,4 @@ Types: feat, fix, docs, style, refactor, test, chore
 - **Rate limiting** keeps counters in process memory per worker and keys on the socket IP. Behind a proxy or with several workers, limits are looser than configured. The AWS deployment runs one worker and Caddy forwards the real viewer address as `X-Forwarded-For`; any other proxy setup needs the same, and a shared store (Redis) would be needed for several workers.
 - **Platform AI:** without `GEMINI_API_KEY`, platform-credit refinement uses the mock AI service. Set the key in any real deployment.
 - **Client Review access codes** are 8 characters, stored in plain text, and don't expire. Regenerating a code revokes the old one.
-- **Production deployment** is defined (tag-driven workflow, `deploy/`, and the `open-projects-hub-infra` Terraform) but not live until the infrastructure is applied and the first release tag is pushed. See [ADR-021](https://github.com/alonsovndev/open-projects-hub-docs/blob/dev/docs/04-decisions/adr-021-low-cost-single-host-deployment.md) for the design (App Runner and RDS were dropped for cost).
+- **Production deployment** is live at `https://api-oph.alonsovndev.com` (`v0.1.0`, one EC2 host behind Cloudflare, deployed with `scripts/deploy-release.sh`). It has no high availability and no database backups by design; see [ADR-021](https://oph-docs.alonsovndev.com/docs/04-decisions/adr-021-low-cost-single-host-deployment/) and [ADR-023](https://oph-docs.alonsovndev.com/docs/04-decisions/adr-023-credits-account-us-east-2-manual-deploy/). App Runner and RDS were dropped for cost.
