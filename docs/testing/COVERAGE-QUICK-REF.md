@@ -24,7 +24,7 @@ make clean
 
 ## 📁 Key Files
 
-- **Config:** `pyproject.toml`, `.coveragerc`, `pytest.ini`
+- **Config:** `pyproject.toml`, `.coveragerc`
 - **Commands:** `Makefile`
 - **Docs:** `docs/testing/coverage-strategy.md`
 
