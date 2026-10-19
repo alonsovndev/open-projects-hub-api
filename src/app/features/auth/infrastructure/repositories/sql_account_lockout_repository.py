@@ -6,7 +6,7 @@ from src.app.shared.infrastructure.security.account_lockout_service import Accou
 
 
 class SqlAccountLockoutRepository(AccountLockoutRepository):
-    """Postgres-backed account lockout storage, shared across App Runner instances."""
+    """Postgres-backed account lockout storage, shared across API instances."""
 
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
