@@ -21,7 +21,7 @@ class SqlKeyValidationAttemptRepository(KeyValidationAttemptRepository):
     Durable validation budget, shared across instances.
 
     Without this the 5-per-hour limit would be per process, so a user could reset it by
-    landing on a different App Runner instance.
+    landing on a different API instance.
     """
 
     def __init__(self, db_session: AsyncSession):

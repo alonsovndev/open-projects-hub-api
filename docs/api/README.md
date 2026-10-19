@@ -7,12 +7,12 @@ Complete reference for the Open Projects Hub API endpoints.
 ```
 Local:      http://localhost:8000
 Docker:     http://localhost:8080
-Production: https://api.yourdomain.com
+Production: https://api-oph.alonsovndev.com
 ```
 
 ## API Version
 
-Current Version: **v1.1.0**
+Current Version: **v1.0.0**
 
 All endpoints are prefixed with `/v1` except for health check.
 
@@ -262,7 +262,7 @@ The `GET /v1/stories` endpoint supports the following query parameters:
 | Filter | Values |
 |--------|--------|
 | `project_id` | UUID string |
-| `status` | `todo`, `in_progress`, `done` |
+| `status` | `todo`, `in_progress`, `blocked`, `done` |
 | `priority` | `low`, `medium`, `high` |
 | `assigned_to` | UUID string |
 

@@ -79,19 +79,19 @@ pytest -m e2e --cov=src/app --cov-report=html -v
 
 ## CI/CD Coverage Enforcement
 
-Coverage is enforced locally via the Makefile (`make coverage` with `--cov-fail-under=80`). CI/CD workflow configuration has not yet been added to this repository.
+The 80% threshold is advisory: `make coverage` passes `--cov-fail-under=80` but the recipe ends with `|| true`, so it never fails the command. The CI workflow (`.github/workflows/ci.yml`) does not run coverage.
 
 To verify coverage locally:
 
 ```bash
-make coverage        # Unit tests with 80% threshold
+make coverage        # Unit tests, 80% advisory threshold
 make coverage-all    # All tests with 80% threshold
 make coverage-report # Open HTML report in browser
 ```
 
 ## Configuration Files
 
-Coverage configuration is split between `pyproject.toml` (primary) and `.coveragerc` with additional settings in `pytest.ini`.
+Coverage configuration is split between `pyproject.toml` (primary) and `.coveragerc`.
 
 ## Coverage Best Practices
 
@@ -369,4 +369,4 @@ def mock_user_repo():
 
 1. 🔄 **Maintain coverage above 80%** for new code
 2. 🔍 **Review coverage regularly** to identify gaps
-3. ➕ **Add CI/CD workflow** when ready for automated enforcement
+3. ➕ **Add a coverage step to the CI workflow** when ready for automated enforcement

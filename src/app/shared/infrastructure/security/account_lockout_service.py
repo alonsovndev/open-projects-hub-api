@@ -6,7 +6,7 @@ Storage is pluggable via AccountLockoutRepository: an in-memory implementation
 (default, used in tests and single-instance runs) and a SQL-backed one
 (src/app/features/auth/infrastructure/repositories/sql_account_lockout_repository.py,
 wired in production via composition/infrastructure.py) so lockout state survives
-a restart and is shared across multiple App Runner instances.
+a restart and is shared across multiple API instances.
 """
 
 import asyncio

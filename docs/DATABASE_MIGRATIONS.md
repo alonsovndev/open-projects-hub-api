@@ -38,19 +38,19 @@ Before merging a new migration:
 - [ ] **Additive-first**: new columns/tables added before old ones are removed; a breaking
       change ships as two migrations (add-and-dual-write, then remove in a later release).
 - [ ] **N-1 compatible**: the migration must not break the currently-deployed application
-      version — required for zero-downtime rolling deploys (App Runner, per ADR-006).
+      version, because the deploy restarts the single API container while the database keeps running (ADR-021).
 - [ ] **Manually reviewed**: `alembic revision --autogenerate` output is a starting point,
       not a final migration — review the generated `upgrade()`/`downgrade()` before committing.
 - [ ] **`downgrade()` is complete**: see the ENUM gotcha below — a downgrade that doesn't fully
       undo the upgrade will break the next `upgrade head` attempt.
 
-Only one migration exists today (`0001_initial`, a squash of the pre-release history made
+Only one migration exists today (`0001_initial_schema`, a squash of the pre-release history made
 before the first deployment, so there is no deployed schema to break). This checklist is the
 process to follow starting with the next schema change.
 
 ## ⚠️ PostgreSQL ENUM Types in `downgrade()`
 
-**Gotcha found and fixed while verifying this runbook** (see `0001_initial`): a
+**Gotcha found and fixed while verifying this runbook** (see `0001_initial_schema`): a
 `postgresql.ENUM` column type is a separate named object in PostgreSQL from the table that
 uses it. `op.drop_table(...)` drops the table but **not** the enum type it referenced — the
 type is left orphaned. The next `alembic upgrade head` then fails with
@@ -79,7 +79,7 @@ alembic upgrade head        # re-apply — must succeed cleanly
 
 If the re-apply fails, the `downgrade()` didn't fully undo the `upgrade()` (most commonly:
 an orphaned ENUM type, per above, or a leftover index/constraint). This exact cycle was run
-against `0001_initial` and confirmed idempotent after the ENUM fix.
+against `0001_initial_schema` and confirmed idempotent after the ENUM fix.
 
 ## Seed Data
 
@@ -93,7 +93,4 @@ only seeds a project's stories the first time that project is created.
 
 ## CI/CD Schema Validation
 
-Not yet implemented — this repository has no GitHub Actions workflows yet. Automated
-migration validation (running `alembic upgrade head` against a CI database before merge) is
-in scope for **US-EP0-BE-003: CI/CD Pipeline Scaffolding and Testing Framework**, not
-duplicated here.
+`.github/workflows/ci.yml` has a "Migrations apply and roll back" step: on every pull request it runs `alembic upgrade head` against an empty PostgreSQL and then rolls back, so a broken migration fails the check before merge. Migrations also run when the API container starts in production (`scripts/start-api.sh`).

@@ -9,35 +9,32 @@ ADMIN_PASSWORD="SecurePass123!" \
 make seed-admin
 ```
 
-Or, fully containerized:
+Or, fully containerized (`ADMIN_PASSWORD` is required):
 ```bash
-docker compose --profile seed run --rm seed-admin
+ADMIN_EMAIL="admin@example.com" ADMIN_PASSWORD="SecurePass123!" \
+  docker compose --profile seed run --rm -e ADMIN_EMAIL -e ADMIN_PASSWORD seed-admin
 ```
 
 **When to use:** Creating your first admin user
 
 ---
 
-### Method 2: API Endpoint (Additional Admins)
+### Method 2: API Endpoint (Add Members)
 ```bash
 # 1. Login as admin
 curl -X POST http://localhost:8000/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "SecurePass123!"}'
 
-# 2. Create new admin (use token from step 1)
+# 2. Invite a teammate (use the token from step 1). Only `member` exists here:
+#    no role and no password; the invitee sets one when verifying their email.
 curl -X POST http://localhost:8000/v1/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "email": "newadmin@example.com",
-    "password": "NewAdmin123!",
-    "displayName": "New Admin",
-    "role": "admin"
-  }'
+  -d '{"email": "teammate@example.com", "displayName": "Jane Teammate"}'
 ```
 
-**When to use:** Creating additional admins after you have at least one
+**When to use:** Adding teammates to your workspace after you have an admin
 
 ---
 

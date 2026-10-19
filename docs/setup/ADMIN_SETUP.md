@@ -6,7 +6,7 @@ This guide explains how to create admin users in the Open Projects Hub API.
 
 - [Overview](#overview)
 - [Method 1: Database Seed Script (First Admin)](#method-1-database-seed-script-first-admin)
-- [Method 2: API Endpoint (Subsequent Admins)](#method-2-api-endpoint-subsequent-admins)
+- [Method 2: API Endpoint (Adding Members)](#method-2-api-endpoint-adding-members)
 - [Security Best Practices](#security-best-practices)
 
 ---
@@ -89,11 +89,7 @@ Admin Name: Main Admin
 
 The default `compose.yml` includes an opt-in `seed-admin` service (behind the `seed` profile) that runs the script inside the app's own container config (`APP_ENV=container`), so it always talks to the `postgres` service correctly:
 
-```bash
-docker compose --profile seed run --rm seed-admin
-```
-
-With custom credentials:
+`ADMIN_PASSWORD` is required (the script exits if it is unset):
 
 ```bash
 ADMIN_EMAIL="admin@mycompany.com" \
@@ -116,9 +112,9 @@ The script is **safe to run multiple times**. If the admin user already exists, 
 
 ---
 
-## Method 2: API Endpoint (Subsequent Admins)
+## Method 2: API Endpoint (Adding Members)
 
-**Use this method to create additional admin users after you have at least one admin.**
+**Use this method to add teammates after you have an admin account.** `POST /v1/users` creates only `member` users: it accepts no `role` and no `password`. The invitee receives an emailed code and sets a password when verifying their email. Additional admins cannot be created through the API; every public registration (`POST /v1/auth/register`) creates its own workspace with its own admin.
 
 ### Prerequisites
 
@@ -150,31 +146,7 @@ curl -X POST http://localhost:8000/v1/auth/login \
 }
 ```
 
-### Step 2: Create New Admin User
-
-```bash
-curl -X POST http://localhost:8000/v1/users \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "email": "newadmin@mycompany.com",
-    "password": "AnotherSecurePass123!",
-    "displayName": "Secondary Admin",
-    "role": "admin"
-  }'
-```
-
-**Response:**
-```json
-{
-  "id": "660e8400-e29b-41d4-a716-446655440001",
-  "email": "newadmin@mycompany.com",
-  "displayName": "Secondary Admin",
-  "role": "admin"
-}
-```
-
-### Adding Members
+### Step 2: Add a Member
 
 Clients do not have accounts. They review a project through its **access code** on the public
 Client Review page (`/viewer`); see the [API README](../api/README.md#client-review-public).

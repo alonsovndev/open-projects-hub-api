@@ -16,7 +16,7 @@ help:
 	@echo "  make install-dev        Install dev dependencies + pre-commit hooks"
 	@echo ""
 	@echo "🧪 Testing:"
-	@echo "  make test               Run all tests (unit + integration)"
+	@echo "  make test               Run unit tests (integration tests excluded)"
 	@echo "  make test-unit          Run unit tests only"
 	@echo "  make test-integration   Run integration tests only (requires DB)"
 	@echo "  make coverage           Run tests with coverage report"

@@ -12,6 +12,10 @@ This guide covers deploying the Open Projects Hub API to production environments
 - [Database Setup](#database-setup)
 - [Security Checklist](#security-checklist)
 - [Monitoring & Logging](#monitoring--logging)
+- [Reverse Proxy Setup](#reverse-proxy-setup)
+- [Troubleshooting](#troubleshooting)
+- [Scaling & Performance](#scaling--performance)
+- [Support & Maintenance](#support--maintenance)
 - [AWS Production Deployment](#aws-production-deployment)
 
 ---
@@ -128,11 +132,7 @@ docker compose exec app alembic upgrade head
 
 Run the one-shot `seed-admin` compose service (uses the same `.env`/`APP_ENV=container` config as the `app` service, so it always targets the running database):
 
-```bash
-docker compose --profile seed run --rm seed-admin
-```
-
-Or set custom credentials for that run:
+`ADMIN_PASSWORD` is required (the script exits if it is unset) and must contain a letter and a digit:
 ```bash
 ADMIN_EMAIL="admin@yourdomain.com" \
 ADMIN_PASSWORD="SecureAdmin123!" \
@@ -266,9 +266,12 @@ curl http://localhost:8080/health
 {
   "status": "healthy",
   "service": "Open Projects Hub API",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "database": "connected"
 }
 ```
+
+Kubernetes-style probes are also available: `/health/live` and `/health/ready`.
 
 ### Structured Logging
 
@@ -488,14 +491,9 @@ Set up alerts for:
 
 ---
 
-**Last Updated:** June 11, 2026  
-**Deployment Version:** 1.0.0
-
----
-
 ## AWS Production Deployment
 
-The release shown at the master's review runs on a single EC2 host behind Cloudflare (DNS and proxy for the project domain). The web app is a separate deployment (Cloudflare Workers at `https://oph.alonsovndev.com`); the API answers at `https://api-oph.alonsovndev.com`. The design is recorded in ADR-021 (docs repository) and the infrastructure is defined in the `open-projects-hub-infra` repository.
+The release shown at the master's review runs on a single EC2 host behind Cloudflare (DNS and proxy for the project domain). The web app is a separate deployment (Cloudflare Workers at `https://oph.alonsovndev.com`); the API answers at `https://api-oph.alonsovndev.com`. The design is recorded in ADR-021, ADR-022 and ADR-023 (docs repository, `docs/04-decisions/`) and the infrastructure is defined in the `open-projects-hub-infra` repository.
 
 **How it fits together**
 
@@ -533,7 +531,7 @@ The web build needs the matching `VITE_API_BASE_URL=https://api-oph.alonsovndev.
 
 **Cost:** about $12.85/month from the AWS Free Plan credits (EC2 t3.micro, public IPv4, EBS). Cloudflare is on the free plan.
 
-**Roll back:** run `scripts/deploy-release.sh` with the previous `vX.Y.Z` tag (its image stays in GHCR). Migrations are not reversed automatically, so do not roll back across a migration that dropped data. To take the API offline without touching AWS, delete the `api-oph` DNS record in Cloudflare.
+**Roll back:** run `scripts/deploy-release.sh` with the previous `vX.Y.Z` tag (its image stays in GHCR). Migrations are not reversed automatically, so do not roll back across a migration that dropped data. To take the API offline without touching AWS, pause or remove the `api-oph` DNS record in Cloudflare; Terraform manages that record, so the next `terraform plan` will show it as drift to restore.
 
 **Verify the frontend-to-API link after a deploy:**
 
@@ -546,11 +544,15 @@ curl -si -X OPTIONS https://api-oph.alonsovndev.com/v1/auth/login \
 
 The preflight must answer `access-control-allow-origin: https://oph.alonsovndev.com` and `access-control-allow-credentials: true`. Then sign in from the web app and check that the refresh cookie is set for the API host.
 
-**Seed the admin user** (one-off, on the host, from `/opt/ophub`; the password needs a letter and a digit):
+**Create the first account.** Production does not seed an administrator: register through the web app (`https://oph.alonsovndev.com`), enter the emailed code and sign in. Registration creates a workspace with you as its administrator. A seeded administrator is optional (for example for demos), done once on the host from `/opt/ophub` with a password that has a letter and a digit:
 
 ```bash
 docker compose -f compose.prod.yml --profile seed run --rm \
   -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD='...' seed-admin
 ```
 
-**Email:** without a verified sending domain, sign-up verification and reset emails cannot reach arbitrary users. Use the seeded admin for demos.
+**Email:** verification and password-reset codes are sent through Resend's SMTP relay from the verified domain `send.alonsovndev.com` ([email-deliverability.md](configuration/email-deliverability.md)). The `SMTP_*` parameters are set by hand in SSM; a failed send is only logged (`email.send_failed`), so check the container logs if a code never arrives.
+
+---
+
+**Last Updated:** 2026-10-19

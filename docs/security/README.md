@@ -91,8 +91,8 @@ The API implements multiple layers of security to protect user data and prevent 
 - **Login Endpoint:** 10 requests per 1 minute
 - **Register Endpoint:** 5 requests per 1 minute
 - **Refresh Token Endpoint:** 10 requests per 15 minutes
-- **Other Endpoints:** 100 requests per 1 minute
-- **Response:** HTTP 429 with `Retry-After` header
+- **Other Endpoints:** a 100/minute default is declared on the limiter, but the middleware that applies it is not installed; only endpoints with an explicit limit are throttled
+- **Response:** HTTP 429 with an `error` body and no `Retry-After` header
 
 **Key Files:**
 - `src/app/shared/infrastructure/rate_limit/rate_limiter.py`
@@ -252,39 +252,11 @@ cors:
 
 The CORS middleware is configured in `src/app/shared/presentation/middleware.py` and reads origins from the active environment config. The wildcard `"*"` is not used when credentials are enabled.
 
-**Production Recommendation:**
-
-```yaml
-cors:
-  origins:
-  - https://app.yourdomain.com
-  - https://admin.yourdomain.com
-  allow_credentials: true
-```
+**Production:** the origins come from the `CORS_ORIGINS` SSM parameter (exact origins, here `https://oph.alonsovndev.com`) with `CORS_ALLOW_CREDENTIALS=true`; see [DEPLOYMENT.md](../DEPLOYMENT.md#aws-production-deployment).
 
 ## Security Headers
 
-**Recommended additions for production:**
-
-```python
-from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-# Trust only specific hosts
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["api.yourdomain.com"]
-)
-
-# Add security headers
-@app.middleware("http")
-async def add_security_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    return response
-```
+`apply_security_headers` in `src/app/shared/presentation/middleware.py` sets, on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a `Content-Security-Policy` (restrictive in production), and, in production only, `Strict-Transport-Security`. `src/tests/**/test_security_headers.py` covers them. Caddy does not add its own headers; the API owns them.
 
 ## Secrets Management
 
@@ -385,12 +357,12 @@ log.warning("invalid_token", ip=ip_address, reason=reason)
 - ✅ Timing Attacks → Constant-time password comparison (bcrypt)
 - ✅ DoS → Rate limiting
 
-### Planned/Recommended
+### Additional Mitigations
 
-- ⏸️ XSS → Content Security Policy headers
-- ⏸️ CSRF → CSRF tokens (if using cookies)
-- ⏸️ Clickjacking → X-Frame-Options header (partially addressed)
-- ⏸️ Man-in-the-Middle → HTTPS only, HSTS header (production requirement)
+- ✅ XSS → Content Security Policy header
+- ✅ CSRF → refresh cookie is `SameSite=Lax`, scoped to `/v1/auth`, and cookie sessions require a trusted `Origin`
+- ✅ Clickjacking → `X-Frame-Options: DENY`
+- ✅ Man-in-the-Middle → HTTPS at the Cloudflare edge, HSTS header in production
 - ✅ Session Fixation → Token refresh/rotation (implemented with single-use refresh tokens)
 
 ## Incident Response
@@ -408,7 +380,7 @@ log.warning("invalid_token", ip=ip_address, reason=reason)
 **DO NOT** open public GitHub issues for security vulnerabilities.
 
 Instead:
-- Email: security@yourdomain.com
+- Email: the maintainer's private address in the [organization security policy](https://github.com/alonsovndev/.github/blob/main/SECURITY.md)
 - Include: Description, steps to reproduce, impact assessment
 - Response time: Within 48 hours
 

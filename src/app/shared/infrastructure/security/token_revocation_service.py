@@ -7,7 +7,7 @@ is pluggable via TokenRevocationRepository: an in-memory implementation
 (default, used in tests and single-instance runs) and a SQL-backed one
 (src/app/features/auth/infrastructure/repositories/sql_token_revocation_repository.py,
 wired in production via composition/infrastructure.py) so revocations survive
-a restart and are shared across multiple App Runner instances.
+a restart and are shared across multiple API instances.
 """
 
 import asyncio
