@@ -6,6 +6,10 @@ All notable changes to the API are recorded here. Versions are the `vX.Y.Z` tags
 
 Changes on `dev` since `v0.1.0` are listed in the pull requests of this repository.
 
+### Security
+
+- Upgrade `pyjwt` 2.10.1 to 2.15.1 and `cryptography` 46.0.7 to 50.0.2 to pick up the published fixes (JWT verification and bundled OpenSSL). The 1026 unit tests pass; the integration tests were not run.
+
 ## [0.1.0] - 2026-10-15
 
 First release. It runs in the current production stack at `https://api-oph.alonsovndev.com` (deployed there on 2026-10-19; see the infrastructure repository).
