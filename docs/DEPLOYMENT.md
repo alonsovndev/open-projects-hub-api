@@ -503,12 +503,20 @@ The release shown at the master's review runs on a single EC2 host behind Cloudf
 - PostgreSQL has no published port; only the API container reaches it.
 - The browser calls the API cross-origin from the web app. The API sends the CORS headers and the refresh cookie itself (`HttpOnly; Secure; SameSite=Lax`, which is sent because both hostnames share the registrable domain).
 - `deploy/deploy.sh <tag>` runs on the host through an SSM document. It reads `/ophub/prod/*` from SSM Parameter Store into `/opt/ophub/.env`, pulls the image, restarts the stack and waits for `/health/ready`. Parameters left at the placeholder `N/A` are not written, so the variable stays unset.
-- `.github/workflows/deploy.yml` runs on a `vX.Y.Z` tag whose commit is on `main` (or manually from such a tag): it pushes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>` and starts the SSM deploy through a GitHub OIDC role.
+- `.github/workflows/deploy.yml` runs on a `vX.Y.Z` tag whose commit is on `main` (or manually from such a tag) and pushes `ghcr.io/alonsovndev/open-projects-hub-api:<tag>`. It does not touch AWS: the account's service control policies forbid IAM OIDC providers, so a person starts the deploy with `scripts/deploy-release.sh <tag>` (see below).
 - Migrations run when the API container starts. There are no database backups, by decision.
 
 **Before the first release**
 
-Follow the "Cloudflare setup" and "First release checklist" sections of the infrastructure repository README: set up the Cloudflare zone and token, apply Terraform, set the repository variables (`AWS_ROLE_ARN`, `AWS_REGION`, `API_INSTANCE_ID`, `API_URL`), add tag protection for `v*`, and set the GHCR package to Public after the first image push (the host pulls without credentials).
+Follow the "Cloudflare setup" and "First release checklist" sections of the infrastructure repository README: set up the Cloudflare zone and token, apply Terraform, add tag protection for `v*`, and set the GHCR package to Public after the first image push (the host pulls without credentials). The workflow needs no repository variables.
+
+**Deploy a release** (after the `deploy` workflow has pushed the image; use credentials for the AWS account that holds the host):
+
+```bash
+AWS_PROFILE=ophub-new API_URL=https://api-oph.alonsovndev.com scripts/deploy-release.sh v0.1.0
+```
+
+The script finds the `ophub-prod-api` instance in `AWS_REGION` (default `us-east-2`), runs the `ophub-prod-deploy` SSM document with the tag, prints the host output and, when `API_URL` is set, checks that the API answers a JSON 4xx through Cloudflare.
 
 **Production settings** (SSM parameters under `/ophub/prod/`, written by Terraform unless noted; read into `/opt/ophub/.env` on every deploy):
 
@@ -525,7 +533,7 @@ The web build needs the matching `VITE_API_BASE_URL=https://api-oph.alonsovndev.
 
 **Cost:** about $12.85/month from the AWS Free Plan credits (EC2 t3.micro, public IPv4, EBS). Cloudflare is on the free plan.
 
-**Roll back:** re-run the deploy workflow from the previous `vX.Y.Z` tag (Actions > deploy > Run workflow on that tag). Migrations are not reversed automatically, so do not roll back across a migration that dropped data. To take the API offline without touching AWS, delete the `api-oph` DNS record in Cloudflare.
+**Roll back:** run `scripts/deploy-release.sh` with the previous `vX.Y.Z` tag (its image stays in GHCR). Migrations are not reversed automatically, so do not roll back across a migration that dropped data. To take the API offline without touching AWS, delete the `api-oph` DNS record in Cloudflare.
 
 **Verify the frontend-to-API link after a deploy:**
 
