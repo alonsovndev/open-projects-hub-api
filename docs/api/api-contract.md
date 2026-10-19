@@ -6,7 +6,7 @@ This document defines the API endpoints for the Open Projects Hub, intended for 
 
 - **Local:** `http://localhost:8000`
 - **Docker:** `http://localhost:8080`
-- **Production:** `https://api.yourdomain.com`
+- **Production:** `https://api-oph.alonsovndev.com` (only `/v1/*` is routed; health endpoints are reachable on the host only)
 
 ## API Version
 
@@ -15,8 +15,8 @@ All endpoints are prefixed with `/v1`.
 ## Authorization
 
 Two roles exist: **Admin** and **Member** (both create and change workspace data; only the
-Admin manages the team). Clients have no account: they use the public Client Review route.
-`Authenticated` below means either role; `None` means no token is needed.
+Admin manages the team and renames the workspace). Clients have no account: they use the public Client Review route.
+`Authenticated` below means either role; `Admin Only` means the Admin role; `None` means no token is needed.
 
 - `401 Unauthorized` — the JWT is missing, malformed, or expired. Authenticate and retry.
 - `403 Forbidden` — the JWT is valid but the role is not allowed. Retrying will not help.
@@ -25,41 +25,56 @@ Admin manages the team). Clients have no account: they use the public Client Rev
 
 | Method | Path | Authentication | Description |
 |---|---|---|---|
-| `GET` | `/health` | None | Health check endpoint |
+| `GET` | `/health` | None | Combined health check (status, service, version, database) |
+| `GET` | `/health/live` | None | Liveness probe (the process is up) |
+| `GET` | `/health/ready` | None | Readiness probe (the database answers; 503 otherwise) |
 | `POST` | `/v1/auth/login` | None | User login. Returns 403 `{"detail", "code": "EMAIL_NOT_VERIFIED"}` when the password is correct but the email is unverified |
 | `POST` | `/v1/auth/register` | None | Open self sign-up: creates a new workspace and its **Admin** (a `role` field in the body is rejected with 422). Creates the account unverified, emails a 6-character code, and returns 201 `{email (masked), verificationRequired, nextStep: "verify-email", codeExpiresAt}` with no tokens |
 | `POST` | `/v1/auth/verify-email` | None | Body `{email, code, password?}`. Verifies the account and grants its free AI credits (Admins and Members, 5 each, up to 25 per workspace). Accounts added by an Admin send `password` to choose their own; it is checked before the code, so a weak one does not burn an attempt. 400 for an invalid, expired or superseded code; 429 after 5 wrong attempts (request a new code) |
 | `POST` | `/v1/auth/resend-verification` | None | Body `{email}`. Emails a new code and invalidates the previous one. Always 200 with a generic message; 429 after 3 resends in 15 minutes |
-| `POST` | `/v1/auth/refresh` | None | Refresh access token |
-| `GET` | `/v1/users/{user_id}` | Authenticated | Get user by ID |
+| `POST` | `/v1/auth/refresh` | None | Rotate a refresh token for a new access/refresh pair (single use). Browser sessions send `X-Session-Mode: cookie` and use the HttpOnly `oph_refresh_token` cookie instead of a body |
+| `POST` | `/v1/auth/logout` | Authenticated | Revoke the session's refresh token and clear the cookie |
+| `POST` | `/v1/auth/forgot-password` | None | Body `{email}`. Emails a reset code; the response does not reveal whether the account exists |
+| `POST` | `/v1/auth/resend-reset-code` | None | Body `{email}`. Emails a new reset code (rate limited) |
+| `POST` | `/v1/auth/reset-password` | None | Body `{email, code, newPassword}`. Completes a password reset |
+| `GET` | `/v1/users` | Authenticated | List the users of the caller's workspace |
+| `GET` | `/v1/users/{user_id}` | Authenticated | Get a user of the caller's workspace by ID (404 for other workspaces) |
+| `PATCH` | `/v1/users/{user_id}/status` | Admin Only | Activate or deactivate a teammate |
+| `DELETE` | `/v1/users/{user_id}` | Admin Only | Permanently delete a teammate |
+| `PATCH` | `/v1/workspaces/me` | Admin Only | Rename the caller's workspace |
+| `GET` | `/v1/users/me/credits` | Authenticated | The caller's AI credit balance |
+| `GET` | `/v1/users/me/api-keys` | Authenticated | List the caller's provider keys, masked (a key is never returned in plain text) |
+| `POST` | `/v1/users/me/api-keys` | Authenticated | Add or replace the caller's key for one provider |
+| `DELETE` | `/v1/users/me/api-keys/{provider}` | Authenticated | Delete the caller's key for a provider |
+| `POST` | `/v1/users/me/api-keys/{provider}/validate` | Authenticated | Check the stored key with the provider |
 | `GET` | `/v1/users/me/profile` | Authenticated | Get current user profile |
 | `PATCH` | `/v1/users/me/profile` | Authenticated | Update current user profile |
 | `POST` | `/v1/users/me/password` | Authenticated | Change password |
 | `POST` | `/v1/users` | Admin Only | Add a member. Body `{displayName, email, role?}` (`role` can only be `member`), no password: they get a verification email and set their own. 409 when the workspace already has 5 users (any role, inactive and unverified included) |
-| `POST` | `/v1/clients` | Admin Only | Create client |
-| `GET` | `/v1/clients` | Admin Only | List clients with pagination |
-| `GET` | `/v1/clients/{client_id}` | Admin Only | Get client by ID |
-| `PATCH` | `/v1/clients/{client_id}` | Admin Only | Update client |
-| `DELETE` | `/v1/clients/{client_id}` | Admin Only | Delete client (409 if active projects exist; archived projects removed as part of deletion) |
-| `POST` | `/v1/projects` | Admin Only | Create project (max 3 active projects per admin) |
+| `POST` | `/v1/clients` | Authenticated | Create client |
+| `GET` | `/v1/clients` | Authenticated | List clients with pagination |
+| `GET` | `/v1/clients/{client_id}` | Authenticated | Get client by ID |
+| `PATCH` | `/v1/clients/{client_id}` | Authenticated | Update client |
+| `DELETE` | `/v1/clients/{client_id}` | Authenticated | Delete client (409 if active projects exist; archived projects removed as part of deletion) |
+| `POST` | `/v1/projects` | Authenticated | Create project (max 3 active projects per admin) |
 | `GET` | `/v1/projects` | Authenticated | List projects with pagination and filters (status, clientId, date ranges, search) |
 | `GET` | `/v1/projects/{project_id}` | Authenticated | Get project by ID |
-| `PATCH` | `/v1/projects/{project_id}` | Admin Only | Update project |
-| `POST` | `/v1/projects/{project_id}/archive` | Admin Only | Archive project (frees an active-project slot) |
-| `POST` | `/v1/projects/{project_id}/reactivate` | Admin Only | Reactivate archived/completed project (409 if at active limit) |
-| `DELETE` | `/v1/projects/{project_id}` | Admin Only | Delete project (404 if not found) |
+| `PATCH` | `/v1/projects/{project_id}` | Authenticated | Update project |
+| `POST` | `/v1/projects/{project_id}/archive` | Authenticated | Archive project (frees an active-project slot) |
+| `POST` | `/v1/projects/{project_id}/reactivate` | Authenticated | Reactivate archived/completed project (409 if at active limit) |
+| `DELETE` | `/v1/projects/{project_id}` | Authenticated | Delete project (404 if not found) |
 | `GET` | `/v1/projects/{project_id}/backlog` | Authenticated | Get the approved backlog with acceptance criteria |
-| `POST` | `/v1/projects/{project_id}/exports/markdown` | Admin Only | Export the backlog as a Markdown file |
-| `POST` | `/v1/stories` | Admin Only | Create story |
+| `POST` | `/v1/projects/{project_id}/exports/markdown` | Authenticated | Export the backlog as a Markdown file |
+| `POST` | `/v1/stories` | Authenticated | Create story |
 | `GET` | `/v1/stories` | Authenticated | List stories with pagination and filters |
 | `GET` | `/v1/stories/by-project/{project_id}` | Authenticated | Get stories by project with pagination |
 | `GET` | `/v1/stories/{story_id}` | Authenticated | Get story by ID |
-| `PATCH` | `/v1/stories/{story_id}` | Admin Only | Update story |
-| `DELETE` | `/v1/stories/{story_id}` | Admin Only | Delete story |
-| `POST` | `/v1/stories/{story_id}/assign` | Admin Only | Assign story to user |
-| `POST` | `/v1/refinement/generate-stories` | Admin Only | Generate refined stories from notes using AI (nothing is stored) |
-| `POST` | `/v1/refinement/approve-story` | Admin Only | Approve one refined story; it is saved to the backlog |
-| `POST` | `/v1/refinement/approve-stories` | Admin Only | Approve several refined stories; saved to the backlog |
+| `PATCH` | `/v1/stories/{story_id}` | Authenticated | Update story |
+| `DELETE` | `/v1/stories/{story_id}` | Authenticated | Delete story |
+| `POST` | `/v1/stories/{story_id}/assign` | Authenticated | Assign story to user |
+| `POST` | `/v1/refinement/generate-stories` | Authenticated | Generate refined stories from notes using AI (nothing is stored) |
+| `POST` | `/v1/refinement/approve-story` | Authenticated | Approve one refined story; it is saved to the backlog |
+| `POST` | `/v1/refinement/approve-stories` | Authenticated | Approve several refined stories; saved to the backlog |
 | `GET` | `/v1/dashboard/stats` | Authenticated | Get dashboard statistics |
 | `POST` | `/v1/projects/{project_id}/access-code/regenerate` | Authenticated | Replace the project's client access code; the old code stops working. Returns the project |
 | `GET` | `/v1/viewer/{access_code}` | None | Client Review: the project's approved stories for a client stakeholder. Rate limited to 30/minute per IP; 404 for an unknown or malformed code |

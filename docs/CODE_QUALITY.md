@@ -111,7 +111,7 @@ pre-commit install --hook-type commit-msg
 #### Configuration
 -   `pyproject.toml` - Centralized Python config
 -   `.pre-commit-config.yaml` - Pre-commit hooks
--   `.github/workflows/ci-quality.yml` - CI/CD workflow
+-   `.github/workflows/ci.yml` - CI workflow
 -   `requirements-dev.txt` - Dev dependencies
 -   `.vscode/settings.json` - VS Code settings
 -   `.vscode/extensions.json` - Recommended extensions
@@ -260,9 +260,6 @@ make test-unit
 
 # Run integration tests (requires database)
 make test-integration
-
-# Run E2E tests
-make test-e2e
 
 # Run with coverage
 make coverage
@@ -546,7 +543,6 @@ open-projects-hub-api/
 ├── .pre-commit-config.yaml         # Pre-commit hooks config
 ├── requirements.txt                # Production dependencies
 ├── requirements-dev.txt            # Development dependencies
-├── pytest.ini                      # Pytest configuration
 ├── .coveragerc                     # Coverage configuration
 └── Makefile                        # Common commands
 ```
@@ -561,7 +557,6 @@ The project uses both `pyproject.toml` and legacy standalone config files. Confi
 |:-------|:---------|:--------|
 | Ruff, Pytest, MyPy, Bandit | `pyproject.toml` | Primary tool configuration |
 | Coverage | `.coveragerc` | Coverage settings |
-| Pytest | `pytest.ini` | Additional pytest settings |
 
 ---
 

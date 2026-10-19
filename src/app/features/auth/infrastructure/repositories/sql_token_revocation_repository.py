@@ -9,7 +9,7 @@ from src.app.shared.infrastructure.security.token_revocation_service import Toke
 
 
 class SqlTokenRevocationRepository(TokenRevocationRepository):
-    """Postgres-backed refresh-token revocation storage, shared across App Runner instances."""
+    """Postgres-backed refresh-token revocation storage, shared across API instances."""
 
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
