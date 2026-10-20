@@ -49,9 +49,8 @@ logging:
 
 monitoring:
   # Sentry error tracking (ADR-009). Set the SENTRY_DSN secret to activate.
-  # Not yet provisioned — app.py normalizes unset/placeholder values to None
-  # so startup doesn't fail (sentry-sdk's DSN parser rejects a truly empty
-  # string, and pyaml_env substitutes "N/A" for an unset var with no default).
+  # Not yet provisioned — init_sentry skips initialisation for an unset or
+  # placeholder value (pyaml_env substitutes "N/A" for an unset var with no default).
   sentry_dsn: !ENV ${SENTRY_DSN}
   sentry_traces_sample_rate: 0.1
 
