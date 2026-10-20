@@ -4,10 +4,10 @@ FastAPI application bootstrap and configuration.
 
 from contextlib import asynccontextmanager
 
-import sentry_sdk
 from fastapi import FastAPI
 
 from src.app.config.app_config import AppConfig
+from src.app.shared.infrastructure.observability.sentry import init_sentry
 from src.app.shared.infrastructure.rate_limit.rate_limiter import limiter
 from src.app.shared.logging import setup_logging
 from src.app.shared.logging.middleware import RequestContextMiddleware
@@ -32,26 +32,9 @@ app_description = (
     "blob/main/docs/api/README.md) for auth flows, pagination, and code examples."
 )
 
-# Error tracking (ADR-009). Configured per-environment in config_<env>.yml —
-# only config_prod.yml sets a real sentry_dsn today; other environments
-# explicitly disable it (console/CloudWatch logs are used there instead).
-# Normalize "not configured" cases to None: pyaml_env substitutes the literal
-# string "N/A" for an !ENV var with no default that's unset, and sentry-sdk's
-# DSN parser raises BadDsn on "" — both would crash startup, not just no-op.
-_sentry_dsn = config.get_config("monitoring.sentry_dsn")
-if _sentry_dsn in (None, "", "N/A"):
-    _sentry_dsn = None
-
-# send_default_pii=False: the SDK must not auto-capture request bodies/headers/
-# IPs; user context is set explicitly (internal user ID only) in
-# request_logging_middleware.
-sentry_sdk.init(
-    dsn=_sentry_dsn,
-    environment=ENV,
-    release=app_version,
-    send_default_pii=False,
-    traces_sample_rate=config.get_config("monitoring.sentry_traces_sample_rate", 0.1),
-)
+# Error tracking (ADR-009). Only config_prod.yml sets a real sentry_dsn; other
+# environments leave Sentry uninitialised (console/CloudWatch logs are used there).
+init_sentry(config)
 
 
 @asynccontextmanager
