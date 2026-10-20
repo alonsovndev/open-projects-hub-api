@@ -5,10 +5,8 @@ Provides consistent error response formats across all endpoints
 for validation errors, domain errors, authentication errors, and unexpected exceptions.
 """
 
-import traceback
 from typing import Any
 
-import sentry_sdk
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -222,7 +220,7 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     Returns:
         JSONResponse with 422 status and error message
     """
-    log.error(f"Domain error: {exc.message}")
+    log.warning(f"Domain error: {exc.message}")
     return JSONResponse(
         status_code=422,
         content={"detail": exc.message},
@@ -282,13 +280,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     Returns:
         JSONResponse with 500 status and error details
     """
-    log.error(f"Unhandled exception: {exc!s}")
-    log.error(traceback.format_exc())
-
-    # This handler intercepts the exception before it reaches the ASGI layer,
-    # so Sentry's automatic instrumentation never sees it — capture explicitly.
-    # No-op if sentry_sdk.init() was never called (no SENTRY_DSN configured).
-    sentry_sdk.capture_exception(exc)
+    # One ERROR record only: Sentry turns every ERROR log into an event and also captures the
+    # re-raised exception itself, deduplicating the pair when this record carries exc_info.
+    log.error(f"Unhandled exception: {exc!s}", exc_info=exc)
 
     # Fail closed: only developer-machine environments get raw exception text, which for
     # database errors includes SQL statements and bound parameters.

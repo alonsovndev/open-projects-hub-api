@@ -8,6 +8,7 @@ request_id back in the response X-Request-ID header.
 
 import uuid
 
+import sentry_sdk
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.app.shared.logging.logging import clear_context, set_request_id, set_user_id
@@ -36,6 +37,7 @@ class RequestContextMiddleware:
             request_id = str(uuid.uuid4())[:12]
 
         set_request_id(request_id)
+        sentry_sdk.set_tag("request_id", request_id)
 
         # Extract user_id from scope state if auth middleware already set it
         # (e.g. via JWT dependency). Falls back to "-" (anonymous).

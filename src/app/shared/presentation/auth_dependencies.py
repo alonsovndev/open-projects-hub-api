@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import jwt
+import sentry_sdk
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -57,6 +58,8 @@ async def get_current_user(
 
         # Set user_id in request state for logging middleware
         request.state.user_id = payload.get("sub")
+        # Internal ID only (never email/name), set before the handler runs so 500s carry it.
+        sentry_sdk.set_user({"id": str(payload["sub"])})
 
         return payload
 

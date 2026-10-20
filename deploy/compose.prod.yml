@@ -25,6 +25,8 @@ services:
       APP_ENV: prod
       POSTGRES_HOST: postgres
       GUNICORN_WORKERS: "1"
+      # Sentry release = the deployed image tag, so each deploy is a distinct release.
+      SENTRY_RELEASE: ${IMAGE_TAG}
       # Only Caddy can reach this container; Caddy sets X-Forwarded-For from CF-Connecting-IP.
       FORWARDED_ALLOW_IPS: "*"
     ports:
