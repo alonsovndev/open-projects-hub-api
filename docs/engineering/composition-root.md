@@ -96,6 +96,7 @@ from src.app.composition import (
 
 router = APIRouter()
 
+
 @router.post("/projects", response_model=ProjectResponse)
 async def create_project(
     payload: CreateProjectRequest,
@@ -114,6 +115,7 @@ Sometimes routes need direct database access for authorization checks:
 ```python
 from src.app.composition import get_database_session
 from src.app.features.stories.infrastructure.repositories.story_repository_impl import StoryRepositoryImpl
+
 
 async def check_story_ownership(story_id: str, user_id: str):
     """Check if user owns the story."""
@@ -141,6 +143,7 @@ async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
 # AI service - shared across requests
 _ai_service_instance: Optional[AIService] = None
 
+
 def get_ai_service() -> AIService:
     """Get AI service instance (singleton, thread-safe)."""
     global _ai_service_instance
@@ -155,6 +158,7 @@ def get_ai_service() -> AIService:
 ```python
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 
+
 def get_project_repository(
     session: AsyncSession = Depends(get_database_session),
 ) -> ProjectRepository:  # ← Interface type
@@ -163,6 +167,7 @@ def get_project_repository(
     from src.app.features.projects.infrastructure.repositories.project_repository_impl import (
         ProjectRepositoryImpl,
     )
+
     return ProjectRepositoryImpl(session)
 ```
 
@@ -175,6 +180,7 @@ def get_project_repository(
 
 ```python
 from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
+
 
 def get_create_project_use_case(
     project_repo: ProjectRepository = Depends(get_project_repository),
@@ -201,12 +207,14 @@ Choose the appropriate module:
 ```python
 # In composition/features/projects.py
 
+
 def get_update_project_use_case(
     project_repo: ProjectRepository = Depends(get_project_repository),
     client_repo: ClientRepository = Depends(get_client_repository),
 ) -> UpdateProjectUseCase:
     """Get update project use case."""
     from src.app.features.projects.application.use_cases.update_project import UpdateProjectUseCase
+
     return UpdateProjectUseCase(
         project_repository=project_repo,
         client_repository=client_repo,
@@ -237,11 +245,12 @@ __all__ = [
 ```python
 from src.app.composition import get_update_project_use_case
 
+
 @router.put("/projects/{project_id}")
 async def update_project(
     project_id: str,
     payload: UpdateProjectRequest,
-    use_case = Depends(get_update_project_use_case),
+    use_case=Depends(get_update_project_use_case),
 ):
     return await use_case.execute(project_id=project_id, request=payload)
 ```
@@ -282,6 +291,7 @@ Most tests mock at the use case level:
 ```python
 from unittest.mock import AsyncMock, patch
 
+
 @patch(
     "src.app.features.projects.application.use_cases.create_project.CreateProjectUseCase.execute",
     new=AsyncMock(return_value=mock_response),
@@ -304,7 +314,7 @@ from src.app.composition import get_project_repository
 
 
 def get_mock_project_repository():
-   return MockProjectRepository()
+    return MockProjectRepository()
 
 
 # Override dependency
@@ -343,6 +353,7 @@ Track which features depend on which repositories:
    ```python
    def get_use_case():
        from .use_cases.create import CreateUseCase  # Lazy
+
        return CreateUseCase(...)
    ```
 

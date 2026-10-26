@@ -84,10 +84,12 @@ def process_data():
     result = calculate()  # Unused variable
     return True
 
+
 # After - Use the variable
 def process_data():
     result = calculate()
     return result
+
 
 # Or - Prefix with underscore if intentionally unused
 def process_data():
@@ -106,14 +108,17 @@ def complex_function(data):
                 # ... deeply nested logic
                 pass
 
+
 # After - Extract functions
 def complex_function(data):
     if not is_valid(data):
         return None
     return process_valid_data(data)
 
+
 def is_valid(data):
     return condition1 and condition2 and condition3
+
 
 def process_valid_data(data):
     # ... processing logic
@@ -128,10 +133,12 @@ PASSWORD = "secret123"
 
 # After - Use environment variables
 import os
+
 PASSWORD = os.getenv("PASSWORD")
 
 # Or - Use configuration
 from src.app.config.app_config import app_config
+
 PASSWORD = app_config.password
 ```
 
@@ -169,9 +176,11 @@ Add type hints gradually:
 def get_user(user_id):
     return repository.find(user_id)
 
+
 # After
 from typing import Optional
 from src.app.features.users.domain.entities.user_entity import UserEntity
+
 
 def get_user(user_id: int) -> Optional[UserEntity]:
     return repository.find(user_id)
@@ -291,10 +300,7 @@ Some lines may exceed 120 characters:
 very_long_function_call_with_many_parameters(param1, param2, param3, param4, param5, param6, param7, param8)
 
 # After (formatted by Ruff)
-very_long_function_call_with_many_parameters(
-    param1, param2, param3, param4,
-    param5, param6, param7, param8
-)
+very_long_function_call_with_many_parameters(param1, param2, param3, param4, param5, param6, param7, param8)
 ```
 
 If you need to adjust line length, edit `pyproject.toml`:

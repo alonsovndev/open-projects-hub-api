@@ -59,18 +59,27 @@ This document outlines the core software design principles applied throughout th
       @abstractmethod
       async def find_by_email(self, email: Email) -> Optional[UserEntity]: ...
 
+
   # But open for extension via new implementations
   class PostgreSQLUserRepository(UserRepository): ...
-  class MongoDBUserRepository(UserRepository): ...     # New!
-  class InMemoryUserRepository(UserRepository): ...    # New!
+
+
+  class MongoDBUserRepository(UserRepository): ...  # New!
+
+
+  class InMemoryUserRepository(UserRepository): ...  # New!
   ```
 
 - **Value Objects:** Extend validation without changing base
   ```python
   # Add new value objects without modifying existing ones
   class Email: ...
-  class PhoneNumber: ...      # New value object
-  class Address: ...          # New value object
+
+
+  class PhoneNumber: ...  # New value object
+
+
+  class Address: ...  # New value object
   ```
 
 ---
@@ -147,6 +156,7 @@ This document outlines the core software design principles applied throughout th
       def __init__(self, user_repo: UserRepository):  # Interface
           self.user_repo = user_repo
 
+
   # ❌ Bad: Direct dependency on implementation
   class CreateUserUseCase:
       def __init__(self):
@@ -157,6 +167,7 @@ This document outlines the core software design principles applied throughout th
   ```python
   # Domain defines the contract
   class UserRepository(ABC): ...
+
 
   # Infrastructure fulfills it
   class UserRepositoryImpl(UserRepository): ...
@@ -185,9 +196,7 @@ This document outlines the core software design principles applied throughout th
   class EmailField(str):
       @classmethod
       def __get_pydantic_core_schema__(cls, source_type, handler):
-          return core_str_schema & core_str_validator(
-              lambda v: Email(v)
-          )
+          return core_str_schema & core_str_validator(lambda v: Email(v))
   ```
 
 - **Dependencies:** Centralized dependency injection in `src/app/composition/`
@@ -293,6 +302,7 @@ This document outlines the core software design principles applied throughout th
           if validate_secret:
               self._validate_secret_key(secret_key)  # Fails fast!
           self.secret_key = secret_key
+
 
   def _validate_secret_key(cls, secret_key: str) -> None:
       if len(secret_key) < 32:

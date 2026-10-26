@@ -167,9 +167,7 @@ class UserRepositoryImpl(UserRepository):  # Implements domain interface
 
     async def find_by_email(self, email: Email) -> Optional[UserEntity]:
         async with self.session_factory() as session:
-            result = await session.execute(
-                select(UserModel).where(UserModel.email == str(email))
-            )
+            result = await session.execute(select(UserModel).where(UserModel.email == str(email)))
             user_model = result.scalar_one_or_none()
             return user_model.to_entity() if user_model else None
 
@@ -255,6 +253,7 @@ Without dependency inversion, the application layer would directly depend on inf
 # ❌ BAD - Application depends on infrastructure
 from src.app.features.infrastructure.repository.user_repository_impl import UserRepositoryImpl
 
+
 class CreateUserUseCase:
     def __init__(self):
         self.repo = UserRepositoryImpl()  # Direct dependency!
@@ -271,15 +270,16 @@ class UserRepository(ABC):
     @abstractmethod
     async def find_by_email(self, email: Email) -> Optional[UserEntity]: ...
 
+
 # Application depends on interface
 class CreateUserUseCase:
     def __init__(self, user_repo: UserRepository):  # Depends on abstraction
         self.user_repo = user_repo
 
+
 # Infrastructure implements interface
 class UserRepositoryImpl(UserRepository):  # Concrete implementation
-    async def find_by_email(self, email: Email) -> Optional[UserEntity]:
-        ...
+    async def find_by_email(self, email: Email) -> Optional[UserEntity]: ...
 ```
 
 ## File Organization
@@ -372,10 +372,12 @@ Changes to infrastructure don't affect business logic:
 # Want to switch from PostgreSQL to MongoDB?
 # Just create a new repository implementation:
 
+
 class MongoDBUserRepository(UserRepository):
     async def find_by_email(self, email: Email) -> Optional[UserEntity]:
         # MongoDB implementation
         ...
+
 
 # Domain and application layers remain unchanged!
 ```

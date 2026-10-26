@@ -28,12 +28,12 @@ Entities are objects with a **unique identity** that persists through their life
 # src/app/features/domain/entities/user_entity.py
 @dataclass
 class UserEntity:
-    id: EntityId                    # Unique identity
-    email: Email                    # Value object
+    id: EntityId  # Unique identity
+    email: Email  # Value object
     first_name: str
     last_name: str
     password_hash: str
-    role: UserRole                  # Value object
+    role: UserRole  # Value object
     is_active: bool = True
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -185,9 +185,7 @@ class CreateUserUseCase:
         # 1. Check for existing user
         existing_user = await self.user_repo.find_by_email(request.email)
         if existing_user:
-            raise DuplicateEmailError(
-                f"User with email {request.email} already exists"
-            )
+            raise DuplicateEmailError(f"User with email {request.email} already exists")
 
         # 2. Hash password (async to avoid blocking)
         password_hash = await PasswordHandler.hash_password(request.password)
@@ -205,9 +203,7 @@ class CreateUserUseCase:
         # 4. Save
         created_user = await self.user_repo.save(user)
         if created_user is None:
-            raise DuplicateEmailError(
-                f"Failed to create user with email {request.email}"
-            )
+            raise DuplicateEmailError(f"Failed to create user with email {request.email}")
 
         # 5. Return response
         return UserResponse.from_entity(created_user)
@@ -283,8 +279,8 @@ The **User** is currently the only aggregate root.
 class UserEntity:
     id: EntityId
     email: Email
-    password_hash: str        # Managed by domain/application layer
-    role: UserRole            # Controlled through domain logic
+    password_hash: str  # Managed by domain/application layer
+    role: UserRole  # Controlled through domain logic
     # ...
 ```
 
@@ -302,10 +298,12 @@ class UserCreatedEvent:
     email: Email
     created_at: datetime
 
+
 @dataclass
 class UserAuthenticatedEvent:
     user_id: EntityId
     authenticated_at: datetime
+
 
 @dataclass
 class UserDeactivatedEvent:
@@ -390,12 +388,14 @@ class User:
     password_hash: str
     role: str
 
+
 # Business logic scattered everywhere
 def create_user(db, email, password, role):
     # Validation here
     # Password hashing here
     # Database save here
     pass
+
 
 def login_user(db, email, password):
     # Database query here
@@ -411,13 +411,14 @@ def login_user(db, email, password):
 @dataclass
 class UserEntity:
     id: EntityId
-    email: Email              # Self-validating
-    password_hash: str        # Managed by domain
-    role: UserRole            # Type-safe enum
+    email: Email  # Self-validating
+    password_hash: str  # Managed by domain
+    role: UserRole  # Type-safe enum
 
     @property
     def fullname(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
 
 # Business logic in use cases
 class CreateUserUseCase:
@@ -427,6 +428,7 @@ class CreateUserUseCase:
     async def execute(self, request: CreateUserRequest) -> UserResponse:
         # Clear, single responsibility
         ...
+
 
 class LoginUserUseCase:
     def __init__(self, user_repo: UserRepository, jwt_handler: JWTHandler):
@@ -467,12 +469,11 @@ class UserEntity:
 @dataclass
 class UserEntity:
     id: EntityId
-    email: Email              # Self-validating value object
+    email: Email  # Self-validating value object
     password_hash: str
 
     @property
-    def fullname(self) -> str:
-        ...
+    def fullname(self) -> str: ...
 ```
 
 ### ❌ Leaky Domain Model
@@ -490,8 +491,7 @@ class UserEntity:
 # GOOD - Domain is persistence-agnostic
 class UserRepository(ABC):
     @abstractmethod
-    async def save(self, user: UserEntity) -> UserEntity:
-        ...
+    async def save(self, user: UserEntity) -> UserEntity: ...
 ```
 
 ### ❌ God Use Case
@@ -500,10 +500,14 @@ class UserRepository(ABC):
 # BAD - Use case does everything
 class UserManagementUseCase:
     async def execute(self, action: str, data: dict):
-        if action == "create": ...
-        elif action == "update": ...
-        elif action == "delete": ...
-        elif action == "login": ...
+        if action == "create":
+            ...
+        elif action == "update":
+            ...
+        elif action == "delete":
+            ...
+        elif action == "login":
+            ...
 ```
 
 **Fix:** Single responsibility per use case:
@@ -511,8 +515,14 @@ class UserManagementUseCase:
 ```python
 # GOOD - One use case per action
 class CreateUserUseCase: ...
+
+
 class UpdateUserUseCase: ...
+
+
 class DeleteUserUseCase: ...
+
+
 class LoginUserUseCase: ...
 ```
 

@@ -147,6 +147,7 @@ from src.app.shared.logging import get_logger, log_business_event, log_error_eve
 
 log = get_logger(__name__)
 
+
 class CreateStoryUseCase:
     async def execute(self, request: CreateStoryRequest, created_by: str) -> StoryResponse:
         try:
