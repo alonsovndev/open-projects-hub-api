@@ -33,6 +33,7 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
     is_active: bool = True
+    onboarding_completed: bool = True
 
 
 class UserCreateRequest(BaseModel):
@@ -72,6 +73,14 @@ class UpdateProfileRequest(BaseModel):
     )
 
     display_name: str
+
+
+class UpdateOnboardingRequest(BaseModel):
+    """Request model for dismissing (completed=true) or replaying (completed=false) onboarding."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    completed: bool
 
 
 class ChangePasswordRequest(BaseModel):

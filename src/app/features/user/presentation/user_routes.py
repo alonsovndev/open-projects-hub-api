@@ -11,11 +11,13 @@ from src.app.composition import (
     get_get_user_by_id_use_case,
     get_get_user_profile_use_case,
     get_list_workspace_users_use_case,
+    get_update_user_onboarding_use_case,
     get_update_user_profile_use_case,
     get_update_user_status_use_case,
 )
 from src.app.features.user.application.dtos.user_dto import (
     ChangePasswordRequest,
+    UpdateOnboardingRequest,
     UpdateProfileRequest,
     UpdateUserStatusRequest,
     UserCreateRequest,
@@ -27,6 +29,7 @@ from src.app.features.user.application.use_cases.delete_user import DeleteUserUs
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.app.features.user.application.use_cases.list_workspace_users import ListWorkspaceUsersUseCase
+from src.app.features.user.application.use_cases.update_user_onboarding import UpdateUserOnboardingUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.application.use_cases.update_user_status import UpdateUserStatusUseCase
 from src.app.shared.application.request_context import RequestContext
@@ -96,6 +99,28 @@ async def update_user_profile(
     """
     user_id = str(current_user["sub"])
     return await use_case.execute(user_id, payload.display_name)
+
+
+@router.patch("/me/onboarding", response_model=UserResponse)
+async def update_user_onboarding(
+    payload: UpdateOnboardingRequest,
+    current_user: dict[str, Any] = Depends(get_current_user),
+    use_case: UpdateUserOnboardingUseCase = Depends(get_update_user_onboarding_use_case),
+) -> UserResponse:
+    """
+    Dismiss (completed=true) or replay (completed=false) the first-use welcome.
+
+    Requires authentication. Acts on the caller only.
+
+    Returns:
+        UserResponse with the updated onboardingCompleted flag
+
+    Raises:
+        401: Unauthorized (invalid or missing token)
+        404: User not found
+    """
+    user_id = str(current_user["sub"])
+    return await use_case.execute(user_id, payload.completed)
 
 
 @router.post("/me/password", status_code=status.HTTP_200_OK)
