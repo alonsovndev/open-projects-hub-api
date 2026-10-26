@@ -47,7 +47,7 @@ logging:
   - type: console
 
 monitoring:
-  # Sentry disabled here by choice — reviewing via console/CloudWatch logs
+  # Sentry disabled here by choice — reviewing via console logs
   # for this environment. Enable by setting sentry_dsn (see config_prod.yml).
   sentry_dsn: null
   sentry_traces_sample_rate: 0.1

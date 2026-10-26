@@ -33,7 +33,7 @@ app_description = (
 )
 
 # Error tracking (ADR-009). Only config_prod.yml sets a real sentry_dsn; other
-# environments leave Sentry uninitialised (console/CloudWatch logs are used there).
+# environments leave Sentry uninitialised (console logs are used there).
 init_sentry(config)
 
 
