@@ -24,6 +24,9 @@ GENERIC_RESET_MESSAGE = "If an account exists for this email, a reset code has b
 # request and the resend path count against the same window.
 REQUEST_WINDOW_MINUTES = 15
 MAX_REQUESTS_PER_WINDOW = 3
+# NFR-X10 caps emails per account per hour; the 15-minute window alone would allow 12.
+HOURLY_WINDOW_MINUTES = 60
+MAX_REQUESTS_PER_HOUR = 10
 
 
 async def is_request_rate_limited(
@@ -31,9 +34,12 @@ async def is_request_rate_limited(
     reset_code_repository: PasswordResetCodeRepository,
 ) -> bool:
     """Whether this user has already been issued the window's allowance of codes."""
-    window_start = datetime.now(UTC) - timedelta(minutes=REQUEST_WINDOW_MINUTES)
-    recent_count = await reset_code_repository.count_created_since(user_id, window_start)
-    return recent_count >= MAX_REQUESTS_PER_WINDOW
+    now = datetime.now(UTC)
+    window_start = now - timedelta(minutes=REQUEST_WINDOW_MINUTES)
+    if await reset_code_repository.count_created_since(user_id, window_start) >= MAX_REQUESTS_PER_WINDOW:
+        return True
+    hour_start = now - timedelta(minutes=HOURLY_WINDOW_MINUTES)
+    return await reset_code_repository.count_created_since(user_id, hour_start) >= MAX_REQUESTS_PER_HOUR
 
 
 async def issue_reset_code(

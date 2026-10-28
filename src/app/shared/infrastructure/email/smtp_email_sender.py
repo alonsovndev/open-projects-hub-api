@@ -2,9 +2,9 @@
 Minimal SMTP email sender.
 
 Delivers password-reset codes (EPIC-2) and sign-up verification codes
-(EPIC-8) as plain text. EPIC-9-BE-001 (Email Notification Service) will add
-retry/backoff and per-account rate limiting; this adapter intentionally stays
-small until that lands.
+(EPIC-8) as plain text. Transient connection failures are retried with
+exponential backoff (EPIC-9-BE-001); the per-account hourly cap lives with the
+code issuers, which know the account.
 """
 
 from email.message import EmailMessage
@@ -13,6 +13,7 @@ from email.utils import formatdate
 import aiosmtplib
 
 from src.app.shared.infrastructure.email.email_sender import EmailSender
+from src.app.shared.infrastructure.retry import retry_on_exception
 from src.app.shared.logging import get_logger, mask_email
 
 
@@ -35,14 +36,19 @@ class SmtpEmailSender(EmailSender):
         message.set_content(body)
 
         try:
-            await aiosmtplib.send(
-                message,
-                hostname=self.host,
-                port=self.port,
-                username=self.username or None,
-                password=self.password or None,
-                start_tls=self.use_tls,
-            )
+            await self._deliver(message)
         except Exception:
             self._log.exception("Failed to send email", extra={"event_type": "email.send_failed", "to": mask_email(to)})
             raise
+
+    # Only connection and timeout errors are retried; a rejected login or recipient will not heal.
+    @retry_on_exception(max_tries=3)
+    async def _deliver(self, message: EmailMessage) -> None:
+        await aiosmtplib.send(
+            message,
+            hostname=self.host,
+            port=self.port,
+            username=self.username or None,
+            password=self.password or None,
+            start_tls=self.use_tls,
+        )
