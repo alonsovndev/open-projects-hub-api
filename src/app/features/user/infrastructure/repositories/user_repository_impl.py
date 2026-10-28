@@ -247,6 +247,7 @@ class UserRepositoryImpl(UserRepository):
             user_model.ai_credits_granted = user.ai_credits_granted
             user_model.email_verified_at = user.email_verified_at
             user_model.deactivated_at = user.deactivated_at
+            user_model.onboarding_completed_at = user.onboarding_completed_at
 
             await self.db_session.commit()
             await self.db_session.refresh(user_model)

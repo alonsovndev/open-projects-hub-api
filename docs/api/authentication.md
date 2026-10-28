@@ -213,11 +213,7 @@ curl -X POST http://localhost:8080/v1/auth/login \
 import requests
 
 response = requests.post(
-    "http://localhost:8080/v1/auth/login",
-    json={
-        "email": "admin@example.com",
-        "password": "Admin123!"
-    }
+    "http://localhost:8080/v1/auth/login", json={"email": "admin@example.com", "password": "Admin123!"}
 )
 
 if response.status_code == 200:

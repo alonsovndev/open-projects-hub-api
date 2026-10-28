@@ -103,7 +103,7 @@ from src.app.composition import (
 async def create_project(
     payload: CreateProjectRequest,
     current_user: dict = Depends(verify_jwt_token),
-    use_case = Depends(get_create_project_use_case),
+    use_case=Depends(get_create_project_use_case),
 ):
     user_id = current_user.get("sub")
     return await use_case.execute(request=payload, created_by=user_id)
@@ -126,7 +126,7 @@ class CreateProjectUseCase:
     async def execute(
         self,
         request: CreateProjectRequest,  # DTO
-        created_by: str,                # Context
+        created_by: str,  # Context
     ) -> ProjectResponse:
         # 1. Validate dependencies
         client = await self.client_repo.find_by_id(request.client_id)
@@ -386,9 +386,7 @@ class ProjectRepositoryImpl(ProjectRepository):
         return ProjectMapper.to_entity(model)
 
     async def find_by_id(self, project_id: str) -> Optional[ProjectEntity]:
-        result = await self.session.execute(
-            select(ProjectModel).where(ProjectModel.id == project_id)
-        )
+        result = await self.session.execute(select(ProjectModel).where(ProjectModel.id == project_id))
         model = result.scalar_one_or_none()
         return ProjectMapper.to_entity(model) if model else None
 ```

@@ -96,17 +96,14 @@ from slowapi.util import get_remote_address
 import redis
 
 redis_client = redis.Redis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
-    db=0,
-    decode_responses=True
+    host=os.getenv("REDIS_HOST", "localhost"), port=int(os.getenv("REDIS_PORT", 6379)), db=0, decode_responses=True
 )
 
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["100/minute"],
     storage_uri=f"redis://{redis_client.connection_pool.connection_kwargs['host']}:"
-                f"{redis_client.connection_pool.connection_kwargs['port']}"
+    f"{redis_client.connection_pool.connection_kwargs['port']}",
 )
 ```
 
@@ -165,8 +162,8 @@ Current rate limits have been set conservatively to account for potential multi-
 # Adjusted for 2-3 instance deployment
 # Actual limit per instance may be divided by instance count
 DEFAULT_LIMIT = "100/minute"  # Effective: 200-300/min with 2-3 instances
-LOGIN_LIMIT = "10/minute"     # Effective: 20-30/min with 2-3 instances  
-REGISTER_LIMIT = "5/minute"   # Effective: 10-15/min with 2-3 instances
+LOGIN_LIMIT = "10/minute"  # Effective: 20-30/min with 2-3 instances
+REGISTER_LIMIT = "5/minute"  # Effective: 10-15/min with 2-3 instances
 ```
 
 **Limitations:**

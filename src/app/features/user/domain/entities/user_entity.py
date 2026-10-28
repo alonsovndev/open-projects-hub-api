@@ -27,6 +27,7 @@ class UserEntity(BaseEntity):
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
         deactivated_at: datetime | None = None,
+        onboarding_completed_at: datetime | None = None,
     ):
         self._email = email
         self._display_name = display_name
@@ -38,6 +39,7 @@ class UserEntity(BaseEntity):
         self._email_verified_at = email_verified_at
         self._workspace_id = workspace_id
         self._deactivated_at = deactivated_at
+        self._onboarding_completed_at = onboarding_completed_at
         super().__init__(id, created_at, updated_at)
 
     @property
@@ -79,6 +81,14 @@ class UserEntity(BaseEntity):
     @property
     def deactivated_at(self) -> datetime | None:
         return self._deactivated_at
+
+    @property
+    def onboarding_completed_at(self) -> datetime | None:
+        return self._onboarding_completed_at
+
+    @property
+    def is_onboarding_completed(self) -> bool:
+        return self._onboarding_completed_at is not None
 
     @property
     def is_active(self) -> bool:
@@ -192,6 +202,18 @@ class UserEntity(BaseEntity):
         if role is not None:
             self._role = role
         self.mark_as_updated()
+
+    def complete_onboarding(self, now: datetime | None = None) -> None:
+        """Record that the first-use welcome was dismissed. Keeps the original time if already set."""
+        if self._onboarding_completed_at is None:
+            self._onboarding_completed_at = now or datetime.now(UTC)
+            self.mark_as_updated()
+
+    def reset_onboarding(self) -> None:
+        """Show the first-use welcome again on the next visit."""
+        if self._onboarding_completed_at is not None:
+            self._onboarding_completed_at = None
+            self.mark_as_updated()
 
     def has_ai_credits(self) -> bool:
         """Whether a platform refinement can still be charged to this account."""

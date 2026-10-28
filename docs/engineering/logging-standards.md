@@ -131,11 +131,13 @@ log_business_event(
 ```python
 from src.app.shared.logging import redact_sensitive_fields
 
-safe_data = redact_sensitive_fields({
-    "username": "john",
-    "password": "secret123",
-    "api_key": "abc123",
-})
+safe_data = redact_sensitive_fields(
+    {
+        "username": "john",
+        "password": "secret123",
+        "api_key": "abc123",
+    }
+)
 # Output: {"username": "john", "password": "***REDACTED***", "api_key": "***REDACTED***"}
 ```
 
@@ -258,6 +260,7 @@ from src.app.shared.logging import get_logger, log_business_event, log_error_eve
 
 log = get_logger(__name__)
 
+
 class CreateStoryUseCase:
     async def execute(self, request: CreateStoryRequest, created_by: str) -> StoryResponse:
         try:
@@ -317,11 +320,7 @@ def test_logs_business_event(caplog):
         result = await use_case.execute(request, user_id)
 
     # Assert
-    assert any(
-        record.event_type == "story.created"
-        and record.entity_id == str(story_id)
-        for record in caplog.records
-    )
+    assert any(record.event_type == "story.created" and record.entity_id == str(story_id) for record in caplog.records)
 ```
 
 ## Configuration

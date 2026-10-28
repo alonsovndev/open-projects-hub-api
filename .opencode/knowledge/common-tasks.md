@@ -13,8 +13,10 @@ Step-by-step guides for common development tasks in this repository.
 ```python
 # src/app/features/projects/application/dtos/project_dto.py
 
+
 class ProjectStatsResponse(BaseModel):
     """Response model for project statistics."""
+
     project_id: str
     total_stories: int
     completed_stories: int
@@ -31,6 +33,7 @@ class ProjectStatsResponse(BaseModel):
 
 from src.app.features.projects.domain.repositories.project_repository import ProjectRepository
 from src.app.features.stories.domain.repositories.story_repository import StoryRepository
+
 
 class GetProjectStatsUseCase:
     def __init__(
@@ -69,6 +72,7 @@ class GetProjectStatsUseCase:
 
 from src.app.features.projects.application.use_cases.get_project_stats import GetProjectStatsUseCase
 
+
 def get_project_stats_use_case(
     project_repo: ProjectRepository = Depends(get_project_repository),
     story_repo: StoryRepository = Depends(get_story_repository),
@@ -103,6 +107,7 @@ __all__ = [
 
 from src.app.composition import get_project_stats_use_case
 from src.app.features.projects.application.use_cases.get_project_stats import GetProjectStatsUseCase
+
 
 @router.get("/{project_id}/stats", response_model=ProjectStatsResponse)
 async def get_project_stats(
@@ -164,6 +169,7 @@ class ProjectEntity:
 ```python
 # src/app/features/projects/infrastructure/models/project_model.py
 
+
 class ProjectModel(Base):
     __tablename__ = "projects"
 
@@ -173,7 +179,9 @@ class ProjectModel(Base):
     description = Column(Text, nullable=True)  # NEW
     # ...
 
+
 # src/app/features/projects/infrastructure/mappers/project_mapper.py
+
 
 class ProjectMapper:
     @staticmethod
@@ -202,15 +210,18 @@ class ProjectMapper:
 ```python
 # src/app/features/projects/application/dtos/project_dto.py
 
+
 class CreateProjectRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     code: str = Field(min_length=2, max_length=20)
     description: Optional[str] = Field(None, max_length=1000)  # NEW
     client_id: str
 
+
 class UpdateProjectRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)  # NEW
+
 
 class ProjectResponse(BaseModel):
     id: str
@@ -219,7 +230,9 @@ class ProjectResponse(BaseModel):
     description: Optional[str]  # NEW
     # ... other fields
 
+
 # src/app/features/projects/application/mappers/project_mapper.py
+
 
 def to_project_response(entity: ProjectEntity, client_name: str) -> ProjectResponse:
     return ProjectResponse(
@@ -242,11 +255,13 @@ alembic revision --autogenerate -m "Add description field to projects"
 ```python
 # alembic/versions/xxxx_add_description_field_to_projects.py
 
+
 def upgrade() -> None:
-    op.add_column('projects', sa.Column('description', sa.Text(), nullable=True))
+    op.add_column("projects", sa.Column("description", sa.Text(), nullable=True))
+
 
 def downgrade() -> None:
-    op.drop_column('projects', 'description')
+    op.drop_column("projects", "description")
 ```
 
 **6. Apply Migration:**
@@ -279,6 +294,7 @@ make test-integration
 ```python
 # src/app/features/projects/domain/repositories/project_repository.py
 
+
 class ProjectRepository(ABC):
     # ... existing methods
 
@@ -292,6 +308,7 @@ class ProjectRepository(ABC):
 
 ```python
 # src/app/features/projects/infrastructure/repositories/project_repository_impl.py
+
 
 async def find_active_by_client(self, client_id: str) -> List[ProjectEntity]:
     """Find all active projects for a client."""
@@ -309,6 +326,7 @@ async def find_active_by_client(self, client_id: str) -> List[ProjectEntity]:
 
 ```python
 # src/tests/integration/infrastructure/repositories/test_project_repository.py
+
 
 @pytest.mark.integration
 async def test_find_active_by_client(db_session):
@@ -345,6 +363,7 @@ from unittest.mock import AsyncMock
 from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
 from src.app.features.projects.application.dtos.project_dto import CreateProjectRequest
 
+
 @pytest.mark.asyncio
 async def test_create_project_success():
     # Arrange
@@ -375,6 +394,7 @@ async def test_create_project_success():
     mock_client_repo.find_by_id.assert_called_once_with("client-123")
     mock_project_repo.save.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_create_project_client_not_found():
     # Arrange
@@ -400,6 +420,7 @@ async def test_create_project_client_not_found():
 import pytest
 from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
 from src.app.features.projects.domain.entities.project_entity import ProjectEntity
+
 
 @pytest.mark.integration
 async def test_save_and_find_project(db_session):
@@ -430,6 +451,7 @@ async def test_save_and_find_project(db_session):
 # src/tests/e2e/test_projects.py
 
 import pytest
+
 
 @pytest.mark.e2e
 async def test_create_project_e2e(async_client, admin_token):
@@ -466,6 +488,7 @@ async def test_create_project_e2e(async_client, admin_token):
 from fastapi import HTTPException, status
 from src.app.composition import get_project_repository, get_database_session
 
+
 async def verify_project_ownership(
     project_id: str,
     current_user: dict,
@@ -481,19 +504,16 @@ async def verify_project_ownership(
     # Check ownership
     async for session in get_database_session():
         from src.app.features.projects.infrastructure.repositories.project_repository_impl import ProjectRepositoryImpl
+
         repo = ProjectRepositoryImpl(session)
         project = await repo.find_by_id(project_id)
 
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if str(project.created_by) != user_id:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to access this project"
+                status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to access this project"
             )
 ```
 
@@ -504,11 +524,12 @@ async def verify_project_ownership(
 
 from src.app.features.projects.presentation.auth_checks import verify_project_ownership
 
+
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: str,
     current_user: dict = Depends(verify_jwt_token),
-    use_case = Depends(get_delete_project_use_case),
+    use_case=Depends(get_delete_project_use_case),
 ) -> None:
     """Delete a project (owner or admin only)."""
     await verify_project_ownership(project_id, current_user)
@@ -592,6 +613,7 @@ ImportError: cannot import name 'X' from partially initialized module
 # In factory function
 def get_use_case():
     from src.app.features.projects.application.use_cases.create_project import CreateProjectUseCase
+
     return CreateProjectUseCase(...)
 ```
 

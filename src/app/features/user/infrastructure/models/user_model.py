@@ -40,6 +40,8 @@ class UserModel(Base):
     # Set when an Admin removes the account. Rows are kept because projects and stories
     # reference their creator; a deactivated account can no longer sign in or be listed.
     deactivated_at = Column(DateTime(timezone=True), nullable=True)
+    # NULL until the person dismisses the first-use welcome (F-005); clearing it replays it.
+    onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
     workspace_id = Column(
         UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="RESTRICT"), nullable=False, index=True
     )

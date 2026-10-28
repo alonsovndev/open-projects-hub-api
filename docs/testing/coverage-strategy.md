@@ -133,6 +133,7 @@ def debug_helper():  # pragma: no cover
     """Only used in development"""
     print("Debug info")
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from typing import Optional
 ```
@@ -352,6 +353,7 @@ Use `unittest.mock`:
 
 ```python
 from unittest.mock import AsyncMock
+
 
 @pytest.fixture
 def mock_user_repo():

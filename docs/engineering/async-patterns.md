@@ -5,7 +5,7 @@ The Open Projects Hub API uses async/await throughout for high concurrency witho
 CPU-intensive operations (like bcrypt) run in a thread pool:
 ```python
 async def hash_password(password: str) -> str:
-    salt = bcrypt. gensalt()
+    salt = bcrypt.gensalt()
     hashed = await asyncio.to_thread(bcrypt.hashpw, password.encode(), salt)
     return hashed.decode()
 ```

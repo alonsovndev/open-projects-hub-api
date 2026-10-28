@@ -41,6 +41,7 @@ from src.app.features.user.application.use_cases.delete_user import DeleteUserUs
 from src.app.features.user.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from src.app.features.user.application.use_cases.get_user_profile import GetUserProfileUseCase
 from src.app.features.user.application.use_cases.list_workspace_users import ListWorkspaceUsersUseCase
+from src.app.features.user.application.use_cases.update_user_onboarding import UpdateUserOnboardingUseCase
 from src.app.features.user.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from src.app.features.user.application.use_cases.update_user_status import UpdateUserStatusUseCase
 from src.app.features.user.domain.repositories.user_repository import UserRepository
@@ -86,6 +87,13 @@ async def get_update_user_profile_use_case(
 ) -> UpdateUserProfileUseCase:
     """UpdateUserProfileUseCase factory."""
     return UpdateUserProfileUseCase(user_repository)
+
+
+async def get_update_user_onboarding_use_case(
+    user_repository: UserRepository = Depends(get_user_repository),
+) -> UpdateUserOnboardingUseCase:
+    """UpdateUserOnboardingUseCase factory."""
+    return UpdateUserOnboardingUseCase(user_repository)
 
 
 async def get_change_password_use_case(
