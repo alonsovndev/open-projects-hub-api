@@ -511,7 +511,7 @@ Follow the "Cloudflare setup" and "First release checklist" sections of the infr
 **Deploy a release** (after the `deploy` workflow has pushed the image; use credentials for the AWS account that holds the host):
 
 ```bash
-AWS_PROFILE=ophub-new API_URL=https://api-oph.alonsovndev.com scripts/deploy-release.sh v0.1.0
+AWS_PROFILE=ophub-new API_URL=https://api-oph.alonsovndev.com scripts/deploy-release.sh vX.Y.Z
 ```
 
 The script finds the `ophub-prod-api` instance in `AWS_REGION` (default `us-east-2`), runs the `ophub-prod-deploy` SSM document with the tag, prints the host output and, when `API_URL` is set, checks that the API answers a JSON 4xx through Cloudflare.

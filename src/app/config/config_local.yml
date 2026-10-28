@@ -1,6 +1,6 @@
 app:
   name: Open Projects Hub API
-  version: 1.0.0
+  version: 0.2.0
   # Where emailed links point (verify-email, reset-password).
   frontend_base_url: !ENV ${FRONTEND_BASE_URL:http://localhost:5173}
 

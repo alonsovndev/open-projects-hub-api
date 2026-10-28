@@ -49,6 +49,7 @@ Admin manages the team and renames the workspace). Clients have no account: they
 | `POST` | `/v1/users/me/api-keys/{provider}/validate` | Authenticated | Check the stored key with the provider |
 | `GET` | `/v1/users/me/profile` | Authenticated | Get current user profile |
 | `PATCH` | `/v1/users/me/profile` | Authenticated | Update current user profile |
+| `PATCH` | `/v1/users/me/onboarding` | Authenticated | Dismiss (`{completed: true}`) or replay (`{completed: false}`) the first-use welcome. Returns the user with `onboardingCompleted` (also returned by the profile endpoints). It is `false` only for accounts created after migration `0002`; existing accounts are marked completed |
 | `POST` | `/v1/users/me/password` | Authenticated | Change password |
 | `POST` | `/v1/users` | Admin Only | Add a member. Body `{displayName, email, role?}` (`role` can only be `member`), no password: they get a verification email and set their own. 409 when the workspace already has 5 users (any role, inactive and unverified included) |
 | `POST` | `/v1/clients` | Authenticated | Create client |
