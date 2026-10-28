@@ -298,6 +298,7 @@ pytest --cov=src/app --cov-report=term-missing
 import pytest
 from src.app.features.users.domain.entities.user_entity import UserEntity
 
+
 @pytest.mark.unit
 def test_create_user_entity():
     """Test creating a user entity with valid data."""
@@ -397,6 +398,7 @@ mypy --html-report mypy-report src/app
 
 ```python
 from typing import Optional
+
 
 def get_user_by_id(user_id: int) -> Optional[UserEntity]:
     """Get user by ID.

@@ -123,19 +123,13 @@ class PasswordHandler:
     @staticmethod
     async def hash_password(plain_password: str) -> str:
         salt = bcrypt.gensalt()
-        hashed = await asyncio.to_thread(
-            bcrypt.hashpw,
-            plain_password.encode("utf-8"),
-            salt
-        )
+        hashed = await asyncio.to_thread(bcrypt.hashpw, plain_password.encode("utf-8"), salt)
         return hashed.decode("utf-8")
 
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
         result = await asyncio.to_thread(
-            bcrypt.checkpw,
-            plain_password.encode("utf-8"),
-            hashed_password.encode("utf-8")
+            bcrypt.checkpw, plain_password.encode("utf-8"), hashed_password.encode("utf-8")
         )
         return result
 ```
@@ -191,10 +185,8 @@ HMACSHA256(
 
 ```python
 # src/app/shared/infrastructure/security/jwt_handler.py
-WEAK_SECRETS = {
-    "secret", "your-secret-key-here", "changeme",
-    "default", "test", "password", "12345", "supersecret"
-}
+WEAK_SECRETS = {"secret", "your-secret-key-here", "changeme", "default", "test", "password", "12345", "supersecret"}
+
 
 @classmethod
 def validate_secret_key(cls, secret_key: str) -> None:
@@ -227,9 +219,7 @@ All database queries use SQLAlchemy ORM or parameterized raw SQL:
 
 ```python
 # ✅ SAFE - Parameterized query
-result = await session.execute(
-    select(UserModel).where(UserModel.email == email)
-)
+result = await session.execute(select(UserModel).where(UserModel.email == email))
 
 # ✅ SAFE - ORM methods
 user = await session.get(UserModel, user_id)
@@ -282,8 +272,9 @@ POSTGRES_PASSWORD=your-database-password
 2. **Secrets management service** (AWS Secrets Manager, HashiCorp Vault)
    ```python
    import boto3
-   secrets = boto3.client('secretsmanager')
-   secret = secrets.get_secret_value(SecretId='prod/api/jwt-secret')
+
+   secrets = boto3.client("secretsmanager")
+   secret = secrets.get_secret_value(SecretId="prod/api/jwt-secret")
    ```
 
 3. **Kubernetes secrets**

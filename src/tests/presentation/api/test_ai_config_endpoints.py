@@ -317,7 +317,7 @@ class TestValidationErrorsDoNotLeakKeys:
     A key that fails Pydantic validation never reaches the use case, so the use-case-level
     redaction tests cannot see it. FastAPI's RequestValidationError carries the rejected
     value in `errors()[i]["input"]`, and the JSON log formatter copies every `extra`
-    through verbatim — so this is the one path where a raw key could reach CloudWatch.
+    through verbatim — so this is the one path where a raw key could reach the logs.
     """
 
     def test_an_over_long_key_is_not_written_to_the_logs(self, client: TestClient, admin_token: str, caplog):

@@ -48,7 +48,7 @@ def _redact_errors(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
     `exc.errors()` carries an `input` field holding the value that failed validation, and
     `ctx` can echo it too. For a rejected password or provider API key that is the secret
     itself, and the JSON log formatter copies every `extra` through verbatim — so it would
-    reach CloudWatch and, via Sentry's logging breadcrumbs, Sentry (F-010 NFR-010-02).
+    reach the logs and, via Sentry's logging breadcrumbs, Sentry (F-010 NFR-010-02).
     Which field failed and why is all a log needs.
     """
     return [{"type": error.get("type"), "loc": error.get("loc"), "msg": error.get("msg")} for error in errors]

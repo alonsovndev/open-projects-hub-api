@@ -313,20 +313,13 @@ import requests
 
 # Login
 response = requests.post(
-    "http://localhost:8000/v1/auth/login",
-    json={
-        "email": "user@example.com",
-        "password": "YourPassword123"
-    }
+    "http://localhost:8000/v1/auth/login", json={"email": "user@example.com", "password": "YourPassword123"}
 )
 data = response.json()
 token = data["token"]
 
 # Use token
-response = requests.get(
-    "http://localhost:8000/v1/users/me/profile",
-    headers={"Authorization": f"Bearer {token}"}
-)
+response = requests.get("http://localhost:8000/v1/users/me/profile", headers={"Authorization": f"Bearer {token}"})
 user = response.json()
 ```
 

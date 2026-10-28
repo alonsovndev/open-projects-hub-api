@@ -402,6 +402,7 @@ class ProjectEntity:
         ProjectValidators.validate_name(name)
         self._name = name
 
+
 # ❌ Bad - Unnecessary wrapper methods
 class ProjectEntity:
     @staticmethod
@@ -430,12 +431,14 @@ from src.app.composition import (
     get_project_repository,
 )
 
+
 @router.post("/projects")
 async def create_project(
     payload: CreateProjectRequest,
-    use_case = Depends(get_create_project_use_case),
+    use_case=Depends(get_create_project_use_case),
 ):
     return await use_case.execute(request=payload, created_by=user_id)
+
 
 # ❌ Bad - Direct imports from feature dependencies (old pattern, removed)
 from src.app.features.projects.presentation.dependencies import get_create_project_use_case

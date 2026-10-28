@@ -55,6 +55,7 @@ _SELF_SERVICE_ROUTES = frozenset(
     {
         ("POST", "/v1/auth/logout"),
         ("PATCH", "/v1/users/me/profile"),
+        ("PATCH", "/v1/users/me/onboarding"),
         ("POST", "/v1/users/me/password"),
     }
 )
@@ -76,6 +77,7 @@ _ACCOUNT_ROUTES = frozenset(
     {
         ("GET", "/v1/users/me/profile"),
         ("PATCH", "/v1/users/me/profile"),
+        ("PATCH", "/v1/users/me/onboarding"),
         ("POST", "/v1/users/me/password"),
     }
 )

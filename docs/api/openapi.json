@@ -1697,6 +1697,20 @@
         "title": "UpdateClientRequest",
         "type": "object"
       },
+      "UpdateOnboardingRequest": {
+        "description": "Request model for dismissing (completed=true) or replaying (completed=false) onboarding.",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "completed"
+        ],
+        "title": "UpdateOnboardingRequest",
+        "type": "object"
+      },
       "UpdateProfileRequest": {
         "description": "Request model for updating user profile.",
         "properties": {
@@ -1990,6 +2004,11 @@
             "title": "Isactive",
             "type": "boolean"
           },
+          "onboardingCompleted": {
+            "default": true,
+            "title": "Onboardingcompleted",
+            "type": "boolean"
+          },
           "role": {
             "title": "Role",
             "type": "string"
@@ -2155,7 +2174,7 @@
   "info": {
     "description": "REST API for Open Projects Hub \u2014 project, client, and story management with JWT authentication and role-based access control. See [docs/api/README.md](https://github.com/alonsovndev/open-projects-hub-api/blob/main/docs/api/README.md) for auth flows, pagination, and code examples.",
     "title": "Open Projects Hub API",
-    "version": "1.0.0"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4544,6 +4563,53 @@
         "summary": "Get Credit Balance",
         "tags": [
           "AI Credits & API Keys"
+        ]
+      }
+    },
+    "/v1/users/me/onboarding": {
+      "patch": {
+        "description": "Dismiss (completed=true) or replay (completed=false) the first-use welcome.\n\nRequires authentication. Acts on the caller only.\n\nReturns:\n    UserResponse with the updated onboardingCompleted flag\n\nRaises:\n    401: Unauthorized (invalid or missing token)\n    404: User not found",
+        "operationId": "update_user_onboarding_v1_users_me_onboarding_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update User Onboarding",
+        "tags": [
+          "Users"
         ]
       }
     },

@@ -1,6 +1,6 @@
 app:
   name: Open Projects Hub API
-  version: 1.0.0
+  version: 0.2.0
   # Where emailed links point (verify-email, reset-password).
   frontend_base_url: !ENV ${FRONTEND_BASE_URL:http://localhost:5173}
 
@@ -47,7 +47,7 @@ logging:
   - type: console
 
 monitoring:
-  # Sentry disabled here by choice — reviewing via console/CloudWatch logs
+  # Sentry disabled here by choice — reviewing via console logs
   # for this environment. Enable by setting sentry_dsn (see config_prod.yml).
   sentry_dsn: null
   sentry_traces_sample_rate: 0.1

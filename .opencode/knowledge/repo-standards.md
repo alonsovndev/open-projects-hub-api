@@ -77,6 +77,7 @@ Every table must follow this column order. Import `Base` from `src.app.shared.pe
 from src.app.shared.persistence import Base
 import uuid
 
+
 class XxxModel(Base):
     __tablename__ = "xxx"
 
@@ -147,9 +148,10 @@ class ClientMapper:
     @staticmethod
     def to_model(entity: ClientEntity) -> ClientModel: ...
 
+
 # ❌ Bad — mapping methods on the model
 class ClientModel(Base):
-    def to_entity(self) -> ClientEntity: ...    # model shouldn't know about domain
+    def to_entity(self) -> ClientEntity: ...  # model shouldn't know about domain
     def from_entity(cls, entity) -> "ClientModel": ...
 ```
 
@@ -188,6 +190,7 @@ class ProjectEntity:
         ProjectValidators.validate_name(name)
         self._name = name
 
+
 # ❌ Bad - Unnecessary wrapper methods
 class ProjectEntity:
     @staticmethod
@@ -216,12 +219,14 @@ from src.app.composition import (
     get_project_repository,
 )
 
+
 @router.post("/projects")
 async def create_project(
     payload: CreateProjectRequest,
-    use_case = Depends(get_create_project_use_case),
+    use_case=Depends(get_create_project_use_case),
 ):
     return await use_case.execute(request=payload, created_by=user_id)
+
 
 # ❌ Bad - Direct imports from feature dependencies (old pattern, removed)
 from src.app.features.projects.presentation.dependencies import get_create_project_use_case

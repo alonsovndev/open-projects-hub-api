@@ -26,6 +26,9 @@ GENERIC_RESEND_MESSAGE = "If this email is awaiting verification, a new code has
 # and codes are counted per email across both paths.
 RESEND_WINDOW_MINUTES = 15
 MAX_CODES_PER_WINDOW = 4
+# NFR-X10 caps emails per account per hour; the 15-minute window alone would allow 16.
+HOURLY_WINDOW_MINUTES = 60
+MAX_CODES_PER_HOUR = 10
 
 
 async def is_verification_rate_limited(
@@ -33,9 +36,12 @@ async def is_verification_rate_limited(
     verification_code_repository: EmailVerificationCodeRepository,
 ) -> bool:
     """Whether this user has already been issued the window's allowance of codes."""
-    window_start = datetime.now(UTC) - timedelta(minutes=RESEND_WINDOW_MINUTES)
-    recent_count = await verification_code_repository.count_created_since(user_id, window_start)
-    return recent_count >= MAX_CODES_PER_WINDOW
+    now = datetime.now(UTC)
+    window_start = now - timedelta(minutes=RESEND_WINDOW_MINUTES)
+    if await verification_code_repository.count_created_since(user_id, window_start) >= MAX_CODES_PER_WINDOW:
+        return True
+    hour_start = now - timedelta(minutes=HOURLY_WINDOW_MINUTES)
+    return await verification_code_repository.count_created_since(user_id, hour_start) >= MAX_CODES_PER_HOUR
 
 
 def verification_code_ttl_minutes(user_entity: UserEntity) -> int:

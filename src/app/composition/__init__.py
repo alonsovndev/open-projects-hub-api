@@ -134,6 +134,7 @@ from src.app.composition.features.users import (
     get_get_user_by_id_use_case,
     get_get_user_profile_use_case,
     get_list_workspace_users_use_case,
+    get_update_user_onboarding_use_case,
     get_update_user_profile_use_case,
     get_update_user_status_use_case,
 )
@@ -234,6 +235,7 @@ __all__ = [  # noqa: RUF022 - grouped by category for readability
     "get_get_user_by_id_use_case",
     "get_get_user_profile_use_case",
     "get_list_workspace_users_use_case",
+    "get_update_user_onboarding_use_case",
     "get_update_user_profile_use_case",
     "get_update_user_status_use_case",
     # Workspaces

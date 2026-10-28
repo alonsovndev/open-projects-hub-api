@@ -8,7 +8,7 @@ import pytest
 
 from src.app.features.auth.application.dtos.auth_dto import ResendResetCodeRequest
 from src.app.features.auth.application.services.email_links import EmailLinks
-from src.app.features.auth.application.use_cases.issue_reset_code import MAX_REQUESTS_PER_WINDOW
+from src.app.features.auth.application.use_cases.issue_reset_code import MAX_REQUESTS_PER_HOUR, MAX_REQUESTS_PER_WINDOW
 from src.app.features.auth.application.use_cases.resend_reset_code import ResendResetCodeUseCase
 from src.app.features.auth.domain.exceptions.auth_exceptions import ResetCodeRateLimitedError
 from src.app.features.user.domain.entities.user_entity import UserEntity
@@ -82,5 +82,39 @@ class TestResendResetCodeUseCase:
         )
 
         await use_case.execute(ResendResetCodeRequest(email="ghost@example.com"))
+
+        mock_reset_code_repository.create.assert_not_called()
+
+
+class TestHourlyCap:
+    """NFR-X10: at most 10 reset emails per account per hour."""
+
+    @pytest.mark.asyncio
+    async def test_the_tenth_code_in_an_hour_is_still_allowed(
+        self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
+    ):
+        mock_user_repository.find_by_email.return_value = user_entity
+        # 15-minute window, then hourly window
+        mock_reset_code_repository.count_created_since.side_effect = [1, MAX_REQUESTS_PER_HOUR - 1]
+        use_case = ResendResetCodeUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
+
+        await use_case.execute(ResendResetCodeRequest(email="admin@example.com"))
+
+        mock_reset_code_repository.create.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_an_eleventh_code_in_an_hour_is_refused_even_when_the_short_window_is_clear(
+        self, user_entity, mock_user_repository, mock_reset_code_repository, mock_email_sender
+    ):
+        mock_user_repository.find_by_email.return_value = user_entity
+        mock_reset_code_repository.count_created_since.side_effect = [1, MAX_REQUESTS_PER_HOUR]
+        use_case = ResendResetCodeUseCase(
+            mock_user_repository, mock_reset_code_repository, mock_email_sender, EmailLinks("http://localhost:5173")
+        )
+
+        with pytest.raises(ResetCodeRateLimitedError):
+            await use_case.execute(ResendResetCodeRequest(email="admin@example.com"))
 
         mock_reset_code_repository.create.assert_not_called()
