@@ -1,6 +1,6 @@
 [project]
 name = "open-projects-hub-api"
-version = "1.0.0"
+version = "0.2.0"
 description = "FastAPI backend for Open Projects Hub"
 requires-python = ">=3.12"
 
